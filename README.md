@@ -35,9 +35,9 @@ Now it's time to configure your site before uploading it.
 Fill out the form on the screen:
 
 1. **Admin Password**: Create a password. You will use this to log into your site later.
-2. **Neocities API Key**: Paste the key you copied in Phase 1.
+2. **Neocities API Key**: Paste the key you copied in Step 1.
 3. **Branding**: Set your Site Name, Tagline, and Copyright.
-4. **Theme**: Pick your colors! You can see a live preview of your choices as you change them.
+4. **Theme**: Pick whatever colors you want! You can see a live preview of your choices as you change them.
 
 ### Generate the System File
 
