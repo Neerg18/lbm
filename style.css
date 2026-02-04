@@ -2,7 +2,6 @@
 LBM (Leaflet Blog Manager) // CSS
 Version: 0.2
 License: MIT
-applchu wuz here
 */
 
 /* --- SECTION: VARIABLES --- */
@@ -248,10 +247,13 @@ h2 {
   margin-bottom: 5px;
   font-size: 12px;
   color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Spacing between header items */
 }
 .leaflet-author {
   color: var(--text-color);
-  margin-right: 8px;
+  margin-right: 4px;
 }
 .leaflet-media-container {
   margin-top: 10px;

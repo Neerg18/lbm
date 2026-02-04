@@ -1,6 +1,6 @@
 <!--
 LBM (Leaflet Blog Manager)
-Version: 0.3
+Version: 0.4
 License: MIT
 applchu wuz here
 -->
@@ -23,13 +23,13 @@ applchu wuz here
     <link rel="stylesheet" href="style.css">
     
     <style>
-        /* Essential UI Enhancements */
+        /* --- UI UTILITIES --- */
         .delete-btn { background: none; border: none; color: var(--dislike-color); cursor: pointer; font-size: 14px; font-weight: bold; opacity: 0.7; margin-left: auto; }
         .delete-btn:hover { opacity: 1; text-decoration: underline; }
         
         #bridge-frame { width: 1px; height: 1px; opacity: 0; position: absolute; pointer-events: none; }
         
-        /* Toast & Sync UI */
+        /* --- SYNC STATUS --- */
         .sync-status { padding: 10px; margin-bottom: 15px; border: 1px dashed #666; background: #222; font-size: 12px; display: flex; align-items: center; gap: 10px; }
         .sync-indicator { width: 10px; height: 10px; border-radius: 50%; background: #555; }
         .sync-indicator.synced { background: #76c7c0; box-shadow: 0 0 5px #76c7c0; }
@@ -37,6 +37,7 @@ applchu wuz here
         .sync-indicator.loading { background: #ffeaa7; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
+        /* --- TOAST NOTIFICATIONS --- */
         #toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10000; pointer-events: none; }
         .toast { background: #222; border: 1px solid var(--border-color); border-left: 3px solid var(--accent-color); padding: 12px 16px; border-radius: 4px; display: flex; align-items: center; gap: 10px; color: var(--text-color); font-size: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); animation: slideIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); pointer-events: auto; min-width: 200px; }
         .toast.success { border-left-color: #76c7c0; }
@@ -48,8 +49,20 @@ applchu wuz here
         @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
 
-        /* Upload Modal */
-        #upload-modal { display: none; position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        /* --- POST HIGHLIGHT (PERMALINK) --- */
+        .highlight-post {
+            animation: highlightFade 2s ease-out;
+            border: 1px solid var(--accent-color);
+        }
+        @keyframes highlightFade {
+            0% { box-shadow: 0 0 15px var(--accent-color); }
+            100% { box-shadow: none; }
+        }
+
+        /* --- MODALS --- */
+        #upload-modal, #repair-modal { display: none; position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        #repair-modal { z-index: 10002; background: rgba(0,0,0,0.9); }
+        
         .upload-box { background: var(--background-color); border: 1px solid var(--accent-color); padding: 30px; width: 320px; text-align: center; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
         .progress-container { width: 100%; background: #444; height: 8px; border-radius: 4px; margin-top: 20px; overflow: hidden; position: relative; }
         .progress-fill { height: 100%; background: var(--accent-color); width: 0%; transition: width 0.3s ease-in-out; box-shadow: 0 0 10px var(--accent-color); }
@@ -57,11 +70,39 @@ applchu wuz here
         @keyframes progress-stripe { 0% { background-position: 40px 0; } 100% { background-position: 0 0; } }
         .error-details { margin-top: 10px; font-size: 10px; color: #ff7675; background: #222; padding: 5px; border: 1px solid #444; max-height: 100px; overflow-y: auto; display: none; text-align: left; word-break: break-all; }
 
-        /* Media Overlay Navigation */
+        /* --- MEDIA VIEWER --- */
         #media-content-wrapper { display: flex; align-items: center; justify-content: center; gap: 20px; width: 100%; height: 100%; }
         .media-nav { background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #777; font-size: 20px; padding: 10px 15px; cursor: pointer; border-radius: 50%; transition: 0.2s; user-select: none; pointer-events: auto; }
         .media-nav:hover { background: var(--accent-color); border-color: var(--accent-color); color: #000; }
         .media-nav:active { transform: scale(0.95); }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            #media-content-wrapper {
+                position: relative;
+                gap: 0;
+            }
+            .media-nav {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 100;
+                background: rgba(0,0,0,0.6);
+                border: none;
+                border-radius: 5px;
+                padding: 15px 10px;
+            }
+            .media-nav:first-child { left: 5px; } /* Prev button */
+            .media-nav:last-child { right: 5px; } /* Next button */
+            
+            #media-content-wrapper img, 
+            #media-content-wrapper video {
+                max-width: 100%;
+                max-height: 80vh;
+                width: auto;
+                height: auto;
+            }
+        }
     </style>
 </head>
 
@@ -84,18 +125,32 @@ applchu wuz here
         </div>
     </div>
 
+    <!-- Repair Modal -->
+    <div id="repair-modal">
+        <div class="upload-box">
+            <h3 style="color:#ff7675; margin-bottom:10px;">CONNECTION REPAIR</h3>
+            <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Your Secure Token was rejected by the server. Please re-authenticate.</p>
+            <form onsubmit="runRepair(); return false;">
+                <input type="text" name="username" autocomplete="username" style="display:none;">
+                <input type="password" id="repair-api-key" class="setup-input" placeholder="Neocities API Key" style="margin-bottom:15px;" autocomplete="new-password">
+                <button class="action-btn" type="submit">Generate New Token & Sync</button>
+            </form>
+            <button class="action-btn" onclick="document.getElementById('repair-modal').style.display='none'" style="background:transparent; border:none; margin-top:10px; color:#888;">Cancel</button>
+        </div>
+    </div>
+
     <!-- Setup Wizard -->
     <div id="setup-overlay" style="display:none;">
         <div class="setup-box">
             <h1 style="color:var(--accent-color); margin-bottom:20px; text-align:center;">SYSTEM BOOT // INITIAL SETUP</h1>
             <h3 style="border-bottom:1px dotted #555; margin-bottom:10px;">1. System Configuration</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Configure admin credentials and API connectivity.</p>
+            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Create credentials. These will be encrypted into a Secure Token.</p>
             <form onsubmit="return false;">
                 <input type="text" name="username" autocomplete="username" style="display:none;">
                 <label style="font-size:11px; color:#aaa; margin-top:10px;">Create Admin Password:</label>
                 <input type="password" id="setup-password" class="setup-input" placeholder="Password" autocomplete="new-password">
-                <label style="font-size:11px; color:#aaa; margin-top:10px; display:block;">Neocities API Key (Optional):</label>
-                <input type="password" id="setup-neocities-key" class="setup-input" placeholder="Leave blank for self-host/local mode" autocomplete="off">
+                <label style="font-size:11px; color:#aaa; margin-top:10px; display:block;">Neocities API Key:</label>
+                <input type="password" id="setup-neocities-key" class="setup-input" placeholder="API Key (Will be encrypted)" autocomplete="off">
             </form>
 
             <h3 style="border-bottom:1px dotted #555; margin: 20px 0 10px 0;">2. Branding</h3>
@@ -163,6 +218,7 @@ applchu wuz here
                     <input type="color" id="col-dislike-btn" class="color-picker" value="#F0FFF0" oninput="updateSetupPreview()">
                 </div>
             </div>
+
             <div class="config-item" style="margin-bottom:10px;">
                 <label>Widget Padding</label>
                 <input type="text" id="setup-widget-padding" class="setup-input" value="10px" oninput="updateSetupPreview()">
@@ -186,7 +242,7 @@ applchu wuz here
                 <textarea id="setup-custom-css" class="setup-input" rows="4" placeholder="body { font-family: 'Arial'; }" oninput="updateSetupPreview()"></textarea>
             </div>
 
-            <button class="action-btn" onclick="generateConfigFile('setup')" style="margin-top:20px;">GENERATE system.js</button>
+            <button class="action-btn" onclick="generateConfigFile('setup')" style="margin-top:20px;">ENCRYPT KEY & GENERATE system.js</button>
         </div>
     </div>
 
@@ -278,14 +334,6 @@ applchu wuz here
 
                         <!-- Settings Sub-Tab -->
                         <div id="admin-sub-settings" class="admin-panel" style="display:none;">
-                            <h3>System Configuration</h3>
-                            <div class="config-item" style="margin-bottom:15px; border-bottom:1px dotted #555; padding-bottom:15px;">
-                                <form onsubmit="return false;">
-                                    <label style="color:#ff7675;">Neocities API Key (Empty = Self Host)</label>
-                                    <input type="password" id="neocities-api-key" class="setup-input" placeholder="Key..." onchange="saveLocals()" autocomplete="off" style="margin-bottom:5px;">
-                                </form>
-                            </div>
-
                             <h3>SEO & Metadata</h3>
                             <div class="config-grid">
                                 <div class="config-item"><label>Window Title</label><input type="text" id="edit-window-title" class="setup-input" placeholder="My Blog" oninput="updateLivePreview()"></div>
@@ -351,10 +399,23 @@ applchu wuz here
                                     <option value="false">No</option>
                                 </select>
                             </div>
+
+                            <!-- Manual Key Update -->
+                            <div class="config-item" style="margin-bottom:15px; border-top:1px dotted #555; padding-top:15px;">
+                                <label>Update API Key (Optional)</label>
+                                <form onsubmit="return false;">
+                                    <input type="text" name="username" autocomplete="username" style="display:none;">
+                                    <input type="password" id="edit-neocities-key" class="setup-input" placeholder="Enter new key to rotate token" autocomplete="new-password">
+                                </form>
+                            </div>
+
                             <div class="config-item" style="margin-bottom:15px;">
                                 <label>Custom CSS</label>
                                 <textarea id="edit-custom-css" class="setup-input" rows="6" oninput="updateLivePreview()"></textarea>
                             </div>
+                            
+                            <!-- Token Status -->
+                            <div style="font-size:10px; color:#555; text-align:center; margin-top:10px;">Auth Token Loaded</div>
 
                             <button class="action-btn" onclick="saveSystem()">Save Settings & Sync</button>
                         </div>
@@ -386,10 +447,10 @@ applchu wuz here
     <!-- MAIN SYSTEM LOGIC -->
     <script>
         // --- CONSTANTS ---
-        const FIXED_BRIDGE_URL = "https://applchu.link/lbm/bridge.html";
+        const FIXED_BRIDGE_URL = "https://applchu.link/lbm/0.4/bridge.html?v=" + new Date().getTime();
         const LOCAL_STORAGE_KEY = "LBM_CONFIG_CACHE";
         
-        // --- UTILITIES (Defined first to prevent hoisting issues) ---
+        // --- UTILITIES ---
         function unicodeToBase64(str) { return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1))); }
         function base64ToUnicode(str) { return decodeURIComponent(atob(str).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
         async function sha256(message) {
@@ -405,7 +466,6 @@ applchu wuz here
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
         
-        // GLOBAL SCOPE FUNCTION for button onclicks
         window.downloadBackup = async function() { 
             await generateConfigFile('edit'); 
         };
@@ -418,12 +478,25 @@ applchu wuz here
             else setTimeout(() => { t.style.animation='fadeOut 0.5s forwards'; setTimeout(()=>t.remove(),500); }, 3000);
         }
 
+        function copyPermalink(id, event) {
+            event.stopPropagation();
+            const url = window.location.href.split('#')[0] + '#' + id;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast("Link copied!", "success");
+            }).catch(() => {
+                showToast("Link: " + url, "info");
+            });
+        }
+
         // --- STATE ---
         let postsCache = []; 
         let interactionsCache = {}; 
         let currentUploadFile = null;
         let globalAdminHash = null;
+        let globalAuthToken = null; 
         let globalApiKey = null;
+        let sessionPassword = null;
+        
         let isAdminLoggedIn = false;
         let currentLoadingToast = null;
         let pendingPost = null;
@@ -431,7 +504,6 @@ applchu wuz here
         let currentMediaList = [];
         let currentMediaIndex = 0;
         
-        // Default Config
         let currentConfig = {
             siteName: "LBM // System",
             metaTitle: "LBM System",
@@ -457,36 +529,25 @@ applchu wuz here
             }
         };
 
-        // --- CORE INITIALIZATION ---
+        // --- INITIALIZATION ---
         window.onload = async function() {
-            // 1. Immediate Local Config Load
             loadFromLocalCache();
-
-            // 2. Setup Bridge Listener
             window.addEventListener('message', handleBridgeMessage);
             
-            // Only inject bridge if NOT on file protocol
             if (window.location.protocol !== 'file:') {
                 injectBridge(FIXED_BRIDGE_URL);
             }
 
-            // 3. Dynamic Script Loading with Error Suppression
             const timestamp = new Date().getTime();
             const loadScript = (src) => new Promise((resolve) => {
                 const s = document.createElement('script');
                 s.src = `${src}?v=${timestamp}`;
                 s.onload = resolve;
-                // Suppress visual errors for missing files (first load)
-                s.onerror = () => { 
-                    console.log(`[LBM] Note: ${src} not found (fresh install?)`); 
-                    resolve(); 
-                }; 
+                s.onerror = () => { console.log(`[LBM] Note: ${src} not found (fresh install?)`); resolve(); }; 
                 document.body.appendChild(s);
             });
 
             await Promise.all([loadScript('system.js'), loadScript('interactions.js')]);
-
-            // 4. Parse Remote Data
             parseSystemData();
         };
 
@@ -497,7 +558,6 @@ applchu wuz here
                     const localData = JSON.parse(cached);
                     currentConfig = { ...currentConfig, ...localData, colors: { ...currentConfig.colors, ...(localData.colors || {}) } };
                     applyVisualConfig();
-                    console.log("[LBM] Loaded config from LocalStorage.");
                 }
             } catch (e) { console.error("[LBM] LocalStorage Error", e); }
         }
@@ -524,6 +584,8 @@ applchu wuz here
                     
                     globalAdminHash = data.adminHash;
                     postsCache = data.posts || [];
+                    
+                    if (data.authToken) globalAuthToken = data.authToken;
                     if (data.apiKey) globalApiKey = data.apiKey;
                     
                     if (data.siteConfig) {
@@ -539,14 +601,20 @@ applchu wuz here
                     renderLeaflets();
                     renderGallery();
                     
+                    // Permalink Handler
+                    if(window.location.hash) {
+                        const id = window.location.hash.substring(1);
+                        const el = document.getElementById(id);
+                        if(el) {
+                            setTimeout(() => {
+                                el.scrollIntoView({behavior: 'smooth', block: 'center'});
+                                el.classList.add('highlight-post');
+                            }, 500);
+                        }
+                    }
+                    
                     document.getElementById('db-status').innerText = "System Online";
                     document.getElementById('db-status').classList.add('online');
-                    
-                    const k = localStorage.getItem('neocities_api_key');
-                    if(k && !globalApiKey) {
-                        document.getElementById('neocities-api-key').value = k;
-                        globalApiKey = k;
-                    }
                 } catch(e) {
                     console.error("Config Parse Error", e);
                     showToast("Error reading system.js.", "error");
@@ -555,7 +623,20 @@ applchu wuz here
             }
         }
 
+        // --- BRIDGE HANDLER ---
+        let tokenizeResolve = null; 
+        
         function handleBridgeMessage(e) {
+            if (e.data.type === 'TOKEN_RESULT') {
+                if(e.data.success && tokenizeResolve) {
+                    tokenizeResolve(e.data.token);
+                } else if (!e.data.success && tokenizeResolve) {
+                    showToast("Token Generation Failed: " + e.data.message, "error");
+                    tokenizeResolve(null);
+                }
+                tokenizeResolve = null;
+            }
+
             if(e.data.type === 'UPLOAD_RESULT') {
                 if (currentLoadingToast && currentLoadingToast.parentNode) currentLoadingToast.remove();
                 
@@ -574,8 +655,39 @@ applchu wuz here
                         updateSyncStatus('synced', 'System Synced');
                     }
                 } else {
-                    handleUploadError(e.data.message);
+                    if (e.data.message && (e.data.message.includes("Invalid or Corrupted Token") || e.data.message.includes("403") || e.data.message.includes("invalid credentials"))) {
+                        hideUploadModal();
+                        document.getElementById('repair-modal').style.display = 'flex';
+                    } else {
+                        handleUploadError(e.data.message);
+                    }
                 }
+            }
+        }
+
+        // --- REPAIR LOGIC ---
+        async function runRepair() {
+            const k = document.getElementById('repair-api-key').value;
+            if(!k) return alert("Please enter API Key");
+            
+            showToast("Repairing Connection...", "loading");
+            const cleanKey = k.trim();
+            const newToken = await requestTokenGeneration(cleanKey, sessionPassword);
+            
+            if (newToken) {
+                globalAuthToken = newToken;
+                globalApiKey = null;
+                pendingPost = null; 
+                currentUploadFile = null;
+                
+                document.getElementById('repair-modal').style.display = 'none';
+                showToast("Repair Successful! Retrying Save...", "success");
+                
+                setTimeout(() => {
+                    saveSystem(null, null, newToken); 
+                }, 1000);
+            } else {
+                showToast("Repair Failed. Check Key.", "error");
             }
         }
 
@@ -591,62 +703,52 @@ applchu wuz here
             frame.src = url;
         }
 
-        async function saveSystem(mediaFile = null, explicitMediaPath = null) {
-            if(isAdminLoggedIn) scrapeConfig('edit');
+        async function saveSystem(mediaFile = null, explicitMediaPath = null, overrideToken = null) {
+            if(isAdminLoggedIn && document.getElementById('admin-dashboard').style.display === 'block') {
+                scrapeConfig('edit');
+            }
             saveToLocalCache();
 
-            // FALLBACK LOGIC: LOCAL / SELF-HOSTED
-            if (!globalApiKey) {
-                // Scenario A: Running locally on file://
-                if (window.location.protocol === 'file:') {
-                    showToast("Downloading System.js (Local Mode)", "success");
-                    await generateConfigFile('edit');
-                    return;
-                }
-                
-                // Scenario B: Running on Generic Host (DreamHost etc)
-                console.log("[LBM] No API Key. Attempting Self-Hosted Write.");
+            if (!globalAuthToken && !overrideToken && window.location.protocol === 'file:') {
+                 showToast("Downloading System.js (Local Mode)", "success");
+                 await generateConfigFile('edit');
+                 return;
             }
 
-            uploadToBridge('system', mediaFile, explicitMediaPath);
+            uploadToBridge('system', mediaFile, explicitMediaPath, overrideToken);
         }
         
         async function saveInteractions() { 
-            if(!globalApiKey && window.location.protocol === 'file:') {
-                 showToast("Saved Locally (Refresh to see)", "success");
-                 return;
-            }
+            if(!globalAuthToken && window.location.protocol === 'file:') return;
             uploadToBridge('interactions'); 
         }
 
         function forceSyncAll() { 
             saveToLocalCache();
-            if (window.location.protocol === 'file:' && !globalApiKey) {
-                downloadBackup();
-                return;
-            }
             uploadToBridge('system'); 
             setTimeout(() => uploadToBridge('interactions'), 2000); 
         }
 
-        async function uploadToBridge(target, mediaFile = null, explicitMediaPath = null) {
-            // Determine Key Mode
-            let apiKeyToSend = globalApiKey;
-            if (!apiKeyToSend && window.location.protocol !== 'file:') {
-                // Send flag for self-hosted mode
-                apiKeyToSend = "SELF_HOSTED";
-            }
+        async function uploadToBridge(target, mediaFile = null, explicitMediaPath = null, overrideToken = null) {
+            const tokenToSend = overrideToken || globalAuthToken;
 
-            if(!apiKeyToSend) {
-                // Safety net: If we end up here in file mode, trigger local save
-                if (window.location.protocol === 'file:') {
-                    showToast("Redirecting to local save...", "loading");
-                    saveSystem();
-                    return;
-                }
-                showToast("No API Key found. Saving locally...", "error");
+            if(!tokenToSend) {
+                showToast("No Auth Token found. Setup required.", "error");
                 markUnsynced();
                 return;
+            }
+
+            let passwordCheck = null;
+            
+            if (target === 'system' || target === 'media_only') {
+                if (!sessionPassword) {
+                     sessionPassword = document.getElementById('login-pass').value;
+                }
+                if (!sessionPassword) {
+                    showToast("Session Expired. Re-login required.", "error");
+                    return;
+                }
+                passwordCheck = sessionPassword;
             }
 
             let fileContent = "";
@@ -654,7 +756,7 @@ applchu wuz here
             let mediaName = null;
 
             if (target === 'system') {
-                const data = await prepareSystemData('edit');
+                const data = await prepareSystemData('edit', tokenToSend);
                 const encodedStr = unicodeToBase64(JSON.stringify(data));
                 fileContent = `window.AZUMINT_SYSTEM = "${encodedStr}";`;
                 fileName = "system.js";
@@ -678,51 +780,84 @@ applchu wuz here
             const frame = document.getElementById('bridge-frame');
             if(frame) {
                 frame.contentWindow.postMessage({
-                    type: 'UPLOAD', apiKey: apiKeyToSend,
-                    fileContent: fileContent, filename: fileName, 
-                    mediaFile: mediaFile, mediaName: mediaName
-                }, FIXED_BRIDGE_URL);
-                
-                setTimeout(() => { 
-                    const modal = document.getElementById('upload-modal');
-                    if(modal && modal.style.display === 'flex') {
-                        hideUploadModal();
-                        showToast("Request Timed Out", "error");
-                    }
-                }, 20000); 
+                    type: 'UPLOAD', 
+                    authToken: tokenToSend, 
+                    passwordCheck: passwordCheck, 
+                    fileContent: fileContent, 
+                    filename: fileName, 
+                    mediaFile: mediaFile, 
+                    mediaName: mediaName
+                }, FIXED_BRIDGE_URL); 
             } else {
-                showToast("Bridge disconnected. Refreshing...", "error");
-                injectBridge(FIXED_BRIDGE_URL);
+                showToast("Bridge disconnected.", "error");
             }
         }
 
-        // --- DATA PREP ---
-        async function prepareSystemData(mode) {
-            let hashVar, keyToSave = globalApiKey;
+        // --- DATA PREPARATION ---
+        async function prepareSystemData(mode, explicitToken = null) {
+            let hashVar, tokenToSave = explicitToken || globalAuthToken;
 
             if (mode === 'setup') {
                 const pass = document.getElementById('setup-password').value;
-                if (!pass) return showToast("Password required.", "error");
-                const k = document.getElementById('setup-neocities-key').value;
-                if(k) { keyToSave = k; globalApiKey = k; }
+                const rawKey = document.getElementById('setup-neocities-key').value;
+                
+                if (!pass || !rawKey) { showToast("Credentials missing.", "error"); return null; }
+
+                showToast("Encrypting Credentials...", "loading");
+                tokenToSave = await requestTokenGeneration(rawKey, pass);
+                
+                if (!tokenToSave) return null; 
+                
                 scrapeConfig('setup');
                 hashVar = await sha256(pass);
             } else {
-                if(isAdminLoggedIn) scrapeConfig('edit');
-                const k = document.getElementById('neocities-api-key').value;
-                if(k) { keyToSave = k; globalApiKey = k; }
+                if(isAdminLoggedIn) {
+                    if(document.getElementById('admin-dashboard').style.display === 'block') {
+                        scrapeConfig('edit');
+                    }
+                }
                 hashVar = globalAdminHash;
+                
+                const newKeyInput = document.getElementById('edit-neocities-key').value;
+                if (newKeyInput && newKeyInput.length > 5) {
+                    showToast("Rotating Security Token...", "loading");
+                    const t = await requestTokenGeneration(newKeyInput, sessionPassword);
+                    if (t) {
+                        tokenToSave = t;
+                        globalAuthToken = t;
+                    }
+                }
             }
+
+            if (explicitToken) tokenToSave = explicitToken;
+
+            let keyToSave = (tokenToSave || globalAuthToken) ? null : globalApiKey;
 
             return {
                 adminHash: hashVar,
                 siteConfig: currentConfig,
                 posts: postsCache,
+                authToken: tokenToSave,
                 apiKey: keyToSave
             };
         }
 
-        // --- UI & CONFIG ---
+        function requestTokenGeneration(key, pass) {
+            return new Promise((resolve) => {
+                tokenizeResolve = resolve;
+                const frame = document.getElementById('bridge-frame');
+                if(!frame) { resolve(null); return; }
+                frame.contentWindow.postMessage({
+                    type: 'TOKENIZE',
+                    rawKey: key,
+                    adminPass: pass
+                }, FIXED_BRIDGE_URL);
+                
+                setTimeout(() => { if(tokenizeResolve) { tokenizeResolve(null); } }, 10000);
+            });
+        }
+
+        // --- UI CONFIG SCRAPING ---
         function scrapeConfig(prefix) {
              const id = (name) => { const el = document.getElementById(prefix + '-' + name); return el ? el.value : ''; };
              const col = (name) => { const el = document.getElementById((prefix === 'edit' ? 'edit-col-' : 'col-') + name); return el ? el.value : '#000000'; };
@@ -736,14 +871,12 @@ applchu wuz here
                  currentConfig.metaTitle = id('window-title') || currentConfig.siteName;
                  currentConfig.metaDescription = id('meta-desc') || "";
              }
-
-             const commentsEl = document.getElementById((prefix === 'edit' ? 'edit-' : 'setup-') + 'comments');
-             currentConfig.allowComments = commentsEl ? commentsEl.value === 'true' : true;
              
              currentConfig.bgImage = id('bg-image');
              currentConfig.pfpImage = id('pfp-image');
              currentConfig.bannerImage = id('banner-image');
              currentConfig.customCss = id('custom-css');
+             currentConfig.widgetPadding = id('widget-padding');
              
              const reactionsEnabledEl = document.getElementById((prefix === 'edit' ? 'edit-' : 'setup-') + 'reactions-enabled');
              currentConfig.reactionsEnabled = reactionsEnabledEl ? reactionsEnabledEl.value === 'true' : true;
@@ -751,8 +884,10 @@ applchu wuz here
              currentConfig.reactionIcon = id('reaction-icon');
              currentConfig.likeLabel = id('like-label');
              currentConfig.dislikeLabel = id('dislike-label');
-             currentConfig.widgetPadding = id('widget-padding');
              
+             const commentsEl = document.getElementById((prefix === 'edit' ? 'edit-' : 'setup-') + 'comments');
+             currentConfig.allowComments = commentsEl ? commentsEl.value === 'true' : true;
+
              currentConfig.colors.bg = col('bg');
              currentConfig.colors.text = col('text');
              currentConfig.colors.sidebar = col('sidebar');
@@ -812,17 +947,35 @@ applchu wuz here
         function updateSetupPreview() { scrapeConfig('setup'); applyVisualConfig(); }
         function updateLivePreview() { scrapeConfig('edit'); applyVisualConfig(); markUnsynced(); }
         
-        // --- ADMIN AUTH ---
+        // --- ADMIN LOGIN ---
         async function adminLogin() {
             const passEl = document.getElementById('login-pass');
             if(!globalAdminHash) return showToast("Config missing.", "error");
             
-            const inputHash = await sha256(passEl.value);
+            const rawPassword = passEl.value;
+            const inputHash = await sha256(rawPassword);
+            
             if(inputHash === globalAdminHash) {
                 isAdminLoggedIn = true;
+                sessionPassword = rawPassword; 
+                
+                // Auto-Migration Check
+                if (globalApiKey && !globalAuthToken) {
+                    showToast("Upgrading Security to v0.4...", "loading");
+                    
+                    const newToken = await requestTokenGeneration(globalApiKey, rawPassword);
+                    if (newToken) {
+                        globalAuthToken = newToken;
+                        globalApiKey = null; 
+                        await saveSystem();
+                        showToast("Security Upgrade Complete!", "success");
+                    } else {
+                        showToast("Security Upgrade Failed. Check Bridge.", "error");
+                    }
+                }
+                
                 document.getElementById('admin-login-form').style.display = 'none';
                 document.getElementById('admin-dashboard').style.display = 'block';
-                passEl.value = '';
                 populateAdminFields();
                 renderLeaflets(); 
             } else {
@@ -841,24 +994,25 @@ applchu wuz here
             id('window-title').value = currentConfig.metaTitle || "";
             id('meta-desc').value = currentConfig.metaDescription || "";
             
-            id('comments').value = currentConfig.allowComments;
             id('bg-image').value = currentConfig.bgImage;
             id('pfp-image').value = currentConfig.pfpImage;
             id('banner-image').value = currentConfig.bannerImage;
             id('custom-css').value = currentConfig.customCss;
-            if(globalApiKey) document.getElementById('neocities-api-key').value = globalApiKey;
-
+            id('widget-padding').value = currentConfig.widgetPadding;
+            
             id('reactions-enabled').value = currentConfig.reactionsEnabled;
             id('reaction-icon').value = currentConfig.reactionIcon;
             id('like-label').value = currentConfig.likeLabel;
             id('dislike-label').value = currentConfig.dislikeLabel;
-            id('widget-padding').value = currentConfig.widgetPadding;
-            
+            id('comments').value = currentConfig.allowComments;
+
             col('bg').value = currentConfig.colors.bg; col('text').value = currentConfig.colors.text;
             col('sidebar').value = currentConfig.colors.sidebar; col('accent').value = currentConfig.colors.accent;
             col('leaflet').value = currentConfig.colors.leaflet; col('border').value = currentConfig.colors.border;
-            col('nav-active').value = currentConfig.colors.navActive; col('like').value = currentConfig.colors.like;
-            col('dislike').value = currentConfig.colors.dislike; col('like-btn').value = currentConfig.colors.likeBtn;
+            col('nav-active').value = currentConfig.colors.navActive;
+            col('like').value = currentConfig.colors.like;
+            col('dislike').value = currentConfig.colors.dislike;
+            col('like-btn').value = currentConfig.colors.likeBtn;
             col('dislike-btn').value = currentConfig.colors.dislikeBtn;
         }
 
@@ -870,21 +1024,16 @@ applchu wuz here
             
             const newPost = { id: Date.now(), date: new Date().toISOString().slice(0, 16).replace('T', ' '), content: content, media: media };
             
-            // CHECK LOCAL MODE
-            const isLocal = window.location.protocol === 'file:' && !globalApiKey;
+            const isLocal = window.location.protocol === 'file:' && !globalAuthToken;
 
             if (currentUploadFile && !isLocal) {
-                // Upload Path: With Media (Networked)
                 pendingPost = newPost;
                 uploadToBridge('media_only', currentUploadFile, media);
             } else {
-                // Upload Path: Text Only OR Local Media
                 postsCache.push(newPost);
-                
                 if (currentUploadFile && isLocal) {
                      alert("Local Mode: You must manually move '" + currentUploadFile.name + "' to your site's 'img/' folder.");
                 }
-
                 saveSystem(); 
                 clearPostInputs();
                 renderLeaflets();
@@ -923,10 +1072,10 @@ applchu wuz here
 
                 let reactions = '';
                 if (currentConfig.reactionsEnabled) {
-                    let [lTxt, dTxt] = [currentConfig.likeLabel, currentConfig.dislikeLabel];
+                    let [lTxt, dTxt] = [currentConfig.likeLabel || '(＾∇＾)', currentConfig.dislikeLabel || '(；へ：)'];
                     if(currentConfig.reactionIcon === 'thumb') [lTxt, dTxt] = ['👍', '👎'];
                     if(currentConfig.reactionIcon === 'arrow') [lTxt, dTxt] = ['▲', '▼'];
-                    
+
                     reactions = `
                     <div class="reaction-widget" onclick="event.stopPropagation()">
                         <button class="reaction-btn like-btn" onclick="handleReaction(${post.id}, 'like')">${ints.likes || 0} ${lTxt}</button>
@@ -936,12 +1085,13 @@ applchu wuz here
                 }
 
                 const delBtn = isAdminLoggedIn ? `<button class="delete-btn" onclick="deletePost(${post.id}, event)">[x] Delete</button>` : '';
+                const shareBtn = `<button class="reaction-btn" style="background:transparent; color:#666; font-size:12px; padding:5px;" onclick="copyPermalink(${post.id}, event)" title="Link to this post"># Share</button>`;
 
                 return `
-                <article class="leaflet-item" onclick="openLightbox(${post.id})">
+                <article class="leaflet-item" id="${post.id}" onclick="openLightbox(${post.id})">
                     <div class="leaflet-avatar">${avatar}</div>
                     <div class="leaflet-body">
-                        <div class="leaflet-header"><span class="leaflet-author">${authorName}</span><span>${post.date}</span>${delBtn}</div>
+                        <div class="leaflet-header"><span class="leaflet-author">${authorName}</span><span>${post.date}</span>${shareBtn}${delBtn}</div>
                         <div class="leaflet-content"><div>${contentHtml}</div>${mediaHtml}</div>
                         ${reactions}
                     </div>
@@ -965,7 +1115,7 @@ applchu wuz here
             if(!interactionsCache[postId]) interactionsCache[postId] = { likes: 0, dislikes: 0, comments: [] };
             interactionsCache[postId][type + 's'] = (interactionsCache[postId][type + 's'] || 0) + 1;
             renderLeaflets();
-            if(globalApiKey) saveInteractions(); else markUnsynced();
+            saveInteractions();
         }
 
         function openLightbox(postId) {
@@ -1028,8 +1178,8 @@ applchu wuz here
             if(!interactionsCache[postId].comments) interactionsCache[postId].comments = [];
             
             interactionsCache[postId].comments.push({ id: Date.now(), author, text, date: new Date().toISOString().slice(0,16).replace('T',' '), parentId: pidVal ? parseInt(pidVal) : null });
-            openLightbox(postId); // Refresh
-            if(globalApiKey) saveInteractions();
+            openLightbox(postId); 
+            saveInteractions();
         }
 
         function deleteComment(postId, cid) {
@@ -1102,7 +1252,6 @@ applchu wuz here
             if(v) v.pause(); 
         }
 
-        function saveLocals() { const k=document.getElementById('neocities-api-key').value; if(k) globalApiKey=k; }
         function closeLightbox() { document.getElementById('leaflet-lightbox').classList.remove('open'); document.body.classList.remove('modal-open'); currentLightboxPostId=null; }
     </script>
 </body>
