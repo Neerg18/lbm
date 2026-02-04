@@ -29,8 +29,9 @@ Since LBM needs to update your site files for you, it needs permission.
 Now it's time to configure your site before uploading it.
 
 1. Download the LBM files (`index.html` and `style.css`) to a folder on your computer.
-2. **Double-click** `index.html` to open it in your web browser.
-3. You will see the **"SYSTEM BOOT // INITIAL SETUP"** screen.
+2. Go back to your **Neocities Dashboard**
+3. Drag and drop `index.html` and `style.css` to upload them
+4. Click your site link (e.g., `yoursite.neocities.org`) and you will see the **"SYSTEM BOOT // INITIAL SETUP"** screen.
 
 Fill out the form on the screen:
 
@@ -43,18 +44,10 @@ Fill out the form on the screen:
 
 1. When you are happy, click **"GENERATE `system.js`"**.
 2. Your browser will download the generated `system.js` file.
-3. Move this file into the same folder as your `index.html` and `style.css`.
-
-### **Step 3: Go Live!**
-
-1. Go back to your Neocities Dashboard.
-2. Drag and drop these 3 files to upload them:
-  - `index.html`
-  - `style.css`
-  - `system.js`
+3. Drag and drop this into your Neocities Dashboard to be alongside your `index.html` and `style.css`.
 
 ### **That's it!** 
-Click your site link (e.g., `yoursite.neocities.org`) and your blog should be live.
+Reload the page, and your blog should be live!
 
 ## How to Post & Manage
 
