@@ -1,88 +1,124 @@
-<img width="100%" alt="LBM Mascot and Logo" src="https://github.com/user-attachments/assets/899a6c7d-66b2-407e-96c9-3cc90ac9138b" />
+# NEERG // Art Blog — V4.0
 
-**LBM (Leaflet Blog Manager)** is a little system that allows you to run a (somewhat) dynamic micro-blog (like Twitter, or a lil’ diary) on static hosting sites like [**Neocities**](https://neocities.org) without needing to know how to code.
+> 🔗 **Forked from [applesaucyy/lbm](https://github.com/applesaucyy/lbm)** — A little micro-blogging system for static hosting sites like NeoCities or NekoWeb.
 
-<img width="1470" height="1291" alt="Screenshot of LBM" src="https://github.com/user-attachments/assets/93fa3211-d8a0-4f36-8024-e93b86f43892" />
+A customizable art blog / portfolio template built on the **LBM (Leaflet Blog Manager)** engine. This fork adds a full visual theme, gallery page, commissions section, and reaction/comment system on top of the original LBM core.
 
+![Built with LBM](https://img.shields.io/badge/Built%20on-LBM%20Engine-ff6b35?style=flat-square)
+![Hosted on Neocities](https://img.shields.io/badge/Hosted%20on-Neocities-24d15f?style=flat-square)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
-## **How it Works**
+---
 
-Unlike normal static sites where you have to edit code to add posts, LBM is self-editing.
-1. You log into your site's dashboard (which is built right into the page).
-2. You then make your post, uploading images (or, if you [Upgrade to Supporter](https://neocities.org/supporter), upload videos).
-3. The system bundles your data into a system.js file and uses a special bridge to upload it back to your Neocities site automatically.
-4. Your site updates instantly for everyone!
+## What This Fork Adds
 
-# Setup Guide
-This assumes you have **zero** coding experience, but that you have signed up to Neocities. Follow these steps exactly, and you should have your site running in about 5 minutes.
+On top of the original [LBM engine](https://github.com/applesaucyy/lbm), this version includes:
 
-### **Step 1: Get your Key**
-Since LBM needs to update your site files for you, it needs permission.
+- **V4.0 Theme** — Pill nav, scroll velocity effects, staggered menu animations
+- **Gallery View** — Dedicated page for showcasing artwork
+- **Commissions Page** — Section for commission info and pricing
+- **Reactions & Comments** — Like/dislike system with threaded comments
+- **Extended Setup Wizard** — More branding options, theme colors, and custom CSS
+- **Search & Tag Filtering** — Filter posts by tags (SFW, NSFW, Sketch, etc.)
+- **Dark/Light Toggle** — Built-in theme switcher
 
-1. Log into [**Neocities**](https://neocities.org/).
-2. Go to your **Dashboard**.
-3. Click the **"API"** tab (or simply goto `https://neocities.org/settings/[YOUR-SITE-NAME]#api_key`).
-4. Click **"Generate API Key"**.
-5. Copy this key. You will need it in the next step.
+---
 
-### **Step 2: Configurate your System**
+## Quick Start
 
-Now it's time to configure your site before uploading it.
+### 1. Create a Neocities Account
 
-1. Download the LBM files (`index.html` and `style.css`) to a folder on your computer.
-2. Go back to your **Neocities Dashboard**
-3. Drag and drop `index.html` and `style.css` to upload them
-4. Click your site link (e.g., `yoursite.neocities.org`) and you will see the **"SYSTEM BOOT // INITIAL SETUP"** screen.
+Sign up at [neocities.org](https://neocities.org) if you don't already have one.
 
-Fill out the form on the screen:
+### 2. Get Your API Key
 
-1. **Admin Password**: Create a password. You will use this to log into your site later.
-2. **Neocities API Key**: Paste the key you copied in Step 1.
-3. **Branding**: Set your Site Name, Tagline, and Copyright.
-4. **Theme**: Pick whatever colors you want! You can see a live preview of your choices as you change them.
+Go to your Neocities **Settings → Manage Site Settings → API Key** and copy it.
 
-### Generate the System File
+### 3. Upload Files
 
-1. When you are happy, click **"GENERATE `system.js`"**.
-2. Your browser will download the generated `system.js` file.
-3. Drag and drop this into your Neocities Dashboard to be alongside your `index.html` and `style.css`.
+Upload these three files to the **root** of your Neocities site:
 
-### **That's it!** 
-Reload the page, and your blog should be live!
+| File | Purpose |
+|---|---|
+| `index.html` | The main site (all pages, admin panel, everything) |
+| `style.css` | All the styling |
+| `interactions.js` | Stores likes, dislikes, and comments |
 
-## How to Post & Manage
+> **Do NOT upload a `system.js` file** — it gets generated automatically by the setup wizard.
 
-**Logging In**
+### 4. Run the Setup Wizard
 
-1. Go to your live site.
-2. Click the **"Login"** button on the sidebar.
-3. Enter the **password** you created in Step 2.
-4. The **Admin Dashboard** will appear.
+Visit your Neocities site URL (e.g., `https://yoursite.neocities.org`). The setup wizard will appear automatically. Fill in:
 
-### **Writing a "Leaflet" (Post)**
-- Text: Type your update. You can use basic Markdown:
-  - **bold** → bold
-  - *italic* → italic
-  - [Link](https://google.com) → Link
-- Images (Video with Supporter):
-  1. Click **"Choose File"** in the dashboard.
-  2. Select an image or video from your computer.
-  3. The system will automatically upload this file to your Neocities `img/` folder and attach it to your post (Alternatively, you could upload it to NeoCities directly and link to it using the `Media Path` area below the upload button).
-- Click "Post & Sync".
-- Watch the Sync Status indicator. When it turns green ("System Synced"), your post is live.
+- **Admin password** (8+ characters — remember this!)
+- **Neocities API key** (gets encrypted into a secure token)
+- **Site name, tagline, colors**, etc.
 
-### Changing the Theme
-Tired of your colors?
+Click **"GENERATE system.js"** and you're live!
 
-1. Log in to the **Dashboard**.
-2. Click **"Site Settings"**.
-3. Adjust colors, site name, or toggle comments.
-4. Click **"Save Settings & Sync"**. The changes happen instantly.
+---
 
-### SEO & Metadata
-Want your site to look good on Google or when shared on Discord/Twitter?
+## ⚠️ Important: Don't Run Setup From a Local File
 
-1. Go to **Site Settings > SEO & Metadata**.
-2. Set your **Window Title** and **Meta Description**.
-3. **Important:** After saving, click the **"⬇ HTML"** button in the dashboard to download a new `index.html`.
-4. Manually upload this new `index.html` to Neocities. *(This is required because search engines read the raw HTML file, not the JavaScript loaded content)*.
+Opening `index.html` directly from your computer (`file://...`) **will not work** for the setup wizard. The API key encryption relies on the LBM bridge, which requires an actual web server to communicate with.
+
+**Always run the setup wizard from your live Neocities URL.**
+
+If you want to test locally, use a local server:
+
+```bash
+# With Python
+python3 -m http.server 8000
+
+# Then visit http://localhost:8000
+```
+
+Or use [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) in VS Code.
+
+---
+
+## File Structure
+
+```
+your-neocities-site/
+├── index.html          ← Main site (upload this)
+├── style.css           ← Styling (upload this)
+├── interactions.js     ← Reactions/comments (upload this)
+└── system.js           ← Auto-generated by setup wizard (DO NOT upload manually)
+```
+
+---
+
+## Customization
+
+### From the Admin Panel (No Code Needed)
+
+Once logged in, go to **Settings** to change:
+
+- Site name, tagline, and copyright
+- All theme colors
+- Profile picture and banner image
+- Reaction styles (faces, thumbs, or arrows)
+- Enable/disable comments
+- Custom CSS
+
+### Advanced
+
+The entire site is contained in `index.html` — you can edit the HTML structure directly if you're comfortable with code. `style.css` handles all styling.
+
+---
+
+## Forgot Your Password?
+
+Delete `system.js` from your Neocities file manager and revisit your site. The setup wizard will reappear. Note: your posts will need to be recreated.
+
+---
+
+## Credits
+
+- **Original LBM Engine** — [applesaucyy/lbm](https://github.com/applesaucyy/lbm) · [Demo](https://lbm-test.neocities.org)
+- **Markdown Parsing** — [marked.js](https://github.com/markedjs/marked)
+
+## License
+
+[MIT](LICENSE) — Same as the original LBM project.
