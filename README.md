@@ -1,4 +1,4 @@
-# LBM Custom — Blog Template
+# NWWEG LBM Template V4.1
 
 A customized frontend skin built on top of [LBM (Leaflet Blog Manager)](https://lbm-test.neocities.org) by applesaucyy. Adds modern UI features like pill navigation, a scrolling marquee, featured cards carousel, gallery viewer, theme toggle, and more — all in vanilla HTML/CSS/JS with no frameworks required.
 
