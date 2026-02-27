@@ -3,23 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LBM Custom // Blog Template</title>
-    <meta name="description" content="A personal blog built with LBM Custom.">
+    <title>My Art Blog</title>
+    <!-- ↑ CHANGE THIS to your site name — also update in Admin → Site Settings -->
+    <meta name="description" content="My digital art archive">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    â•”═══════════════════════════════════════════════════════════════╗
-    ║  Built on LBM (Leaflet Blog Manager)                         ║
-    ║  Original engine by: https://lbm-test.neocities.org          ║
-    ║  V4.0 — Pill Nav · Scroll Velocity · Staggered Menu          ║
-    ╚═══════════════════════════════════════════════════════════════╝
+    ╔══════════════════════════════════════════════════════════════════════╗
+    ║                                                                      ║
+    ║   NEERG 5.0 — Digital Art Archive                                    ║
+    ║   A fork of LBM (Leaflet Blog Manager) by applesaucy                 ║
+    ║   Original engine: https://lbm-test.neocities.org                   ║
+    ║                                                                      ║
+    ║   NEERG 5.0 NEW FEATURES                                             ║
+    ║   ───────────────────────                                            ║
+    ║   ✦ New header design                                                ║
+    ║   ✦ Mobile improvements                                              ║
+    ║   ✦ Featured Works now sorts by popularity                           ║
+    ║   ✦ New and improved image boards                                    ║
+    ║   ✦ General UI polish throughout                                     ║
+    ║                                                                      ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║                                                                      ║
+    ║   GETTING STARTED — 3 steps                                          ║
+    ║   ─────────────────────────                                          ║
+    ║   1. Upload index.html + style.css + logic.js to Neocities           ║
+    ║   2. Open your site — a Setup Wizard will appear                     ║
+    ║   3. Enter a password + your Neocities API key → done                ║
+    ║                                                                      ║
+    ║   After setup, everything is managed from the Admin Login tab.       ║
+    ║   No code editing needed.                                            ║
+    ║                                                                      ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║                                                                      ║
+    ║   WANT TO CUSTOMIZE?                                                 ║
+    ║   ──────────────────                                                 ║
+    ║   • Site name / colors / fonts → Admin → Site Settings              ║
+    ║   • Nav tabs / menu items      → Search "nav-link" in this file     ║
+    ║   • Tag filter pills           → Search "tags-bar" in this file     ║
+    ║   • Page zoom scale            → Search "style.zoom" in this file   ║
+    ║   • Banner text / colors       → Admin → Banner tab                 ║
+    ║   • Social links               → Admin → Social Links tab           ║
+    ║                                                                      ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║                                                                      ║
+    ║   FILE STRUCTURE ON YOUR NEOCITIES SITE                              ║
+    ║   ─────────────────────────────────────                              ║
+    ║   index.html       ← this file                                       ║
+    ║   style.css        ← all styles                                      ║
+    ║   logic.js         ← all backend logic                               ║
+    ║   system.js        ← auto-generated on first setup                   ║
+    ║   posts.js         ← auto-generated when you post                    ║
+    ║   comics.js        ← auto-generated when you add a comic             ║
+    ║   interactions.js  ← auto-generated on first like/comment            ║
+    ║   img/             ← uploaded images go here automatically           ║
+    ║                                                                      ║
+    ╚══════════════════════════════════════════════════════════════════════╝
     -->
 
-    <!-- Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-    <!-- Font Awesome (free) — social & UI icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css">
+    <!-- Font Awesome for social icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -27,6 +72,61 @@
 
     <!-- Toast Container -->
     <div id="toast-container" style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:0.5rem;align-items:center;"></div>
+
+    <!-- ══════════════ TOP NAVIGATION BAR ══════════════ -->
+    <!-- NOTE: nav, backdrop, and mobile-menu are OUTSIDE page-wrapper so zoom does not trap position:fixed children -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a class="nav-logo" onclick="switchTab('posts', this)" style="cursor:pointer;">
+                <img class="pfp" id="nav-pfp" src="" alt="PFP" onerror="this.style.display='none'">
+                <span class="site-name" id="nav-sitename">My Blog</span>
+            </a>
+        </div>
+
+        <div class="nav-center" id="nav-center">
+            <div class="pill-indicator" id="pill-indicator"></div>
+            <button class="nav-link active" onclick="switchTab('posts', this)">Home</button>
+            <button class="nav-link" onclick="switchTab('about', this)">About</button>
+            <button class="nav-link" onclick="switchTab('gallery', this)">Gallery</button>
+            <button class="nav-link" onclick="switchTab('commissions', this)">Commissions</button>
+            <button class="nav-link" onclick="switchTab('comics', this)">Comics</button>
+        </div>
+
+        <div class="nav-right">
+            <button class="nav-icon-btn" onclick="toggleDarkLight()" title="Toggle theme"><i class="fa-solid fa-circle-half-stroke"></i></button>
+            <button class="nav-link" onclick="switchTab('admin', this)">Admin Login</button>
+            <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Open menu" aria-expanded="false">
+                <span class="hbg-bar"></span>
+                <span class="hbg-bar"></span>
+                <span class="hbg-bar"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Backdrop — outside page-wrapper -->
+    <div class="mobile-backdrop" id="mobile-backdrop" onclick="closeMobileMenu()"></div>
+
+    <!-- Full-screen mobile nav panel — outside page-wrapper so zoom:1.7 doesn't trap it -->
+    <aside class="mobile-menu" id="mobile-menu" aria-hidden="true">
+        <div class="mobile-menu-header">
+            <span class="mobile-menu-header-name" id="mobile-menu-site-name">Menu</span>
+            <button class="mobile-menu-header-close" onclick="closeMobileMenu()" aria-label="Close menu">✕</button>
+        </div>
+        <div class="mobile-menu-inner">
+            <ul class="mobile-menu-list">
+                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('posts', this); closeMobileMenu();">Home</button></li>
+                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('about', this); closeMobileMenu();">About</button></li>
+                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('gallery', this); closeMobileMenu();">Gallery</button></li>
+                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('commissions', this); closeMobileMenu();">Commissions</button></li>
+                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('comics', this); closeMobileMenu();">Comics</button></li>
+                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('admin', this); closeMobileMenu();">Admin Login</button></li>
+                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="toggleDarkLight(); closeMobileMenu();">Toggle Theme</button></li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- Page wrapper for zoom scaling — nav/menu live ABOVE this -->
+    <div id="page-wrapper">
 
     <!-- Bridge Frame (handles Neocities API uploads) -->
     <iframe id="bridge-frame" style="width:1px;height:1px;opacity:0;position:absolute;pointer-events:none;"></iframe>
@@ -42,7 +142,7 @@
         </div>
     </div>
 
-    <!-- SYNC OVERLAY -->
+    <!-- ══════════════ SYNC OVERLAY ══════════════ -->
     <div id="sync-overlay" style="display:none;">
         <h3>SYSTEM SYNC</h3>
         <div class="sync-bar"></div>
@@ -51,14 +151,62 @@
                 style="margin-top:0.5rem;padding:0.4rem 1rem;background:var(--border);border:none;color:var(--white);border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-mono);font-size:0.65rem;">Close</button>
     </div>
 
-    <!-- SETUP WIZARD -->
+    <!-- ══════════════ CLEANUP MODAL ══════════════ -->
+    <div id="cleanup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;backdrop-filter:blur(5px);">
+        <div class="cleanup-panel">
+            <div class="cleanup-header">
+                <h3>🧹 SYSTEM CLEANUP</h3>
+                <button onclick="document.getElementById('cleanup-modal').style.display='none'" class="cleanup-close">✕</button>
+            </div>
+
+            <div id="cleanup-size-breakdown" class="cleanup-section">
+                <p class="cleanup-label">Storage Breakdown</p>
+                <div id="cleanup-size-bars"></div>
+                <div class="cleanup-total" id="cleanup-total-size"></div>
+            </div>
+
+            <div class="cleanup-section">
+                <p class="cleanup-label">Issues Found</p>
+                <div id="cleanup-issues"></div>
+            </div>
+
+            <div class="cleanup-section">
+                <p class="cleanup-label">Actions</p>
+                <div class="cleanup-actions" id="cleanup-actions">
+                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupTrimWhitespace)"><i class="fa-solid fa-scissors"></i> Trim Whitespace</button>
+                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupDuplicates)"><i class="fa-solid fa-copy"></i> Remove Duplicates</button>
+                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupOrphanedInteractions)"><i class="fa-solid fa-ghost"></i> Purge Orphans</button>
+                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupEmptyFields)"><i class="fa-solid fa-broom"></i> Strip Empty Fields</button>
+                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupCompactData)"><i class="fa-solid fa-compress"></i> Compact Data</button>
+                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupStripInlineMedia)"><i class="fa-solid fa-image"></i> Strip Inline Base64</button>
+                    <button class="cleanup-action-btn danger" onclick="runCleanupAction(this, cleanupPurgeOldPosts)"><i class="fa-solid fa-calendar-xmark"></i> Purge Old Posts…</button>
+                    <button class="cleanup-action-btn danger" onclick="runCleanupAction(this, cleanupPurgeAllInteractions)"><i class="fa-solid fa-fire"></i> Nuke All Interactions</button>
+                </div>
+            </div>
+
+            <!-- Inline Activity Log -->
+            <div class="cleanup-section cleanup-log-section">
+                <p class="cleanup-label">Activity Log</p>
+                <div class="cleanup-log" id="cleanup-log">
+                    <div class="cleanup-log-entry dim">Waiting for actions…</div>
+                </div>
+            </div>
+
+            <div class="cleanup-section" style="border-top:1px solid var(--border);padding-top:1rem;">
+                <button class="action-btn" onclick="runCleanupAction(this, runFullCleanup)" style="width:100%;">🚀 Run Full Cleanup & Sync</button>
+                <p style="font-family:var(--font-mono);font-size:0.55rem;color:var(--gray-dim);margin-top:0.5rem;text-align:center;">Runs all safe cleanups, syncs system.js + interactions.js</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ SETUP WIZARD ══════════════ -->
     <div id="setup-wizard">
         <h1>SYSTEM BOOT // INITIAL SETUP</h1>
 
         <h3>1. System Configuration</h3>
         <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:1rem;">Configure admin credentials and API connectivity.</p>
         <p style="font-family:var(--font-mono);font-size:0.6rem;color:var(--lime);margin-bottom:1rem;padding:0.75rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);">
-            <i class="fa-solid fa-lock"></i> <strong>SECURITY TIPS:</strong><br>
+            🔒 <strong>SECURITY TIPS:</strong><br>
             • Use a strong, unique password (8+ characters)<br>
             • Your API key is stored ONLY on this device<br>
             • Never share your API key with anyone<br>
@@ -121,52 +269,46 @@
         <button class="action-btn" onclick="generateSystem()" style="width:100%;max-width:400px;padding:0.8rem;">GENERATE system.js</button>
     </div>
 
-    <!-- TOP NAVIGATION BAR -->
-    <nav class="top-nav">
-        <div class="nav-left">
-            <a class="nav-logo" onclick="switchTab('posts', this)" style="cursor:pointer;">
-                <img class="pfp" id="nav-pfp" src="" alt="PFP" onerror="this.style.display='none'">
-                <span class="site-name" id="nav-sitename">Artist Blog</span>
-            </a>
+    <!-- ══════════════ HERO SECTION ══════════════ -->
+    <div class="hero-section" id="hero-section">
+        <!-- Four gemstone-tinted panels -->
+        <div class="hero-panels" id="hero-panels">
+            <div class="hero-panel" id="hero-panel-0" style="--panel-color:#2A1535;">
+                <div class="hero-panel-overlay"></div>
+            </div>
+            <div class="hero-panel" id="hero-panel-1" style="--panel-color:#1A1A3A;">
+                <div class="hero-panel-overlay"></div>
+            </div>
+            <div class="hero-panel" id="hero-panel-2" style="--panel-color:#0F2A28;">
+                <div class="hero-panel-overlay"></div>
+            </div>
+            <div class="hero-panel" id="hero-panel-3" style="--panel-color:#2A2018;">
+                <div class="hero-panel-overlay"></div>
+            </div>
         </div>
 
-        <div class="nav-center" id="nav-center">
-            <div class="pill-indicator" id="pill-indicator"></div>
-            <button class="nav-link active" onclick="switchTab('posts', this)">Home</button>
-            <button class="nav-link" onclick="switchTab('about', this)">About</button>
-            <button class="nav-link" onclick="switchTab('gallery', this)">Gallery</button>
-            <button class="nav-link" onclick="switchTab('commissions', this)">Commissions</button>
-        </div>
-
-        <div class="nav-right">
-            <button class="nav-icon-btn" onclick="toggleDarkLight()" title="Toggle theme">◑</button>
-            <button class="nav-link" onclick="switchTab('admin', this)">Admin Login</button>
-            <button class="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu">☰</button>
-        </div>
-    </nav>
-
-    <!-- Mobile menu dropdown (only visible on mobile when hamburger is tapped) -->
-    <div class="mobile-menu" id="mobile-menu" style="display:none;">
-        <button class="nav-link" onclick="switchTab('posts', this); closeMobileMenu();">Home</button>
-        <button class="nav-link" onclick="switchTab('about', this); closeMobileMenu();">About</button>
-        <button class="nav-link" onclick="switchTab('gallery', this); closeMobileMenu();">Gallery</button>
-        <button class="nav-link" onclick="switchTab('commissions', this); closeMobileMenu();">Commissions</button>
-        <button class="nav-link" onclick="switchTab('admin', this); closeMobileMenu();">Admin Login</button>
-        <button class="nav-link" onclick="toggleDarkLight(); closeMobileMenu();">Toggle Theme</button>
-    </div>
-
-    <!-- ANIMATED MARQUEE BANNER -->
-    <div class="marquee-container" id="marquee-container">
-        <div class="marquee" id="marquee-track">
-            <span>ART WEEKLY</span><span>SFW ART</span><span>NSFW ART</span>
-            <span>ART WEEKLY</span><span>SFW ART</span><span>NSFW ART</span>
-            <span>ART WEEKLY</span><span>SFW ART</span><span>NSFW ART</span>
-            <span>ART WEEKLY</span><span>SFW ART</span><span>NSFW ART</span>
+        <!-- Profile overlap bar -->
+        <div class="hero-bar">
+            <div class="hero-pfp-anchor">
+                <div class="hero-pfp-ring" id="hero-pfp-ring">
+                    <img id="hero-pfp" class="hero-pfp-img" src="" alt="Profile"
+                         onerror="this.style.display='none';document.getElementById('hero-pfp-fallback').style.display='flex'">
+                    <div class="hero-pfp-fallback" id="hero-pfp-fallback">✦</div>
+                </div>
+            </div>
+            <div class="hero-identity">
+                <h1 class="hero-name" id="hero-name">MY BLOG</h1>
+                <p class="hero-tagline-text" id="hero-tagline">An artist with a passion for creating</p>
+            </div>
         </div>
     </div>
 
-    <!-- FEATURED CARDS CAROUSEL -->
+    <!-- ══════════════ FEATURED CARDS CAROUSEL ══════════════ -->
     <div class="featured-cards-section" id="featured-cards-section" style="display:none;">
+        <div style="max-width:100%;padding:0 2rem 0.85rem;display:flex;align-items:center;gap:0.85rem;">
+            <span style="font-family:var(--font-display);font-size:0.75rem;font-style:italic;color:var(--rose);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">✦ Featured Works</span>
+            <div style="flex:1;height:1px;background:rgba(255,143,173,0.15);"></div>
+        </div>
         <div class="featured-cards-viewport">
             <div class="featured-cards-track" id="featured-cards-track">
                 <!-- Populated dynamically: up to 5 newest image posts -->
@@ -175,10 +317,10 @@
         <div class="featured-cards-dots" id="featured-cards-dots"></div>
     </div>
 
-    <!-- MAIN CONTENT -->
+    <!-- ══════════════ MAIN CONTENT ══════════════ -->
     <main class="main-content">
 
-        <!-- POSTS SECTION (Home) -->
+        <!-- ════════ POSTS SECTION (Home) ════════ -->
         <section id="section-posts" class="content-section active">
 
             <div class="search-bar">
@@ -205,7 +347,7 @@
                 <button class="tag-pill" data-tag="animation" onclick="filterByTag('animation', this)">Animation</button>
             </div>
 
-            <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.3rem;margin-bottom:1rem;" id="posts-title">Recent Works</h2>
+            <h2 style="font-family:var(--font-heading);font-weight:800;font-size:1.2rem;margin-bottom:1rem;color:var(--cream);" id="posts-title">Recent Works</h2>
 
             <div id="leaflets-container">
                 <p style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gray);">Loading content...</p>
@@ -214,24 +356,61 @@
             <div class="pagination" id="pagination"></div>
         </section>
 
-        <!-- GALLERY SECTION -->
+        <!-- ════════ GALLERY / BOARDS SECTION ════════ -->
         <section id="section-gallery" class="content-section">
-            <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.3rem;margin-bottom:1rem;">Image Gallery</h2>
-            <div id="gallery-container" class="gallery-grid">Loading...</div>
+
+            <!-- View Toggle Bar -->
+            <div class="gallery-header">
+                <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.3rem;margin:0;" id="gallery-section-title">Boards</h2>
+                <div class="gallery-view-toggle">
+                    <button class="view-toggle-btn active" id="toggle-boards" onclick="toggleGalleryView('boards')">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="7" height="7" rx="1.5"/><rect x="9" y="0" width="7" height="4" rx="1.5"/><rect x="0" y="9" width="7" height="4" rx="1.5"/><rect x="9" y="6" width="7" height="7" rx="1.5"/></svg>
+                        Boards
+                    </button>
+                    <button class="view-toggle-btn" id="toggle-all-media" onclick="toggleGalleryView('all')">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="4.5" height="4.5" rx="1"/><rect x="5.75" y="0" width="4.5" height="4.5" rx="1"/><rect x="11.5" y="0" width="4.5" height="4.5" rx="1"/><rect x="0" y="5.75" width="4.5" height="4.5" rx="1"/><rect x="5.75" y="5.75" width="4.5" height="4.5" rx="1"/><rect x="11.5" y="5.75" width="4.5" height="4.5" rx="1"/><rect x="0" y="11.5" width="4.5" height="4.5" rx="1"/><rect x="5.75" y="11.5" width="4.5" height="4.5" rx="1"/><rect x="11.5" y="11.5" width="4.5" height="4.5" rx="1"/></svg>
+                        All Media
+                    </button>
+                </div>
+            </div>
+
+            <!-- Boards View (Pinterest-style) -->
+            <div id="boards-view">
+                <div id="boards-grid" class="boards-grid">Loading boards...</div>
+            </div>
+
+            <!-- Board Detail View -->
+            <div id="board-detail-view" style="display:none;">
+                <button class="board-back-btn" onclick="closeBoard()">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 1L4 7l6 6"/></svg>
+                    Back to Boards
+                </button>
+                <div class="board-detail-header">
+                    <h3 id="board-detail-title" class="board-detail-name"></h3>
+                    <span id="board-detail-count" class="board-detail-count"></span>
+                </div>
+                <div id="board-detail-grid" class="gallery-grid"></div>
+            </div>
+
+            <!-- All Media View -->
+            <div id="all-media-view" style="display:none;">
+                <div id="gallery-container" class="gallery-grid">Loading...</div>
+            </div>
+
         </section>
 
-        <!-- ABOUT SECTION -->
+        <!-- ════════ ABOUT SECTION ════════ -->
         <section id="section-about" class="content-section">
             <div class="about-hero">
                 <img class="about-pfp" id="about-pfp" src="" alt="Profile" onerror="this.style.display='none'">
-                <div class="about-name" id="about-name">Your Name</div>
+                <div class="about-name" id="about-name">MY BLOG</div>
                 <div class="about-tagline" id="about-tagline">Digital Art Archive</div>
                 <div class="about-bio" id="about-bio">Welcome to my art blog! This is where I share my digital artwork, original characters, and fanart. Feel free to explore and leave comments on anything you like.</div>
                 <div class="social-links" id="social-links-display"></div>
             </div>
         </section>
 
-        <!-- COMMISSIONS SECTION -->
+        <!-- ════════ COMMISSIONS SECTION ════════ -->
         <section id="section-commissions" class="content-section">
             <div class="about-hero">
                 <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.5rem;margin-bottom:1rem;">Commissions</h2>
@@ -239,7 +418,7 @@
             </div>
         </section>
 
-        <!-- ADMIN SECTION -->
+        <!-- ════════ ADMIN SECTION ════════ -->
         <section id="section-admin" class="content-section">
             <div id="admin-login">
                 <h2>Admin // Access</h2>
@@ -251,9 +430,9 @@
             <div id="admin-panel" style="display:none;">
 
                 <div class="admin-toolbar">
-                    <button class="action-btn" onclick="forceSyncAll()" style="font-size:0.75rem;"><i class="fa-solid fa-rotate"></i> FORCE SYNC</button>
-                    <button class="btn-secondary" onclick="cleanupBase64()" title="Strip embedded base64 images to shrink system.js"><i class="fa-solid fa-broom"></i> CLEAN</button>
-                    <button class="btn-secondary" onclick="downloadSystemJS()">⬇ JS</button>
+                    <button class="action-btn" onclick="forceSyncAll()" style="font-size:0.75rem;">🔄 FORCE SYNC</button>
+                    <button class="btn-secondary" onclick="openCleanupPanel()">🧹 Clean</button>
+                    <button class="btn-secondary" onclick="downloadBackup()">⬇ JS</button>
                     <button class="btn-secondary" onclick="downloadHTML()">⬇ HTML</button>
                 </div>
 
@@ -263,6 +442,7 @@
                     <button class="nav-link" onclick="showAdminTab('settings', this)">Site Settings</button>
                     <button class="nav-link" onclick="showAdminTab('banner-settings', this)">Banner</button>
                     <button class="nav-link" onclick="showAdminTab('social', this)">Social Links</button>
+                    <button class="nav-link" onclick="showAdminTab('comics-admin', this)">Comics</button>
                     <button class="btn-danger" onclick="logoutAdmin()" style="margin-left:auto;">Logout</button>
                 </div>
 
@@ -270,16 +450,16 @@
                 <div id="admin-tab-create" class="admin-tab active" style="display:block;">
                     <h3>Create New Content</h3>
                     <textarea id="new-post-content" style="width:100%;min-height:120px;margin-bottom:0.5rem;" placeholder="Write your post... (supports **bold**, *italic*, [links](url))"></textarea>
-                    <label>Media — Upload Image (uploads to img/ folder)</label>
-                    <input type="file" id="new-post-media-file" accept="image/*,video/mp4,video/webm" 
+                    <label style="color:var(--accent-color);font-family:var(--font-mono);font-size:0.7rem;">Media Upload (uploads to img/)</label>
+                    <input type="file" id="new-post-media-file" accept="image/*,video/*,audio/*" multiple
                            style="width:100%;max-width:500px;margin-bottom:0.5rem;font-family:var(--font-mono);font-size:0.75rem;color:var(--gray-light);"
-                           onchange="handleFileUpload(this)">
-                    <div id="upload-preview" style="display:none;margin-bottom:0.5rem;">
-                        <img id="upload-preview-img" style="max-width:200px;max-height:150px;border-radius:8px;border:1px solid var(--border);">
-                        <button type="button" onclick="clearUpload()" style="display:block;margin-top:0.3rem;font-family:var(--font-mono);font-size:0.65rem;color:var(--pink);background:none;border:none;cursor:pointer;">✕ Remove</button>
+                           onchange="handleFileSelect(this)">
+                    <div id="admin-media-queue" class="media-queue"></div>
+                    <label style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-top:0.25rem;">Add External URL</label>
+                    <div style="display:flex;gap:5px;margin-bottom:0.75rem;">
+                        <input type="text" id="new-post-media-url" style="flex:1;margin-bottom:0;" placeholder="https://...">
+                        <button class="action-btn" style="width:auto;padding:0.5rem 1rem;" onclick="addUrlToQueue()">Add</button>
                     </div>
-                    <label>— OR paste a Media URL</label>
-                    <input type="text" id="new-post-media-url" style="width:100%;max-width:500px;margin-bottom:0.5rem;" placeholder="https://... or img/filename.png">
                     <label>Tags (click to select)</label>
                     <div id="new-post-tags-bar" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.75rem;">
                         <button type="button" class="tag-toggle" data-tag="SFW" onclick="this.classList.toggle('selected')" style="font-family:var(--font-body);font-size:0.8rem;padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--gray-light);cursor:pointer;transition:all 0.2s;">SFW</button>
@@ -333,7 +513,7 @@
 
                     <!-- SYNC STATUS -->
                     <div style="padding:1rem;background:var(--bg-elevated);border:2px solid var(--lime);border-radius:var(--radius-sm);margin-bottom:1.5rem;">
-                        <h4 style="margin-top:0 !important;color:var(--lime) !important;border:none !important;"><i class="fa-solid fa-link"></i> Auto-Sync Status</h4>
+                        <h4 style="margin-top:0 !important;color:var(--lime) !important;border:none !important;">🔗 Auto-Sync Status</h4>
                         <p style="font-family:var(--font-mono);font-size:0.68rem;color:var(--gray-light);line-height:1.6;">
                             Posts and settings auto-sync to your Neocities site via the LBM bridge.<br>
                             Your API key is encrypted into a Secure Token — it's never stored as plain text.
@@ -352,7 +532,68 @@
                     <label>Tagline</label><input type="text" id="settings-tagline" style="max-width:300px;display:block;margin-bottom:0.5rem;">
                     <label>Posts Tab Name</label><input type="text" id="settings-posts-tab" style="max-width:200px;display:block;margin-bottom:0.5rem;">
                     <label>Copyright</label><input type="text" id="settings-copyright" style="max-width:300px;display:block;margin-bottom:0.5rem;">
-                    <label>PFP URL</label><input type="text" id="settings-pfp" style="max-width:400px;display:block;margin-bottom:0.5rem;">
+                    <label>PFP URL</label><input type="text" id="settings-pfp" style="max-width:400px;display:block;margin-bottom:1.25rem;">
+
+                    <!-- Profile Ring Customization -->
+                    <h4>Profile Ring Customization</h4>
+                    <div class="pfp-gradient-editor">
+                        <div style="display:flex;align-items:center;gap:1.25rem;margin-bottom:0.5rem;">
+                            <div class="pfp-preview-ring" id="pfp-preview-ring">
+                                <div class="pfp-preview-inner">🎨</div>
+                            </div>
+                            <div>
+                                <p style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">Live Preview</p>
+                                <p style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray-dim);">Changes apply immediately</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:0.5rem;">Gradient Colors</label>
+                            <div class="color-stop-row">
+                                <input type="color" id="pfp-color-1" value="#ff6b35" oninput="updatePfpGradientPreview()">
+                                <input type="color" id="pfp-color-2" value="#b8ff38" oninput="updatePfpGradientPreview()">
+                                <input type="color" id="pfp-color-3" value="#ff3c8e" oninput="updatePfpGradientPreview()">
+                                <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray-dim);margin-left:0.25rem;">3 color stops</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:0.5rem;">Preset Gradients</label>
+                            <div class="pfp-gradient-swatches">
+                                <button class="pfp-swatch-btn active" title="Neon Sunset" style="background:linear-gradient(135deg,#ff6b35,#b8ff38,#ff3c8e);" onclick="applyPfpPreset(['#ff6b35','#b8ff38','#ff3c8e'],'135deg',this)"></button>
+                                <button class="pfp-swatch-btn" title="Ocean" style="background:linear-gradient(135deg,#00d4ff,#8b5cf6,#00d4ff);" onclick="applyPfpPreset(['#00d4ff','#8b5cf6','#00d4ff'],'135deg',this)"></button>
+                                <button class="pfp-swatch-btn" title="Fire" style="background:linear-gradient(135deg,#ff6b35,#ff3c8e,#ffca28);" onclick="applyPfpPreset(['#ff6b35','#ff3c8e','#ffca28'],'135deg',this)"></button>
+                                <button class="pfp-swatch-btn" title="Forest" style="background:linear-gradient(135deg,#b8ff38,#00d4ff,#8b5cf6);" onclick="applyPfpPreset(['#b8ff38','#00d4ff','#8b5cf6'],'135deg',this)"></button>
+                                <button class="pfp-swatch-btn" title="Mono White" style="background:linear-gradient(135deg,#ffffff,#aaaaaa,#ffffff);" onclick="applyPfpPreset(['#ffffff','#aaaaaa','#ffffff'],'135deg',this)"></button>
+                                <button class="pfp-swatch-btn" title="Gold" style="background:linear-gradient(135deg,#f5a623,#f8e71c,#f5a623);" onclick="applyPfpPreset(['#f5a623','#f8e71c','#f5a623'],'135deg',this)"></button>
+                            </div>
+                        </div>
+
+                        <div class="pfp-slider-row">
+                            <label>Direction</label>
+                            <select id="pfp-gradient-dir" onchange="updatePfpGradientPreview()" style="flex:1;max-width:180px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);padding:0.35rem 0.6rem;font-family:var(--font-body);font-size:0.82rem;">
+                                <option value="135deg">Diagonal ↘</option>
+                                <option value="to right">Horizontal →</option>
+                                <option value="to bottom">Vertical ↓</option>
+                                <option value="to top right">Diagonal ↗</option>
+                                <option value="circle">Radial</option>
+                            </select>
+                        </div>
+
+                        <div class="pfp-slider-row">
+                            <label>Thickness</label>
+                            <input type="range" id="pfp-thickness" min="2" max="12" value="4" oninput="updatePfpGradientPreview(); document.getElementById('pfp-thickness-val').textContent = this.value + 'px';">
+                            <span class="pfp-slider-value" id="pfp-thickness-val">4px</span>
+                        </div>
+
+                        <div class="pfp-slider-row">
+                            <label>Glow</label>
+                            <input type="range" id="pfp-glow" min="0" max="30" value="8" oninput="updatePfpGradientPreview(); document.getElementById('pfp-glow-val').textContent = this.value + 'px';">
+                            <span class="pfp-slider-value" id="pfp-glow-val">8px</span>
+                        </div>
+                    </div>
+                    <button class="btn-secondary" onclick="applyPfpGradient()" style="margin-top:0.75rem;margin-bottom:1.25rem;">Apply Ring Style</button>
+
                     <label>Banner URL</label><input type="text" id="settings-banner" style="max-width:400px;display:block;margin-bottom:0.5rem;">
                     <label>About Text</label>
                     <textarea id="settings-about-text" rows="4" style="width:100%;margin-bottom:0.5rem;" placeholder="Write about yourself..."></textarea>
@@ -405,61 +646,115 @@
                     <button class="action-btn" onclick="saveSettings()" style="width:100%;max-width:300px;">Save Settings & Sync</button>
                 </div>
 
-                <!-- BANNER CUSTOMIZATION TAB -->
+                <!-- ════════ BANNER CUSTOMIZATION TAB ════════ -->
                 <div id="admin-tab-banner-settings" class="admin-tab" style="display:none;">
-                    <h3>Animated Banner Settings</h3>
-                    <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:1rem;">
-                        Customize the scrolling marquee banner below the nav bar. One item per line.
+                    <h3>Banner Settings</h3>
+                    <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:1.25rem;">
+                        Configure how the hero banner panels are populated.
                     </p>
 
-                    <label>Banner Text (one item per line)</label>
-                    <textarea id="banner-text-input" rows="6" style="width:100%;max-width:500px;margin-bottom:1rem;" placeholder="ART WEEKLY
-SFW ART
-NSFW ART
-DIGITAL ART
-ANIMATION"></textarea>
-
-                    <label>Scroll Speed (seconds — lower = faster)</label>
-                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
-                        <input type="range" id="banner-speed-range" min="5" max="60" value="20" 
-                               oninput="document.getElementById('banner-speed-value').textContent = this.value + 's'; previewBanner();"
-                               style="flex:1;max-width:300px;accent-color:var(--lime);">
-                        <span id="banner-speed-value" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--lime);min-width:40px;">20s</span>
+                    <!-- Mode Toggle -->
+                    <label style="font-family:var(--font-mono);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray);display:block;margin-bottom:0.5rem;">Banner Image Source</label>
+                    <div class="banner-mode-toggle">
+                        <button class="banner-mode-btn active" id="banner-mode-auto" onclick="setBannerMode('auto')">
+                            ↻ Auto (Recent Posts)
+                        </button>
+                        <button class="banner-mode-btn" id="banner-mode-manual" onclick="setBannerMode('manual')">
+                            ✎ Manual Select
+                        </button>
                     </div>
 
-                    <label>Banner Background Color</label>
-                    <input type="color" id="banner-bg-color" value="#ff6b35" style="margin-bottom:1rem;" oninput="previewBanner()">
+                    <!-- Auto mode info -->
+                    <div id="banner-auto-section">
+                        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:1rem;margin-bottom:1.25rem;">
+                            <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray-light);margin-bottom:0.5rem;">
+                                ● The 4 most recent posts with images will automatically populate the banner panels.
+                            </p>
+                            <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);">
+                                New posts will update the banner automatically.
+                            </p>
+                        </div>
 
-                    <label>Banner Text Color</label>
-                    <input type="color" id="banner-text-color" value="#0d0d0d" style="margin-bottom:1rem;" oninput="previewBanner()">
+                        <label>Number of Panels</label>
+                        <select id="banner-panel-count" style="max-width:100px;display:block;margin-bottom:1rem;" onchange="previewBannerMode()">
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4" selected>4</option>
+                        </select>
+                    </div>
 
-                    <label>Separator Symbol</label>
-                    <input type="text" id="banner-separator" style="max-width:100px;display:block;margin-bottom:1rem;" value="✦" placeholder="✦">
-
-                    <label>Show Banner?</label>
-                    <select id="banner-visible" style="max-width:120px;display:block;margin-bottom:1.5rem;" onchange="previewBanner()">
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </select>
-
-                    <div style="margin-bottom:1.5rem;">
-                        <p style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);margin-bottom:0.5rem;text-transform:uppercase;">Live Preview:</p>
-                        <div id="banner-preview" style="overflow:hidden;border-radius:var(--radius-sm);border:1px solid var(--border);padding:0.5rem 0;background:var(--orange);">
-                            <div style="display:flex;animation:marquee-scroll 20s linear infinite;white-space:nowrap;">
-                                <span style="font-family:var(--font-display);font-size:0.85rem;letter-spacing:0.15em;color:var(--bg-dark);padding:0 1.2rem;">ART WEEKLY ✦</span>
-                                <span style="font-family:var(--font-display);font-size:0.85rem;letter-spacing:0.15em;color:var(--bg-dark);padding:0 1.2rem;">SFW ART ✦</span>
-                                <span style="font-family:var(--font-display);font-size:0.85rem;letter-spacing:0.15em;color:var(--bg-dark);padding:0 1.2rem;">NSFW ART ✦</span>
+                    <!-- Manual mode -->
+                    <div id="banner-manual-section" style="display:none;">
+                        <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:0.85rem;">
+                            Enter image URLs for each panel. Leave blank to use a color placeholder.
+                        </p>
+                        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.25rem;">
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);min-width:52px;">Panel 1</span>
+                                <input type="text" id="banner-img-0" placeholder="https://..." style="flex:1;">
+                                <button class="btn-secondary" onclick="pickBannerImage(0)" style="padding:0.4rem 0.75rem;font-size:0.75rem;white-space:nowrap;">From Gallery</button>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);min-width:52px;">Panel 2</span>
+                                <input type="text" id="banner-img-1" placeholder="https://..." style="flex:1;">
+                                <button class="btn-secondary" onclick="pickBannerImage(1)" style="padding:0.4rem 0.75rem;font-size:0.75rem;white-space:nowrap;">From Gallery</button>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);min-width:52px;">Panel 3</span>
+                                <input type="text" id="banner-img-2" placeholder="https://..." style="flex:1;">
+                                <button class="btn-secondary" onclick="pickBannerImage(2)" style="padding:0.4rem 0.75rem;font-size:0.75rem;white-space:nowrap;">From Gallery</button>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);min-width:52px;">Panel 4</span>
+                                <input type="text" id="banner-img-3" placeholder="https://..." style="flex:1;">
+                                <button class="btn-secondary" onclick="pickBannerImage(3)" style="padding:0.4rem 0.75rem;font-size:0.75rem;white-space:nowrap;">From Gallery</button>
                             </div>
                         </div>
                     </div>
 
-                    <div style="display:flex;gap:0.5rem;">
-                        <button class="action-btn" onclick="applyBannerSettings()">Apply & Save</button>
-                        <button class="btn-secondary" onclick="previewBanner()">Preview</button>
+                    <!-- Marquee Toggle -->
+                    <div style="border-top:1px solid var(--border);padding-top:1rem;margin-bottom:1rem;">
+                        <label>Show Scrolling Marquee Text Banner?</label>
+                        <select id="banner-visible" style="max-width:120px;display:block;margin-bottom:1rem;" onchange="previewBannerMode()">
+                            <option value="false">No (Recommended)</option>
+                            <option value="true">Yes</option>
+                        </select>
+
+                        <div id="marquee-settings-section" style="display:none;">
+                            <label>Marquee Text (one item per line)</label>
+                            <textarea id="banner-text-input" rows="4" style="width:100%;max-width:500px;margin-bottom:0.75rem;" placeholder="ART WEEKLY&#10;SFW ART&#10;NSFW ART"></textarea>
+
+                            <label>Scroll Speed</label>
+                            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+                                <input type="range" id="banner-speed-range" min="5" max="60" value="20"
+                                       oninput="document.getElementById('banner-speed-value').textContent = this.value + 's';"
+                                       style="flex:1;max-width:200px;accent-color:var(--lime);">
+                                <span id="banner-speed-value" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--lime);min-width:40px;">20s</span>
+                            </div>
+
+                            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+                                <div><label>Background</label><input type="color" id="banner-bg-color" value="#ff6b35"></div>
+                                <div><label>Text Color</label><input type="color" id="banner-text-color" value="#0d0d0d"></div>
+                                <div><label>Separator</label><input type="text" id="banner-separator" style="max-width:80px;" value="✦"></div>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Gallery image picker modal (hidden) -->
+                    <div id="banner-gallery-picker" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);overflow-y:auto;padding:2rem;">
+                        <div style="max-width:700px;margin:0 auto;background:var(--bg-card);border-radius:var(--radius-lg);padding:1.5rem;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                                <h4 style="margin:0;">Pick an Image</h4>
+                                <button class="btn-secondary" onclick="document.getElementById('banner-gallery-picker').style.display='none'">✕ Close</button>
+                            </div>
+                            <div id="banner-picker-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.5rem;"></div>
+                        </div>
+                    </div>
+
+                    <button class="action-btn" onclick="applyBannerSettings()">Apply & Save</button>
                 </div>
 
-                <!-- SOCIAL LINKS TAB -->
+                <!-- ════════ SOCIAL LINKS TAB ════════ -->
                 <div id="admin-tab-social" class="admin-tab" style="display:none;">
                     <h3>Social Media Links</h3>
                     <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:1rem;">
@@ -471,12 +766,60 @@ ANIMATION"></textarea>
                     <button class="action-btn" onclick="saveSocialLinks()">Save Social Links</button>
                 </div>
 
+                <!-- ════════ COMICS ADMIN TAB ════════ -->
+                <div id="admin-tab-comics-admin" class="admin-tab" style="display:none;">
+                    <h3>Manage Comics</h3>
+                    <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:1rem;">
+                        Create and manage comic series. Upload pages as images.
+                    </p>
+
+                    <div id="comics-admin-create" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem;margin-bottom:1.5rem;">
+                        <h4 style="margin-top:0 !important;">New Comic</h4>
+                        <label>Title</label>
+                        <input type="text" id="comic-title-input" style="width:100%;max-width:400px;margin-bottom:0.5rem;" placeholder="Comic title">
+                        <label>Cover Image URL (optional — first page used if empty)</label>
+                        <input type="text" id="comic-cover-input" style="width:100%;max-width:500px;margin-bottom:0.5rem;" placeholder="https://...">
+                        <label>Tags (comma separated)</label>
+                        <input type="text" id="comic-tags-input" style="width:100%;max-width:400px;margin-bottom:0.75rem;" placeholder="e.g. fantasy, action">
+                        <label>Upload Pages (select multiple images in order)</label>
+                        <input type="file" id="comic-pages-input" accept="image/*" multiple
+                               style="width:100%;max-width:500px;margin-bottom:0.5rem;font-family:var(--font-mono);font-size:0.75rem;color:var(--gray-light);">
+                        <div id="comic-pages-preview" class="comic-pages-sortable"></div>
+                        <p style="font-family:var(--font-mono);font-size:0.6rem;color:var(--gray-dim);margin-bottom:0.75rem;">Drag to reorder pages after upload. Pages upload to img/ on your site.</p>
+                        <div id="comic-upload-progress" style="display:none;margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-dark);border:1px solid var(--border);border-radius:var(--radius-sm);">
+                            <span id="comic-upload-text" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--lime);">Uploading...</span>
+                            <div style="width:100%;height:4px;background:var(--bg-card);border-radius:2px;margin-top:0.4rem;overflow:hidden;">
+                                <div id="comic-upload-bar" style="height:100%;background:var(--lime);width:0%;transition:width 0.3s;border-radius:2px;"></div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="createComic()" style="width:100%;">Create Comic & Upload Pages</button>
+                    </div>
+
+                    <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;">
+                        <h4 style="margin:0;">Existing Comics</h4>
+                        <button class="btn-secondary" style="font-size:0.65rem;margin-left:auto;" onclick="downloadComicsJS();showToast('comics.js downloaded — upload to Neocities root!')">⬇ Download comics.js</button>
+                        <button class="btn-secondary" style="font-size:0.65rem;" onclick="uploadToBridge('comics');showToast('Force syncing comics.js...')">🔄 Force Sync Comics</button>
+                    </div>
+                    <div id="comics-admin-list"></div>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- ════════ COMICS SECTION ════════ -->
+        <section id="section-comics" class="content-section">
+            <div class="gallery-header">
+                <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.3rem;margin:0;">Comics</h2>
+            </div>
+            <div id="comics-grid" class="comics-list">
+                <p style="font-family:var(--font-mono);font-size:0.8rem;color:var(--gray);">No comics yet.</p>
             </div>
         </section>
 
     </main>
 
-    <!-- FOOTER -->
+    <!-- ══════════════ FOOTER ══════════════ -->
     <footer>
         <div class="footer-links">
             <a href="#" onclick="switchTab('posts')">Home</a>
@@ -485,18 +828,21 @@ ANIMATION"></textarea>
                 Built on <a href="https://lbm-test.neocities.org" target="_blank" style="color:var(--gray-dim);">LBM</a>
             </span>
         </div>
-        <div class="footer-copy" id="footer-copyright">© 2026 Artist Blog</div>
+        <div class="footer-copy" id="footer-copyright">© 2026 My Blog</div>
     </footer>
 
-    <!-- LIGHTBOX -->
+    </div><!-- /page-wrapper -->
+
+    <!-- ══════════════ LIGHTBOX ══════════════ -->
     <div id="leaflet-lightbox" class="lightbox" style="display:none;" onclick="if(event.target === this) closeLightbox()">
         <div class="lightbox-content">
             <span class="close-btn" onclick="closeLightbox()">&times;</span>
             <div id="lightbox-body"></div>
         </div>
+        <div class="lb-post-counter" id="lb-post-counter"></div>
     </div>
 
-    <!-- MEDIA VIEWER -->
+    <!-- ══════════════ MEDIA VIEWER ══════════════ -->
     <div id="media-fullscreen-overlay" class="media-overlay" style="display:none;" onclick="closeMediaViewer()">
         <span class="close-media-btn" onclick="closeMediaViewer()">&times;</span>
         <button class="media-nav-btn media-prev" onclick="event.stopPropagation();mediaViewerPrev()">&#8249;</button>
@@ -508,8 +854,9 @@ ANIMATION"></textarea>
     <!-- Scroll to top -->
     <button class="scroll-top-btn" id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
+
     <!-- ══════════════════════════════════════════════════
-         V4.0 SCRIPTS — UI Layer
+         V5.0 SCRIPTS — UI Layer
          Pill Nav + Scroll Velocity + Staggered Menu
          ══════════════════════════════════════════════════ -->
     <script>
@@ -519,10 +866,10 @@ ANIMATION"></textarea>
         'instagram': '<i class="fa-brands fa-instagram"></i>', 'bluesky': '<i class="fa-brands fa-bluesky"></i>',
         'tumblr': '<i class="fa-brands fa-tumblr"></i>', 'youtube': '<i class="fa-brands fa-youtube"></i>',
         'tiktok': '<i class="fa-brands fa-tiktok"></i>', 'deviantart': '<i class="fa-brands fa-deviantart"></i>',
-        'pixiv': '<i class="fa-solid fa-paintbrush"></i>', 'twitch': '<i class="fa-brands fa-twitch"></i>',
+        'pixiv': '<i class="fa-brands fa-pixiv"></i>', 'twitch': '<i class="fa-brands fa-twitch"></i>',
         'ko-fi': '<i class="fa-solid fa-mug-hot"></i>', 'patreon': '<i class="fa-brands fa-patreon"></i>',
         'discord': '<i class="fa-brands fa-discord"></i>', 'threads': '<i class="fa-brands fa-threads"></i>',
-        'cara': '<i class="fa-solid fa-camera"></i>', 'other': '<i class="fa-solid fa-link"></i>'
+        'cara': '<i class="fa-solid fa-palette"></i>', 'other': '<i class="fa-solid fa-link"></i>'
     };
 
     const PLATFORM_OPTIONS = [
@@ -530,7 +877,9 @@ ANIMATION"></textarea>
         'DeviantArt', 'Pixiv', 'Twitch', 'Ko-fi', 'Patreon', 'Discord', 'Threads', 'Cara', 'Other'
     ];
 
-    /* PILL NAV — Sliding indicator */
+    /* ═════════════════════════════════════════════
+       PILL NAV — Sliding indicator
+       ═════════════════════════════════════════════ */
 
     function updatePillIndicator() {
         const navCenter = document.getElementById('nav-center');
@@ -538,6 +887,7 @@ ANIMATION"></textarea>
         if (!navCenter || !pill) return;
         const activeBtn = navCenter.querySelector('.nav-link.active');
         if (!activeBtn) { pill.style.opacity = '0'; return; }
+        // nav is outside page-wrapper (no zoom), so use direct getBoundingClientRect values
         const navRect = navCenter.getBoundingClientRect();
         const btnRect = activeBtn.getBoundingClientRect();
         pill.style.opacity = '1';
@@ -548,72 +898,111 @@ ANIMATION"></textarea>
     /* ── Tab switching ── */
     function switchTab(tab, btn) {
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.nav-center .nav-link, .nav-right .nav-link, .mobile-menu .nav-link').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.nav-center .nav-link, .nav-right .nav-link, .mobile-menu-link').forEach(b => b.classList.remove('active'));
         const section = document.getElementById('section-' + tab);
         if (section) section.classList.add('active');
-        if (btn && btn.classList.contains('nav-link')) btn.classList.add('active');
+        if (btn && (btn.classList.contains('nav-link') || btn.classList.contains('mobile-menu-link'))) btn.classList.add('active');
         const centerButtons = document.querySelectorAll('.nav-center .nav-link');
-        const tabMap = { 'posts': 'Home', 'about': 'About', 'gallery': 'Gallery', 'commissions': 'Commissions' };
+        const tabMap = { 'posts': 'Home', 'about': 'About', 'gallery': 'Gallery', 'commissions': 'Commissions', 'comics': 'Comics' };
         centerButtons.forEach(b => { if (b.textContent.trim() === tabMap[tab]) b.classList.add('active'); });
+        document.querySelectorAll('.mobile-menu-link').forEach(b => { if (b.textContent.trim() === tabMap[tab]) b.classList.add('active'); });
+
+        // Show hero & featured sections ONLY on Home (posts) tab
+        const heroSection = document.getElementById('hero-section');
+        const featuredSection = document.getElementById('featured-cards-section');
+        const isHome = (tab === 'posts');
+        if (heroSection) heroSection.style.display = isHome ? '' : 'none';
+        // Featured section respects its own display logic (only shows if posts exist), so only hide on non-home
+        if (featuredSection && !isHome) featuredSection.style.display = 'none';
+        else if (featuredSection && isHome) { populateArtScroll(); } // re-evaluate if returning home
+
+        if (tab === 'gallery') { if (typeof currentGalleryView !== 'undefined' && currentGalleryView === 'boards') renderBoards(); else renderGallery(); }
+        if (tab === 'comics') renderComicsGrid();
         requestAnimationFrame(updatePillIndicator);
         closeMobileMenu();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    /* ── Mobile menu ── */
+    /* ── Mobile slide-in panel ── */
     function toggleMobileMenu() {
         const menu = document.getElementById('mobile-menu');
-        if (menu.classList.contains('open')) { closeMobileMenu(); }
-        else {
-            const links = menu.querySelectorAll('.nav-link');
-            links.forEach(l => { l.style.animation = 'none'; });
-            menu.style.display = 'flex';
-            menu.classList.add('open');
-            requestAnimationFrame(() => { links.forEach(l => { l.style.animation = ''; }); });
-        }
+        if (menu.classList.contains('open')) { closeMobileMenu(); return; }
+        menu.querySelectorAll('.mobile-menu-link').forEach(l => {
+            l.style.animation = 'none';
+            l.offsetHeight;
+            l.style.animation = '';
+        });
+        menu.classList.add('open');
+        document.getElementById('mobile-backdrop').classList.add('open');
+        document.getElementById('hamburger-btn').classList.add('open');
+        document.getElementById('hamburger-btn').setAttribute('aria-expanded', 'true');
+        menu.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
     }
     function closeMobileMenu() {
         const menu = document.getElementById('mobile-menu');
+        if (!menu) return;
         menu.classList.remove('open');
-        menu.style.display = 'none';
+        const bd = document.getElementById('mobile-backdrop');
+        if (bd) bd.classList.remove('open');
+        const hbg = document.getElementById('hamburger-btn');
+        if (hbg) { hbg.classList.remove('open'); hbg.setAttribute('aria-expanded', 'false'); }
+        menu.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
     }
     document.addEventListener('click', (e) => {
         const menu = document.getElementById('mobile-menu');
-        const btn = document.querySelector('.hamburger-btn');
-        if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) closeMobileMenu();
+        const btn = document.getElementById('hamburger-btn');
+        if (menu && menu.classList.contains('open') && !menu.contains(e.target) && btn && !btn.contains(e.target)) closeMobileMenu();
     });
 
-    /* SCROLL VELOCITY MARQUEE */
+    /* ═════════════════════════════════════════════
+       HERO ENTRANCE ANIMATION
+       ═════════════════════════════════════════════ */
 
-    (function initScrollVelocityMarquee() {
-        let lastScrollY = window.scrollY, lastTime = Date.now(), velocityFactor = 1, rafId = null;
-        function updateMarqueeSpeed() {
-            const marquee = document.querySelector('.marquee');
-            if (!marquee) return;
-            const now = Date.now(), dt = Math.max(now - lastTime, 1), dy = Math.abs(window.scrollY - lastScrollY);
-            const speed = dy / dt;
-            lastScrollY = window.scrollY; lastTime = now;
-            const targetFactor = 1 + Math.min(speed * 8, 3);
-            velocityFactor += (targetFactor - velocityFactor) * 0.15;
-            const baseSpeed = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--banner-speed')) || 20;
-            marquee.style.animationDuration = (baseSpeed / velocityFactor) + 's';
-            rafId = requestAnimationFrame(updateMarqueeSpeed);
+    (function initHeroEntrance() {
+        const hero = document.querySelector('.hero-section');
+        if (!hero) return;
+        // Stagger each panel's reveal
+        const panels = hero.querySelectorAll('.hero-panel');
+        panels.forEach((panel, i) => {
+            panel.style.opacity = '0';
+            panel.style.transform = 'scaleY(0.92)';
+            panel.style.transformOrigin = 'bottom';
+            panel.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            setTimeout(() => {
+                panel.style.opacity = '1';
+                panel.style.transform = 'scaleY(1)';
+            }, 80 + i * 80);
+        });
+        const bar = hero.querySelector('.hero-bar');
+        if (bar) {
+            bar.style.opacity = '0';
+            bar.style.transform = 'translateY(12px)';
+            bar.style.transition = 'opacity 0.5s ease 0.4s, transform 0.5s ease 0.4s';
+            setTimeout(() => { bar.style.opacity = '1'; bar.style.transform = 'translateY(0)'; }, 440);
         }
-        window.addEventListener('scroll', () => { if (!rafId) rafId = requestAnimationFrame(updateMarqueeSpeed); }, { passive: true });
-        setInterval(() => {
-            if (velocityFactor > 1.05) {
-                velocityFactor += (1 - velocityFactor) * 0.08;
-                const marquee = document.querySelector('.marquee');
-                if (marquee) { const bs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--banner-speed')) || 20; marquee.style.animationDuration = (bs / velocityFactor) + 's'; }
-            }
-            if (rafId && velocityFactor < 1.05) { cancelAnimationFrame(rafId); rafId = null; }
-        }, 100);
     })();
 
     /* ── Scroll to top button ── */
     window.addEventListener('scroll', () => {
         document.getElementById('scroll-top-btn').classList.toggle('visible', window.scrollY > 400);
+        // Nav gets background once scrolled past hero
+        const heroSection = document.getElementById('hero-section');
+        const navH = document.querySelector('.top-nav')?.offsetHeight || 60;
+        const threshold = heroSection ? heroSection.offsetTop + heroSection.offsetHeight - navH : 200;
+        document.querySelector('.top-nav').classList.toggle('scrolled', window.scrollY > threshold);
     });
+
+    /* ── Fixed layout scale ── */
+    // ── ZOOM SCALE ──────────────────────────────────────────────────────────────
+    // This scales the entire page layout up or down.
+    // Useful for high-DPI screens or personal preference.
+    // 1.0 = no zoom (default browser size)
+    // 1.7 = 170% size (recommended for most desktop monitors)
+    // Try values between 1.3–2.0. Change it and refresh to see the result.
+    document.getElementById('page-wrapper').style.zoom = 1.7;
+
 
     /* ── Search / filter posts ── */
     function filterPosts() {
@@ -643,8 +1032,12 @@ ANIMATION"></textarea>
         document.querySelectorAll('.tags-bar .tag-pill').forEach(p => p.classList.remove('active'));
         if (btn) btn.classList.add('active');
         document.querySelectorAll('#leaflets-container .leaflet-item').forEach(post => {
-            if (tag === 'all') { post.style.display = ''; }
-            else { post.style.display = (post.dataset.tags || '').toLowerCase().includes(tag.toLowerCase()) ? '' : 'none'; }
+            if (tag === 'all') { post.style.display = ''; return; }
+            // Use exact word match — prevents 'sfw' from matching posts tagged 'nsfw'
+            const rawTags = (post.dataset.tags || '').toLowerCase();
+            // Tags are stored comma-separated; split and trim for precise comparison
+            const postTags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+            post.style.display = postTags.includes(tag.toLowerCase()) ? '' : 'none';
         });
     }
 
@@ -659,92 +1052,361 @@ ANIMATION"></textarea>
             btn.classList.add('active');
         }
         if (tab === 'manage') renderManagePosts();
+        if (tab === 'comics-admin') renderComicsAdmin();
     }
 
-    /* BANNER CUSTOMIZATION */
+    /* ═════════════════════════════════════════════
+       BANNER CUSTOMIZATION — Multi-image system
+       ═════════════════════════════════════════════ */
 
     function loadBannerSettings() {
-        // Primary source: currentConfig (synced via system.js)
         let s = currentConfig.bannerSettings;
-        // Fallback: localStorage (for migration from old versions)
         if (!s) {
-            const saved = localStorage.getItem('lbmc_banner_settings');
+            const saved = localStorage.getItem('neerg_banner_settings');
             if (saved) { try { s = JSON.parse(saved); } catch(e) {} }
         }
         if (s) {
             try {
-                if (s.text) document.getElementById('banner-text-input').value = s.text;
-                if (s.speed) { document.getElementById('banner-speed-range').value = s.speed; document.getElementById('banner-speed-value').textContent = s.speed + 's'; }
-                if (s.bgColor) document.getElementById('banner-bg-color').value = s.bgColor;
-                if (s.textColor) document.getElementById('banner-text-color').value = s.textColor;
-                if (s.separator) document.getElementById('banner-separator').value = s.separator;
-                if (s.visible !== undefined) document.getElementById('banner-visible').value = String(s.visible);
+                // Load mode
+                const mode = s.bannerMode || 'auto';
+                setBannerMode(mode, false);
+
+                // Load panel images (manual mode)
+                if (s.bannerImages) {
+                    for (let i = 0; i < 4; i++) {
+                        const el = document.getElementById('banner-img-' + i);
+                        if (el && s.bannerImages[i]) el.value = s.bannerImages[i];
+                    }
+                }
+
+                // Panel count
+                if (s.panelCount) {
+                    const el = document.getElementById('banner-panel-count');
+                    if (el) el.value = String(s.panelCount);
+                }
+
+                // Marquee settings
+                if (s.text) { const el = document.getElementById('banner-text-input'); if(el) el.value = s.text; }
+                if (s.speed) {
+                    const sr = document.getElementById('banner-speed-range');
+                    const sv = document.getElementById('banner-speed-value');
+                    if (sr) sr.value = s.speed;
+                    if (sv) sv.textContent = s.speed + 's';
+                }
+                if (s.bgColor) { const el = document.getElementById('banner-bg-color'); if(el) el.value = s.bgColor; }
+                if (s.textColor) { const el = document.getElementById('banner-text-color'); if(el) el.value = s.textColor; }
+                if (s.separator) { const el = document.getElementById('banner-separator'); if(el) el.value = s.separator; }
+
+                const visEl = document.getElementById('banner-visible');
+                if (visEl && s.visible !== undefined) visEl.value = String(s.visible);
+
+                // Show/hide marquee settings
+                toggleMarqueeSettings();
                 applyBannerToPage(s);
             } catch(e) {}
         }
     }
 
-    function previewBanner() { const s = getBannerFormValues(); applyBannerToPage(s); updateBannerPreview(s); }
+    function setBannerMode(mode, save) {
+        const autoBtn = document.getElementById('banner-mode-auto');
+        const manBtn = document.getElementById('banner-mode-manual');
+        const autoSec = document.getElementById('banner-auto-section');
+        const manSec = document.getElementById('banner-manual-section');
+        if (!autoBtn) return;
+
+        if (mode === 'auto') {
+            autoBtn.classList.add('active'); manBtn.classList.remove('active');
+            autoSec.style.display = 'block'; manSec.style.display = 'none';
+        } else {
+            manBtn.classList.add('active'); autoBtn.classList.remove('active');
+            manSec.style.display = 'block'; autoSec.style.display = 'none';
+            // Populate picker with gallery images if empty
+            populateBannerPickerGrid();
+        }
+        if (save !== false) previewBannerMode();
+    }
+
+    function toggleMarqueeSettings() {
+        const visEl = document.getElementById('banner-visible');
+        const sec = document.getElementById('marquee-settings-section');
+        if (visEl && sec) sec.style.display = visEl.value === 'true' ? 'block' : 'none';
+    }
+
+    // Watch marquee visibility toggle
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.id === 'banner-visible') toggleMarqueeSettings();
+    });
+
+    function previewBannerMode() {}
 
     function getBannerFormValues() {
-        const textRaw = document.getElementById('banner-text-input').value.trim();
+        const modeAutoBtn = document.getElementById('banner-mode-auto');
+        const mode = (modeAutoBtn && modeAutoBtn.classList.contains('active')) ? 'auto' : 'manual';
+
+        const bannerImages = [];
+        for (let i = 0; i < 4; i++) {
+            const el = document.getElementById('banner-img-' + i);
+            bannerImages.push(el ? el.value.trim() : '');
+        }
+
+        const panelCountEl = document.getElementById('banner-panel-count');
+        const panelCount = panelCountEl ? parseInt(panelCountEl.value) : 4;
+
+        const textEl = document.getElementById('banner-text-input');
+        const textRaw = textEl ? textEl.value.trim() : '';
         const items = textRaw ? textRaw.split('\n').filter(l => l.trim()) : ['ART WEEKLY', 'SFW ART', 'NSFW ART'];
-        return { text: textRaw, items, speed: parseInt(document.getElementById('banner-speed-range').value) || 20,
-            bgColor: document.getElementById('banner-bg-color').value || '#ff6b35', textColor: document.getElementById('banner-text-color').value || '#0d0d0d',
-            separator: document.getElementById('banner-separator').value || '✦', visible: document.getElementById('banner-visible').value === 'true' };
+
+        const speedEl = document.getElementById('banner-speed-range');
+        const bgEl = document.getElementById('banner-bg-color');
+        const tcEl = document.getElementById('banner-text-color');
+        const sepEl = document.getElementById('banner-separator');
+        const visEl = document.getElementById('banner-visible');
+
+        return {
+            bannerMode: mode,
+            bannerImages,
+            panelCount,
+            text: textRaw,
+            items,
+            speed: speedEl ? (parseInt(speedEl.value) || 20) : 20,
+            bgColor: bgEl ? bgEl.value : '#ff6b35',
+            textColor: tcEl ? tcEl.value : '#0d0d0d',
+            separator: sepEl ? sepEl.value : '✦',
+            visible: visEl ? visEl.value === 'true' : false
+        };
     }
 
     function applyBannerToPage(settings) {
         const container = document.getElementById('marquee-container');
         const track = document.getElementById('marquee-track');
-        if (!settings.visible && settings.visible !== undefined) { container.style.display = 'none'; return; }
-        container.style.display = 'block';
-        container.style.background = settings.bgColor || '#ff6b35';
-        container.style.setProperty('--marquee-bg', settings.bgColor || '#ff6b35');
-        const items = settings.items || ['ART WEEKLY', 'SFW ART', 'NSFW ART'];
-        const sep = settings.separator || '✦';
-        let html = '';
-        for (let i = 0; i < 4; i++) { items.forEach(item => { html += `<span style="color:${settings.textColor || '#0d0d0d'}">${item.trim().toUpperCase()}</span>`; }); }
-        track.innerHTML = html;
-        const style = document.getElementById('banner-sep-style') || document.createElement('style');
-        style.id = 'banner-sep-style';
-        style.textContent = `.marquee span::after { content: '${sep}'; margin-left: 1.5rem; }`;
-        if (!style.parentNode) document.head.appendChild(style);
-        const spd = (settings.speed || 20) + 's';
-        document.documentElement.style.setProperty('--banner-speed', spd);
-        track.style.animationDuration = spd;
-    }
 
-    function updateBannerPreview(settings) {
-        const preview = document.getElementById('banner-preview');
-        if (!preview) return;
-        const items = settings.items || ['ART WEEKLY', 'SFW ART', 'NSFW ART'];
-        const sep = settings.separator || '✦';
-        let spans = '';
-        items.forEach(item => { spans += `<span style="font-family:var(--font-display);font-size:0.85rem;letter-spacing:0.15em;color:${settings.textColor};padding:0 1.2rem;">${item.trim().toUpperCase()} ${sep}</span>`; });
-        preview.style.background = settings.bgColor;
-        preview.style.display = settings.visible !== false ? 'block' : 'none';
-        preview.innerHTML = `<div style="display:flex;animation:marquee-scroll ${settings.speed}s linear infinite;white-space:nowrap;">${spans}${spans}</div>`;
+        // Apply marquee visibility
+        if (container) {
+            if (!settings.visible) {
+                container.style.display = 'none';
+            } else {
+                container.style.display = 'block';
+                container.style.background = settings.bgColor || '#ff6b35';
+                if (track) {
+                    const items = settings.items || ['ART WEEKLY', 'SFW ART', 'NSFW ART'];
+                    const sep = settings.separator || '✦';
+                    let html = '';
+                    for (let i = 0; i < 4; i++) { items.forEach(item => { html += `<span style="color:${settings.textColor || '#0d0d0d'}">${item.trim().toUpperCase()}</span>`; }); }
+                    track.innerHTML = html;
+                    const style = document.getElementById('banner-sep-style') || document.createElement('style');
+                    style.id = 'banner-sep-style';
+                    style.textContent = `.marquee span::after { content: '${sep}'; margin-left: 1.5rem; }`;
+                    if (!style.parentNode) document.head.appendChild(style);
+                    const spd = (settings.speed || 20) + 's';
+                    document.documentElement.style.setProperty('--banner-speed', spd);
+                    track.style.animationDuration = spd;
+                }
+            }
+        }
+
+        // Apply hero panel images based on mode
+        const mode = settings.bannerMode || 'auto';
+        if (mode === 'manual' && settings.bannerImages) {
+            for (let i = 0; i < 4; i++) {
+                const panel = document.getElementById('hero-panel-' + i);
+                if (!panel) continue;
+                const url = settings.bannerImages[i];
+                if (url) {
+                    panel.style.backgroundImage = 'url("' + url + '")';
+                    panel.style.backgroundSize = 'cover';
+                    panel.style.backgroundPosition = 'center top';
+                } else {
+                    panel.style.backgroundImage = '';
+                }
+            }
+        }
+        // Auto mode: populateHero() handles it
     }
 
     function applyBannerSettings() {
         const settings = getBannerFormValues();
-        // Save to currentConfig (syncs via system.js to Neocities)
         currentConfig.bannerSettings = settings;
-        localStorage.setItem('lbmc_banner_settings', JSON.stringify(settings));
-        applyBannerToPage(settings); updateBannerPreview(settings);
+        localStorage.setItem('neerg_banner_settings', JSON.stringify(settings));
+        applyBannerToPage(settings);
+        // If auto mode, re-populate hero from posts
+        if (settings.bannerMode === 'auto' && typeof populateHero === 'function') populateHero();
         saveSystem();
-        showToast('Banner settings saved & syncing!');
+        showToast('Banner settings saved!');
     }
 
-    /* SOCIAL LINKS */
+    /* Gallery image picker for banner panels */
+    let _bannerPickerTarget = 0;
+    function pickBannerImage(panelIndex) {
+        _bannerPickerTarget = panelIndex;
+        populateBannerPickerGrid();
+        document.getElementById('banner-gallery-picker').style.display = 'block';
+    }
+
+    function populateBannerPickerGrid() {
+        const grid = document.getElementById('banner-picker-grid');
+        if (!grid) return;
+        if (typeof postsCache === 'undefined' || postsCache.length === 0) {
+            grid.innerHTML = '<p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);">No posts with images found.</p>';
+            return;
+        }
+        const imgPosts = postsCache.filter(p => p.media && !String(Array.isArray(p.media) ? p.media[0] : p.media).match(/\.(mp4|webm|mov)$/i));
+        grid.innerHTML = imgPosts.map(p => {
+            const url = Array.isArray(p.media) ? p.media[0] : p.media;
+            return `<div style="aspect-ratio:1;overflow:hidden;border-radius:var(--radius-sm);cursor:pointer;border:2px solid transparent;transition:border-color 0.2s;"
+                onclick="selectBannerImage('${url.replace(/'/g,"\\'")}', this)"
+                onmouseover="this.style.borderColor='var(--lime)'" onmouseout="this.style.borderColor='transparent'">
+                <img src="${url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
+            </div>`;
+        }).join('');
+    }
+
+    function selectBannerImage(url, el) {
+        const input = document.getElementById('banner-img-' + _bannerPickerTarget);
+        if (input) input.value = url;
+        document.getElementById('banner-gallery-picker').style.display = 'none';
+        showToast('Panel ' + (_bannerPickerTarget + 1) + ' image set!');
+    }
+
+
+    /* ═════════════════════════════════════════════
+       PROFILE RING GRADIENT CUSTOMIZATION
+       ═════════════════════════════════════════════ */
+
+    function _buildPfpGradient(c1, c2, c3, dir) {
+        return dir === 'circle'
+            ? `radial-gradient(circle, ${c1}, ${c2}, ${c3})`
+            : `linear-gradient(${dir}, ${c1}, ${c2}, ${c3})`;
+    }
+
+    function _applyPfpStyleTag(gradient, thickness, glowSize, c2) {
+        // Inject a <style> block with a UNIQUE animation name so it doesn't clash with
+        // the existing ringPulse in style.css, and use !important to guarantee override.
+        let el = document.getElementById('pfp-ring-custom-style');
+        if (!el) {
+            el = document.createElement('style');
+            el.id = 'pfp-ring-custom-style';
+            document.head.appendChild(el);
+        }
+        const glowColor = c2 + '55';
+        const t = Number(thickness) || 4;
+        const g = Number(glowSize) || 8;
+        el.textContent = `
+            .hero-pfp-ring {
+                background: ${gradient} !important;
+                padding: ${t}px !important;
+                animation: ringPulseCustom 5s ease-in-out infinite !important;
+            }
+            @keyframes ringPulseCustom {
+                0%,100% { box-shadow: 0 0 0 4px var(--bg-dark,#1a1a1a), 0 0 ${g}px ${glowColor}, 0 16px 48px rgba(0,0,0,0.6); }
+                50%     { box-shadow: 0 0 0 4px var(--bg-dark,#1a1a1a), 0 0 ${g * 2}px ${glowColor}, 0 20px 56px rgba(0,0,0,0.65); }
+            }
+        `;
+
+        // ALSO directly set on element (belt-and-suspenders for same-session apply)
+        const ring = document.querySelector('.hero-pfp-ring');
+        if (ring) {
+            ring.style.setProperty('background', gradient, 'important');
+            ring.style.setProperty('padding', t + 'px', 'important');
+        }
+    }
+
+    function updatePfpGradientPreview() {
+        const c1 = document.getElementById('pfp-color-1')?.value || '#ff6b35';
+        const c2 = document.getElementById('pfp-color-2')?.value || '#b8ff38';
+        const c3 = document.getElementById('pfp-color-3')?.value || '#ff3c8e';
+        const dir = document.getElementById('pfp-gradient-dir')?.value || '135deg';
+        const thickness = parseInt(document.getElementById('pfp-thickness')?.value || '4');
+        const glowSize = parseInt(document.getElementById('pfp-glow')?.value || '8');
+        const gradient = _buildPfpGradient(c1, c2, c3, dir);
+
+        // Update the small preview ring
+        const preview = document.getElementById('pfp-preview-ring');
+        if (preview) {
+            preview.style.background = gradient;
+            preview.style.padding = thickness + 'px';
+            const glowColor = c2 + '55';
+            preview.style.boxShadow = `0 0 0 3px var(--bg-dark), 0 0 ${glowSize}px ${glowColor}`;
+        }
+    }
+
+    function applyPfpPreset(colors, dir, btn) {
+        const [c1, c2, c3] = colors;
+        const el1 = document.getElementById('pfp-color-1');
+        const el2 = document.getElementById('pfp-color-2');
+        const el3 = document.getElementById('pfp-color-3');
+        const dirEl = document.getElementById('pfp-gradient-dir');
+        if (el1) el1.value = c1;
+        if (el2) el2.value = c2;
+        if (el3) el3.value = c3;
+        if (dirEl) dirEl.value = dir;
+        document.querySelectorAll('.pfp-swatch-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        updatePfpGradientPreview();
+    }
+
+    function applyPfpGradient() {
+        const c1 = document.getElementById('pfp-color-1')?.value || '#ff6b35';
+        const c2 = document.getElementById('pfp-color-2')?.value || '#b8ff38';
+        const c3 = document.getElementById('pfp-color-3')?.value || '#ff3c8e';
+        const dir = document.getElementById('pfp-gradient-dir')?.value || '135deg';
+        const thickness = parseInt(document.getElementById('pfp-thickness')?.value || '4');
+        const glowSize = parseInt(document.getElementById('pfp-glow')?.value || '8');
+        const gradient = _buildPfpGradient(c1, c2, c3, dir);
+
+        // Apply via style tag (most reliable — overrides inline & animation)
+        _applyPfpStyleTag(gradient, thickness, glowSize, c2);
+
+        // Persist
+        const pfpStyle = { gradient, thickness, glowSize, c1, c2, c3, dir };
+        try { currentConfig.pfpRingStyle = pfpStyle; } catch(e) {}
+        localStorage.setItem('neerg_pfp_ring_style', JSON.stringify(pfpStyle));
+        try { saveSystem(); } catch(e) {}
+        if (typeof showToast === 'function') showToast('Profile ring style applied!');
+    }
+
+    function loadPfpRingStyle() {
+        let s = null;
+        try { s = (typeof currentConfig !== 'undefined') ? currentConfig.pfpRingStyle : null; } catch(e) {}
+        if (!s) {
+            try { const raw = localStorage.getItem('neerg_pfp_ring_style'); if (raw) s = JSON.parse(raw); } catch(e) {}
+        }
+        if (!s) return;
+
+        // Restore form values if elements exist (admin panel may not be open yet)
+        try {
+            if (document.getElementById('pfp-color-1')) document.getElementById('pfp-color-1').value = s.c1 || '#ff6b35';
+            if (document.getElementById('pfp-color-2')) document.getElementById('pfp-color-2').value = s.c2 || '#b8ff38';
+            if (document.getElementById('pfp-color-3')) document.getElementById('pfp-color-3').value = s.c3 || '#ff3c8e';
+            if (document.getElementById('pfp-gradient-dir') && s.dir) document.getElementById('pfp-gradient-dir').value = s.dir;
+            const thickEl = document.getElementById('pfp-thickness');
+            if (thickEl && s.thickness) {
+                thickEl.value = s.thickness;
+                const sv = document.getElementById('pfp-thickness-val');
+                if (sv) sv.textContent = s.thickness + 'px';
+            }
+            const glowEl = document.getElementById('pfp-glow');
+            if (glowEl && s.glowSize !== undefined) {
+                glowEl.value = s.glowSize;
+                const sv = document.getElementById('pfp-glow-val');
+                if (sv) sv.textContent = s.glowSize + 'px';
+            }
+        } catch(e) {}
+
+        // Apply the saved style via tag — works even before admin panel is opened
+        _applyPfpStyleTag(s.gradient, s.thickness || 4, s.glowSize !== undefined ? s.glowSize : 8, s.c2 || '#b8ff38');
+    }
+
+
+    /* ═════════════════════════════════════════════
+       SOCIAL LINKS
+       ═════════════════════════════════════════════ */
 
     function loadSocialLinks() {
         // Primary source: currentConfig (synced via system.js)
         let links = currentConfig.socialLinks || [];
         // Fallback: localStorage (for migration from old versions)
         if (links.length === 0) {
-            const saved = localStorage.getItem('lbmc_social_links');
+            const saved = localStorage.getItem('neerg_social_links');
             if (saved) { try { links = JSON.parse(saved); } catch(e) {} }
         }
         if (links.length > 0) { renderSocialLinksDisplay(links); renderSocialLinksEditor(links); }
@@ -754,7 +1416,7 @@ ANIMATION"></textarea>
         if (!container || !links.length) { if(container) container.innerHTML = ''; return; }
         container.innerHTML = links.map(link => {
             const platform = link.platform.toLowerCase().replace('twitter/x', 'twitter').replace('/', '');
-            const icon = PLATFORM_ICONS[platform] || '<i class="fa-solid fa-link"></i>';
+            const icon = PLATFORM_ICONS[platform] || '🔗';
             return `<a class="social-link" href="${link.url}" target="_blank" data-platform="${platform}"><span class="social-icon">${icon}</span> ${link.label || link.platform}</a>`;
         }).join('');
     }
@@ -772,26 +1434,87 @@ ANIMATION"></textarea>
         rows.forEach(row => { const p = row.querySelector('select').value, l = row.querySelectorAll('input')[0].value.trim(), u = row.querySelectorAll('input')[1].value.trim(); if(u) links.push({platform:p,label:l,url:u}); });
         // Save to currentConfig (syncs via system.js to Neocities)
         currentConfig.socialLinks = links;
-        localStorage.setItem('lbmc_social_links', JSON.stringify(links));
+        localStorage.setItem('neerg_social_links', JSON.stringify(links));
         renderSocialLinksDisplay(links);
         saveSystem();
         showToast('Social links saved & syncing!');
     }
 
-    /* DARK / LIGHT MODE TOGGLE */
+    /* ═════════════════════════════════════════════
+       DARK / LIGHT MODE TOGGLE
+       ═════════════════════════════════════════════ */
 
     let isDarkMode = true;
     function toggleDarkLight() {
         isDarkMode = !isDarkMode;
         document.body.classList.toggle('light-mode', !isDarkMode);
-        localStorage.setItem('lbmc_theme', isDarkMode ? 'dark' : 'light');
+        const wrapper = document.getElementById('page-wrapper');
+        if (wrapper) wrapper.classList.toggle('light-mode', !isDarkMode);
+        localStorage.setItem('neerg_theme', isDarkMode ? 'dark' : 'light');
         // Update toggle icon
         const toggleBtn = document.querySelector('.nav-icon-btn[title="Toggle theme"]');
         if (toggleBtn) toggleBtn.innerHTML = isDarkMode ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
         requestAnimationFrame(updatePillIndicator);
     }
 
-    /* FEATURED CARDS CAROUSEL */
+    /* ═════════════════════════════════════════════
+       HERO SECTION — populate panels with latest post images
+       ═════════════════════════════════════════════ */
+
+    function populateHero() {
+        // Check if manual mode is set
+        const savedSettings = currentConfig.bannerSettings || (() => {
+            try { return JSON.parse(localStorage.getItem('neerg_banner_settings') || '{}'); } catch(e) { return {}; }
+        })();
+
+        if (savedSettings.bannerMode === 'manual' && savedSettings.bannerImages) {
+            // Manual mode: use specified images
+            const imgs = savedSettings.bannerImages;
+            const fallbackColors = ['#2A1535','#1A1A3A','#0F2A28','#2A2018'];
+            for (let i = 0; i < 4; i++) {
+                const panel = document.getElementById('hero-panel-' + i);
+                if (!panel) continue;
+                if (imgs[i]) {
+                    panel.style.backgroundImage = 'url("' + imgs[i] + '")';
+                    panel.style.backgroundSize = 'cover';
+                    panel.style.backgroundPosition = 'center top';
+                    panel.classList.add('has-image');
+                } else {
+                    panel.style.backgroundImage = '';
+                    panel.style.background = fallbackColors[i];
+                }
+            }
+            return;
+        }
+
+        // Auto mode: use latest post images
+        if (typeof postsCache === 'undefined' || postsCache.length === 0) return;
+
+        const imagePosts = [...postsCache]
+            .filter(p => p.media && !String(Array.isArray(p.media) ? p.media[0] : p.media).match(/\.(mp4|webm|mov)$/i))
+            .sort((a, b) => b.id - a.id)
+            .slice(0, 4);
+
+        const fallbackColors = ['#2A1535','#1A1A3A','#0F2A28','#2A2018'];
+
+        for (let i = 0; i < 4; i++) {
+            const panel = document.getElementById('hero-panel-' + i);
+            if (!panel) continue;
+            if (imagePosts[i]) {
+                const url = Array.isArray(imagePosts[i].media) ? imagePosts[i].media[0] : imagePosts[i].media;
+                panel.style.backgroundImage = 'url("' + url + '")';
+                panel.style.backgroundSize = 'cover';
+                panel.style.backgroundPosition = 'center top';
+                panel.classList.add('has-image');
+            } else {
+                panel.style.background = fallbackColors[i];
+            }
+        }
+    }
+
+    /* ═════════════════════════════════════════════
+       FEATURED CARDS CAROUSEL
+       ═════════════════════════════════════════════ */
 
     let featuredCardIndex = 0;
     let featuredCardTimer = null;
@@ -806,7 +1529,13 @@ ANIMATION"></textarea>
         if (typeof postsCache !== 'undefined' && postsCache.length > 0) {
             mediaPosts = [...postsCache]
                 .filter(p => p.media && !String(p.media).match(/\.(mp4|webm|mov)$/i))
-                .sort((a, b) => b.id - a.id)
+                .sort((a, b) => {
+                    const intA = (typeof interactionsCache !== 'undefined' && interactionsCache[a.id]) ? interactionsCache[a.id] : { likes: 0, dislikes: 0, comments: [] };
+                    const intB = (typeof interactionsCache !== 'undefined' && interactionsCache[b.id]) ? interactionsCache[b.id] : { likes: 0, dislikes: 0, comments: [] };
+                    const scoreA = (intA.likes || 0) + (intA.comments ? intA.comments.length : 0);
+                    const scoreB = (intB.likes || 0) + (intB.comments ? intB.comments.length : 0);
+                    return scoreB - scoreA;
+                })
                 .slice(0, 5);
         }
 
@@ -830,13 +1559,13 @@ ANIMATION"></textarea>
                 </div>
                 <div class="featured-card-body">
                     <div class="featured-card-meta">
-                        <span class="featured-card-author">Author</span>
+                        <span class="featured-card-author">MY BLOG</span>
                         <span class="featured-card-date">· ${post.date || 'Recent'}</span>
                     </div>
                     <div class="featured-card-title">${escapeHtml(contentPreview)}</div>
                     <div class="featured-card-stats">
                         <span class="fc-stat"><span class="fc-icon">▲</span> ${inter.likes || 0}</span>
-                        <span class="fc-stat"><span class="fc-icon">💬</span> ${totalComments}</span>
+                        <span class="fc-stat"><span class="fc-icon"><i class="fa-regular fa-comment"></i></span> ${totalComments}</span>
                         ${isTrending ? '<span class="fc-trending">● Trending</span>' : ''}
                         ${tagStr ? '<span class="fc-tag">' + escapeHtml(tagStr) + '</span>' : ''}
                     </div>
@@ -885,7 +1614,9 @@ ANIMATION"></textarea>
         }, 5000); // Auto-advance every 5 seconds
     }
 
-    /* SCROLL REVEAL ANIMATION */
+    /* ═════════════════════════════════════════════
+       SCROLL REVEAL ANIMATION
+       ═════════════════════════════════════════════ */
 
     function initScrollReveal() {
         const observer = new IntersectionObserver((entries) => {
@@ -894,6 +1625,7 @@ ANIMATION"></textarea>
         const watchForPosts = new MutationObserver(() => {
             document.querySelectorAll('.leaflet-item:not(.reveal-on-scroll)').forEach(post => { post.classList.add('reveal-on-scroll'); observer.observe(post); });
             populateArtScroll();
+            populateHero();
         });
         const container = document.getElementById('leaflets-container');
         if (container) watchForPosts.observe(container, { childList: true, subtree: true });
@@ -902,1421 +1634,11 @@ ANIMATION"></textarea>
     </script>
 
     <!-- ══════════════════════════════════════════════════
-         LBM CORE ENGINE — Adapted for V4.0
-         Handles: posts, gallery, admin, reactions, comments
+         LBM BACKEND — Loaded from logic.js
+         (Split-file: posts in posts.js, config in system.js)
          ══════════════════════════════════════════════════ -->
-    <script>
+    <script src="logic.js"></script>
 
-    /* UTILITIES */
-
-    function unicodeToBase64(str) { return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p1) => String.fromCharCode('0x' + p1))); }
-    function base64ToUnicode(str) { return decodeURIComponent(atob(str).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
-    async function sha256(message) {
-        const msgBuffer = new TextEncoder().encode(message);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    function downloadFile(content, name) {
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(new Blob([content], { type: "text/plain" }));
-        link.download = name;
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    }
-
-    function getMediaType(url) {
-        if (!url) return 'none';
-        if (url.match(/\.(mp4|webm|mov)$/i)) return 'video';
-        return 'image';
-    }
-
-    function showToast(msg, type = 'success') {
-        const t = document.createElement('div');
-        t.style.cssText = `font-family:var(--font-mono);font-size:0.78rem;padding:0.75rem 1.5rem;background:var(--bg-card);border:1px solid ${type === 'error' ? 'var(--pink)' : 'var(--lime)'};color:${type === 'error' ? 'var(--pink)' : 'var(--lime)'};border-radius:var(--radius-pill);z-index:9999;animation:fadeIn 0.3s ease;`;
-        t.textContent = msg;
-        document.getElementById('toast-container').appendChild(t);
-        if (type === 'loading') {
-            currentLoadingToast = t;
-        } else {
-            setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.5s'; setTimeout(() => t.remove(), 500); }, 3000);
-        }
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.appendChild(document.createTextNode(text));
-        return div.innerHTML;
-    }
-
-    /* STATE */
-
-    let postsCache = [];
-    let interactionsCache = {};
-    let globalAdminHash = null;
-    let globalSalt = null;
-    let globalAuthToken = null;
-    let globalApiKey = null;
-    let sessionPassword = null;
-    let isAdminLoggedIn = false;
-    let currentLoadingToast = null;
-    const FIXED_BRIDGE_URL = "https://applchu.link/lbm/0.4/bridge.html?v=" + new Date().getTime();
-    const LOCAL_REACTIONS_KEY = 'LBMC_USER_REACTIONS';
-    const LOCAL_STORAGE_KEY = 'LBMC_CONFIG_CACHE';
-    const POSTS_PER_PAGE = 12;
-    let currentPage = 1;
-
-    let currentConfig = {
-        siteName: "My Blog",
-        metaTitle: "My Blog",
-        metaDescription: "A personal blog.",
-        tagline: "Digital Art Archive",
-        leafletsName: "Works",
-        allowComments: true,
-        copyright: "2025 Your Name",
-        bgImage: "", bannerImage: "", pfpImage: "", customCss: "",
-        reactionsEnabled: true,
-        reactionIcon: "thumb",
-        likeLabel: "◈ NICE",
-        dislikeLabel: "MEH ◈",
-        widgetPadding: "15px",
-        socialLinks: [],
-        bannerSettings: null,
-        aboutBio: "",
-        colors: {
-            bg: "#0a0a0a", text: "#f0f0f0", sidebar: "#111111", accent: "#ff6b35",
-            leaflet: "#191515", border: "#333333", navActive: "#c8ff00",
-            like: "#c8ff00", dislike: "#ff3c8e", likeBtn: "#0a0a0a", dislikeBtn: "#0a0a0a"
-        }
-    };
-
-    /* SYSTEM DATA PARSING */
-
-    function parseSystemData() {
-        // Parse interactions from server file (authoritative source)
-        if (typeof window.AZUMINT_INTERACTIONS !== 'undefined') {
-            try {
-                interactionsCache = JSON.parse(base64ToUnicode(window.AZUMINT_INTERACTIONS));
-                // Update localStorage backup to match fresh server data
-                localStorage.setItem('LBMC_INTERACTIONS_BACKUP', JSON.stringify(interactionsCache));
-            }
-            catch(e) { console.error("Interactions parse error", e); }
-        }
-
-        // Parse system config
-        if (typeof window.AZUMINT_SYSTEM === 'undefined') {
-            console.log("No system.js found — showing setup wizard");
-            showSetup();
-            return;
-        }
-
-        try {
-            const data = JSON.parse(base64ToUnicode(window.AZUMINT_SYSTEM));
-            globalAdminHash = data.adminHash;
-            globalSalt = data.salt;
-            postsCache = data.posts || [];
-
-            // Extract auth token and API key from the original LBM bridge system
-            if (data.authToken) globalAuthToken = data.authToken;
-            if (data.apiKey) globalApiKey = data.apiKey;
-
-            if (data.siteConfig) {
-                currentConfig = {
-                    ...currentConfig,
-                    ...data.siteConfig,
-                    colors: { ...currentConfig.colors, ...(data.siteConfig.colors || {}) }
-                };
-            }
-
-            hideSetup();
-            applyVisualConfig();
-            renderLeaflets();
-            renderGallery();
-            populateArtScroll();
-
-            // Handle permalink
-            if (window.location.hash) {
-                const id = parseInt(window.location.hash.substring(1));
-                if (!isNaN(id)) setTimeout(() => openLightbox(id), 500);
-            }
-        } catch(e) {
-            console.error("Config parse error", e);
-            showToast("Error reading system.js — try re-uploading", "error");
-        }
-    }
-
-    function showSetup() { document.getElementById('setup-wizard').style.display = 'block'; }
-    function hideSetup() { document.getElementById('setup-wizard').style.display = 'none'; }
-
-    /* APPLY VISUAL CONFIG */
-
-    function applyVisualConfig() {
-        if (currentConfig.metaTitle) document.title = currentConfig.metaTitle;
-        const metaDesc = document.querySelector('meta[name="description"]');
-        if (metaDesc && currentConfig.metaDescription) metaDesc.setAttribute('content', currentConfig.metaDescription);
-
-        document.getElementById('nav-sitename').textContent = currentConfig.siteName || 'Artist Blog';
-        document.getElementById('about-name').textContent = currentConfig.siteName || 'My Blog';
-        if (currentConfig.tagline) document.getElementById('about-tagline').textContent = currentConfig.tagline;
-        if (currentConfig.copyright) document.getElementById('footer-copyright').textContent = '© ' + currentConfig.copyright;
-
-        const postsTitle = document.getElementById('posts-title');
-        if (postsTitle && currentConfig.leafletsName) postsTitle.textContent = 'Recent ' + currentConfig.leafletsName;
-
-        // PFP
-        if (currentConfig.pfpImage && currentConfig.pfpImage.length > 5) {
-            const navPfp = document.getElementById('nav-pfp');
-            navPfp.src = currentConfig.pfpImage; navPfp.style.display = 'block';
-            const aboutPfp = document.getElementById('about-pfp');
-            aboutPfp.src = currentConfig.pfpImage; aboutPfp.style.display = 'block';
-        }
-
-        // About bio — primary source: currentConfig (synced), fallback: localStorage
-        const aboutBioText = currentConfig.aboutBio || localStorage.getItem('lbmc_about_bio');
-        if (aboutBioText) document.getElementById('about-bio').textContent = aboutBioText;
-
-        // Colors
-        const r = document.documentElement.style;
-        const c = currentConfig.colors;
-        r.setProperty('--background-color', c.bg); r.setProperty('--text-color', c.text);
-        r.setProperty('--sidebar-bg', c.sidebar); r.setProperty('--accent-color', c.accent);
-        r.setProperty('--leaflet-bg', c.leaflet); r.setProperty('--border-color', c.border);
-        r.setProperty('--nav-active-color', c.navActive); r.setProperty('--like-color', c.like);
-        r.setProperty('--dislike-color', c.dislike); r.setProperty('--like-btn-color', c.likeBtn);
-        r.setProperty('--dislike-btn-color', c.dislikeBtn); r.setProperty('--widget-padding', currentConfig.widgetPadding);
-
-        if (currentConfig.bgImage && currentConfig.bgImage.length > 5) r.setProperty('--bg-image', `url('${currentConfig.bgImage}')`);
-        else r.setProperty('--bg-image', 'none');
-
-        // Custom CSS
-        let customStyle = document.getElementById('custom-css-block');
-        if (!customStyle) { customStyle = document.createElement('style'); customStyle.id = 'custom-css-block'; document.head.appendChild(customStyle); }
-        customStyle.textContent = currentConfig.customCss || '';
-
-        // Reload social links and banner from currentConfig (now populated from system.js)
-        loadSocialLinks();
-        loadBannerSettings();
-    }
-
-    /* RENDER POSTS */
-
-    function renderLeaflets() {
-        const container = document.getElementById('leaflets-container');
-        if (!container) return;
-
-        if (postsCache.length === 0) {
-            container.innerHTML = '<p style="font-family:var(--font-mono);font-size:0.8rem;color:var(--gray);text-align:center;padding:3rem 1rem;grid-column:1/-1;">No posts yet. Log in to the admin panel to create your first post!</p>';
-            return;
-        }
-
-        let posts = [...postsCache];
-        // Sort: pinned first, then by id (newest first)
-        posts.sort((a, b) => {
-            if (a.pinned && !b.pinned) return -1;
-            if (!a.pinned && b.pinned) return 1;
-            return b.id - a.id;
-        });
-
-        // Pagination
-        const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
-        const start = (currentPage - 1) * POSTS_PER_PAGE;
-        const pagePosts = posts.slice(start, start + POSTS_PER_PAGE);
-
-        let userReactions = {};
-        try { userReactions = JSON.parse(localStorage.getItem(LOCAL_REACTIONS_KEY) || '{}'); } catch(e) {}
-
-        container.innerHTML = pagePosts.map(post => {
-            const ints = interactionsCache[post.id] || { likes: 0, dislikes: 0, comments: [] };
-            const likes = ints.likes || 0;
-            const dislikes = ints.dislikes || 0;
-            const commentCount = (ints.comments || []).length;
-            const total = likes + dislikes;
-            const ratio = total === 0 ? 50 : (likes / total) * 100;
-
-            let [lTxt, dTxt] = [currentConfig.likeLabel || '(ï¼¾∇ï¼¾)', currentConfig.dislikeLabel || '(ï¼›ã¸ï¼š)'];
-            if (currentConfig.reactionIcon === 'thumb' || currentConfig.reactionIcon === 'thumbs') [lTxt, dTxt] = ['👍', '👎'];
-            if (currentConfig.reactionIcon === 'arrow' || currentConfig.reactionIcon === 'arrows') [lTxt, dTxt] = ['▲', '▼'];
-
-            const myAction = userReactions[post.id];
-            const likeVoted = myAction === 'like' ? 'voted' : '';
-            const dislikeVoted = myAction === 'dislike' ? 'voted' : '';
-
-            const date = post.date || new Date(post.id).toLocaleDateString();
-            const tags = (post.tags || []).join(', ');
-            const tagsData = (post.tags || []).join(',').toLowerCase();
-
-            let contentHtml = post.content || '';
-            if (typeof marked !== 'undefined') {
-                try { contentHtml = marked.parse(contentHtml); } catch(e) { contentHtml = post.content; }
-            }
-
-            let mediaHtml = '';
-            if (post.media) {
-                let mediaArray = Array.isArray(post.media) ? post.media : [post.media];
-                mediaHtml = mediaArray.map(url => {
-                    if (getMediaType(url) === 'video') return `<div class="leaflet-media-container"><video src="${url}" muted loop playsinline preload="metadata" onmouseover="this.play()" onmouseout="this.pause()"></video></div>`;
-                    return `<div class="leaflet-media-container"><img src="${url}" alt="Media" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`;
-                }).join('');
-            }
-
-            let reactionsHtml = '';
-            if (currentConfig.reactionsEnabled) {
-                reactionsHtml = `
-                    <div class="reaction-widget">
-                        <button class="reaction-btn like-btn ${likeVoted}" onclick="event.stopPropagation();reactTo(${post.id},'like')">${lTxt} ${likes}</button>
-                        <div class="reaction-bar"><div class="reaction-fill" style="width:${ratio}%"></div></div>
-                        <button class="reaction-btn dislike-btn ${dislikeVoted}" onclick="event.stopPropagation();reactTo(${post.id},'dislike')">${dTxt} ${dislikes}</button>
-                        <span class="comment-count" onclick="event.stopPropagation();openLightbox(${post.id})">💬 ${commentCount}</span>
-                    </div>`;
-            }
-
-            const pinnedBadge = post.pinned ? '<span style="font-family:var(--font-mono);font-size:0.55rem;color:var(--orange);text-transform:uppercase;letter-spacing:0.05em;">📌 Pinned</span>' : '';
-            const deleteBtn = isAdminLoggedIn ? `<button class="delete-btn" onclick="event.stopPropagation();deletePost(${post.id})" title="Delete post">🗑</button>` : '';
-
-            return `<div class="leaflet-item" data-id="${post.id}" data-timestamp="${post.id}" data-likes="${likes}" data-tags="${tagsData}" onclick="openLightbox(${post.id})">
-                ${mediaHtml}
-                <div class="leaflet-body">
-                    <div class="leaflet-header">
-                        <span class="leaflet-author">${escapeHtml(currentConfig.siteName)}</span>
-                        <span>· ${date}</span>
-                        ${pinnedBadge}
-                        ${deleteBtn}
-                    </div>
-                    <div class="leaflet-content">${contentHtml}</div>
-                    ${tags ? `<div style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray);">${tags}</div>` : ''}
-                    ${reactionsHtml}
-                </div>
-            </div>`;
-        }).join('');
-
-        // Render pagination
-        renderPagination(totalPages);
-    }
-
-    function renderPagination(totalPages) {
-        const pag = document.getElementById('pagination');
-        if (!pag || totalPages <= 1) { if(pag) pag.innerHTML = ''; return; }
-        let html = '';
-        if (currentPage > 1) html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})">‹</button>`;
-        for (let i = 1; i <= totalPages; i++) {
-            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
-        }
-        if (currentPage < totalPages) html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})">›</button>`;
-        pag.innerHTML = html;
-    }
-
-    function goToPage(page) {
-        currentPage = page;
-        renderLeaflets();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    /* RENDER GALLERY */
-
-    function renderGallery() {
-        const container = document.getElementById('gallery-container');
-        if (!container) return;
-        const mediaPosts = postsCache.filter(p => p.media);
-        if (mediaPosts.length === 0) { container.innerHTML = '<p style="font-family:var(--font-mono);font-size:0.8rem;color:var(--gray);">No images yet.</p>'; return; }
-        container.innerHTML = mediaPosts.sort((a,b) => b.id - a.id).map(post => {
-            let mediaArray = Array.isArray(post.media) ? post.media : [post.media];
-            return mediaArray.map(url => {
-                if (getMediaType(url) === 'video') return `<div class="gallery-item" onclick="openMediaViewer('${url}','video')"><video src="${url}" muted loop playsinline preload="metadata" onmouseover="this.play()" onmouseout="this.pause()"></video></div>`;
-                return `<div class="gallery-item" onclick="openMediaViewer('${url}','image')"><img src="${url}" alt="Gallery" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`;
-            }).join('');
-        }).join('');
-        buildGalleryMediaList();
-    }
-
-    /* REACTIONS */
-
-    function reactTo(postId, type) {
-        if (!interactionsCache[postId]) interactionsCache[postId] = { likes: 0, dislikes: 0, comments: [] };
-        let userReactions = {};
-        try { userReactions = JSON.parse(localStorage.getItem(LOCAL_REACTIONS_KEY) || '{}'); } catch(e) {}
-        const current = userReactions[postId];
-
-        if (current === type) {
-            // Undo
-            interactionsCache[postId][type + 's'] = Math.max(0, (interactionsCache[postId][type + 's'] || 0) - 1);
-            delete userReactions[postId];
-            showToast('Vote removed');
-        } else {
-            if (current) interactionsCache[postId][current + 's'] = Math.max(0, (interactionsCache[postId][current + 's'] || 0) - 1);
-            interactionsCache[postId][type + 's'] = (interactionsCache[postId][type + 's'] || 0) + 1;
-            userReactions[postId] = type;
-            showToast('Vote recorded!');
-        }
-        localStorage.setItem(LOCAL_REACTIONS_KEY, JSON.stringify(userReactions));
-        renderLeaflets();
-        saveInteractionsLocal();
-    }
-
-    /* LIGHTBOX */
-
-    function openLightbox(postId) {
-        const post = postsCache.find(p => p.id === postId);
-        if (!post) return;
-        const body = document.getElementById('lightbox-body');
-        const ints = interactionsCache[postId] || { likes: 0, dislikes: 0, comments: [] };
-        const comments = ints.comments || [];
-        const likes = ints.likes || 0, dislikes = ints.dislikes || 0;
-
-        let userReactions = {};
-        try { userReactions = JSON.parse(localStorage.getItem(LOCAL_REACTIONS_KEY) || '{}'); } catch(e) {}
-        const myAction = userReactions[postId];
-        const total = likes + dislikes;
-        const ratio = total === 0 ? 50 : (likes / total) * 100;
-
-        let [lTxt, dTxt] = [currentConfig.likeLabel || '(ï¼¾∇ï¼¾)', currentConfig.dislikeLabel || '(ï¼›ã¸ï¼š)'];
-        if (currentConfig.reactionIcon === 'thumb' || currentConfig.reactionIcon === 'thumbs') [lTxt, dTxt] = ['👍', '👎'];
-        if (currentConfig.reactionIcon === 'arrow' || currentConfig.reactionIcon === 'arrows') [lTxt, dTxt] = ['▲', '▼'];
-
-        let contentHtml = post.content || '';
-        if (typeof marked !== 'undefined') try { contentHtml = marked.parse(contentHtml); } catch(e) {}
-
-        let mediaHtml = '';
-        if (post.media) {
-            let arr = Array.isArray(post.media) ? post.media : [post.media];
-            mediaHtml = arr.map(url => {
-                if (getMediaType(url) === 'video') return `<video controls autoplay loop muted playsinline style="width:100%;border-radius:var(--radius-lg);margin-bottom:1rem;cursor:pointer;" onclick="openMediaViewer('${url}','video')"><source src="${url}"></video>`;
-                return `<img src="${url}" alt="Media" style="width:100%;border-radius:var(--radius-lg);margin-bottom:1rem;cursor:pointer;" onclick="openMediaViewer('${url}','image')" onerror="this.style.display='none'">`;
-            }).join('');
-        }
-
-        const date = post.date || new Date(post.id).toLocaleDateString();
-        const tags = (post.tags || []).map(t => `<span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray);background:var(--bg-elevated);padding:0.2rem 0.5rem;border-radius:var(--radius-pill);">${t}</span>`).join(' ');
-
-        let commentsHtml = '';
-        if (currentConfig.allowComments) {
-            const commentItems = comments.map(c => {
-                const isReply = c.parentId ? 'margin-left:1.5rem;border-left:2px solid var(--border);' : '';
-                return `<div style="${isReply}background:var(--bg-elevated);padding:0.75rem 1rem;border-radius:var(--radius-sm);margin-bottom:0.5rem;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.35rem;">
-                        <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--orange);font-weight:500;">${escapeHtml(c.author)}</span>
-                        <span style="font-family:var(--font-mono);font-size:0.6rem;color:var(--gray-dim);">${c.date}${isAdminLoggedIn ? ` <button onclick="deleteComment(${postId},${c.id})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:0.65rem;font-family:var(--font-mono);margin-left:0.5rem;">Delete</button>` : ''}</span>
-                    </div>
-                    <div style="font-size:0.88rem;line-height:1.6;color:var(--gray-light);word-break:break-word;">${escapeHtml(c.text)}</div>
-                    ${!c.parentId ? `<button onclick="document.getElementById('reply-to-${c.id}').style.display='block'" style="background:none;border:none;color:var(--gray);cursor:pointer;font-family:var(--font-mono);font-size:0.62rem;margin-top:0.4rem;padding:0;">↩ Reply</button>
-                    <div id="reply-to-${c.id}" style="display:none;margin-top:0.5rem;display:none;">
-                        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
-                            <input type="text" id="reply-name-${c.id}" placeholder="Name" style="flex:1;min-width:100px;font-size:0.8rem;padding:0.4rem 0.6rem;background:var(--bg-card);border:1px solid var(--border);color:var(--white);border-radius:var(--radius-sm);">
-                            <input type="text" id="reply-text-${c.id}" placeholder="Reply..." style="flex:2;min-width:150px;font-size:0.8rem;padding:0.4rem 0.6rem;background:var(--bg-card);border:1px solid var(--border);color:var(--white);border-radius:var(--radius-sm);">
-                            <button class="action-btn" style="font-size:0.68rem;padding:0.35rem 0.7rem;" onclick="addComment(${postId}, document.getElementById('reply-name-${c.id}').value, document.getElementById('reply-text-${c.id}').value, ${c.id})">Reply</button>
-                        </div>
-                    </div>` : ''}
-                </div>`;
-            }).join('');
-
-            commentsHtml = `<div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.25rem;">
-                <h4 style="font-family:var(--font-heading);font-weight:600;font-size:0.95rem;margin-bottom:1rem;">💬 Comments (${comments.length})</h4>
-                <div style="display:flex;flex-direction:column;gap:0.25rem;margin-bottom:1.25rem;">
-                    ${commentItems}
-                </div>
-                <div style="background:var(--bg-elevated);padding:1rem;border-radius:var(--radius-sm);border:1px solid var(--border);">
-                    <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--gray);margin-bottom:0.6rem;text-transform:uppercase;">Leave a comment</div>
-                    <input type="text" id="comment-name-${postId}" placeholder="Your name" style="width:100%;font-size:0.88rem;padding:0.55rem 0.8rem;background:var(--bg-card);border:1px solid var(--border);color:var(--white);border-radius:var(--radius-sm);margin-bottom:0.5rem;box-sizing:border-box;">
-                    <textarea id="comment-text-${postId}" placeholder="Write a comment..." rows="3" style="width:100%;font-size:0.88rem;padding:0.55rem 0.8rem;background:var(--bg-card);border:1px solid var(--border);color:var(--white);border-radius:var(--radius-sm);margin-bottom:0.5rem;resize:vertical;box-sizing:border-box;font-family:var(--font-body);"></textarea>
-                    <button class="action-btn" style="font-size:0.78rem;padding:0.5rem 1.2rem;" onclick="addComment(${postId}, document.getElementById('comment-name-${postId}').value, document.getElementById('comment-text-${postId}').value)">Post Comment</button>
-                </div>
-            </div>`;
-        }
-
-        body.innerHTML = `
-            ${mediaHtml}
-            <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:0.5rem;">${escapeHtml(currentConfig.siteName)} · ${date}</div>
-            <div style="font-size:1rem;line-height:1.8;margin-bottom:0.75rem;">${contentHtml}</div>
-            ${tags ? `<div style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-bottom:0.75rem;">${tags}</div>` : ''}
-            ${currentConfig.reactionsEnabled ? `
-            <div class="reaction-widget" style="margin-bottom:0.5rem;">
-                <button class="reaction-btn like-btn ${myAction === 'like' ? 'voted' : ''}" onclick="reactTo(${postId},'like');openLightbox(${postId})">${lTxt} ${likes}</button>
-                <div class="reaction-bar"><div class="reaction-fill" style="width:${ratio}%"></div></div>
-                <button class="reaction-btn dislike-btn ${myAction === 'dislike' ? 'voted' : ''}" onclick="reactTo(${postId},'dislike');openLightbox(${postId})">${dTxt} ${dislikes}</button>
-            </div>` : ''}
-            <button class="btn-secondary" style="font-size:0.65rem;" onclick="copyPermalink(${postId})">Copy Link</button>
-            ${commentsHtml}
-        `;
-
-        document.getElementById('leaflet-lightbox').style.display = 'flex';
-        document.getElementById('leaflet-lightbox').classList.add('active');
-        document.body.classList.add('modal-open');
-    }
-
-    function closeLightbox() {
-        document.getElementById('leaflet-lightbox').classList.remove('active');
-        document.getElementById('leaflet-lightbox').style.display = 'none';
-        document.body.classList.remove('modal-open');
-    }
-
-    function copyPermalink(id) {
-        const url = window.location.href.split('#')[0] + '#' + id;
-        navigator.clipboard.writeText(url).then(() => showToast('Link copied!')).catch(() => showToast('Link: ' + url));
-    }
-
-    /* COMMENTS */
-
-    function addComment(postId, author, text, parentId = null) {
-        if (!text || !text.trim()) { showToast('Write something first!', 'error'); return; }
-        if (!author || !author.trim()) author = 'Anon';
-        if (!interactionsCache[postId]) interactionsCache[postId] = { likes: 0, dislikes: 0, comments: [] };
-        interactionsCache[postId].comments.push({
-            id: Date.now(), author: author.trim(), text: text.trim(),
-            date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
-            parentId: parentId || null
-        });
-        saveInteractionsLocal();
-        openLightbox(postId);
-        showToast('Comment posted!');
-    }
-
-    function deleteComment(postId, cid) {
-        if (confirm('Delete this comment?')) {
-            interactionsCache[postId].comments = interactionsCache[postId].comments.filter(c => c.id !== cid);
-            openLightbox(postId);
-            saveInteractionsLocal();
-        }
-    }
-
-    function saveInteractionsLocal() {
-        localStorage.setItem('LBMC_INTERACTIONS_BACKUP', JSON.stringify(interactionsCache));
-        // Also sync to Neocities if we have a token
-        saveInteractions();
-    }
-
-    /* MEDIA VIEWER */
-
-    let galleryMediaList = [];
-    let galleryMediaIndex = -1;
-
-    function buildGalleryMediaList() {
-        galleryMediaList = [];
-        const mediaPosts = postsCache.filter(p => p.media).sort((a,b) => b.id - a.id);
-        mediaPosts.forEach(post => {
-            let mediaArray = Array.isArray(post.media) ? post.media : [post.media];
-            mediaArray.forEach(url => {
-                galleryMediaList.push({ url: url, type: getMediaType(url) });
-            });
-        });
-    }
-
-    function openMediaViewer(url, type) {
-        // Build list if empty
-        if (galleryMediaList.length === 0) buildGalleryMediaList();
-        // Find current index
-        galleryMediaIndex = galleryMediaList.findIndex(m => m.url === url);
-
-        const wrapper = document.getElementById('media-content-wrapper');
-        if (type === 'video') wrapper.innerHTML = `<video controls autoplay loop style="max-width:95vw;max-height:95vh;"><source src="${url}"></video>`;
-        else wrapper.innerHTML = `<img src="${url}" alt="Full size" style="max-width:95vw;max-height:95vh;object-fit:contain;">`;
-        document.getElementById('media-fullscreen-overlay').style.display = 'flex';
-        document.getElementById('media-fullscreen-overlay').classList.add('active');
-        document.body.classList.add('modal-open');
-        updateMediaCounter();
-    }
-
-    function closeMediaViewer() {
-        document.getElementById('media-fullscreen-overlay').classList.remove('active');
-        document.getElementById('media-fullscreen-overlay').style.display = 'none';
-        document.body.classList.remove('modal-open');
-        const wrapper = document.getElementById('media-content-wrapper');
-        const vid = wrapper.querySelector('video');
-        if (vid) vid.pause();
-        wrapper.innerHTML = '';
-        galleryMediaIndex = -1;
-    }
-
-    function mediaViewerNext() {
-        if (galleryMediaList.length === 0) return;
-        galleryMediaIndex = (galleryMediaIndex + 1) % galleryMediaList.length;
-        showMediaAtIndex(galleryMediaIndex);
-    }
-
-    function mediaViewerPrev() {
-        if (galleryMediaList.length === 0) return;
-        galleryMediaIndex = (galleryMediaIndex - 1 + galleryMediaList.length) % galleryMediaList.length;
-        showMediaAtIndex(galleryMediaIndex);
-    }
-
-    function showMediaAtIndex(idx) {
-        const media = galleryMediaList[idx];
-        if (!media) return;
-        const wrapper = document.getElementById('media-content-wrapper');
-        const oldVid = wrapper.querySelector('video');
-        if (oldVid) oldVid.pause();
-        if (media.type === 'video') wrapper.innerHTML = `<video controls autoplay loop style="max-width:95vw;max-height:95vh;"><source src="${media.url}"></video>`;
-        else wrapper.innerHTML = `<img src="${media.url}" alt="Full size" style="max-width:95vw;max-height:95vh;object-fit:contain;">`;
-        updateMediaCounter();
-    }
-
-    function updateMediaCounter() {
-        const counter = document.getElementById('media-counter');
-        if (counter && galleryMediaList.length > 1) {
-            counter.textContent = (galleryMediaIndex + 1) + ' / ' + galleryMediaList.length;
-            counter.style.display = 'block';
-        } else if (counter) {
-            counter.style.display = 'none';
-        }
-    }
-
-    /* ADMIN AUTH */
-
-    async function loginAdmin() {
-        const passEl = document.getElementById('admin-pass');
-        if (!globalAdminHash) { showToast('No config found — run setup first', 'error'); return; }
-
-        const raw = passEl.value;
-        let inputHash;
-        if (globalSalt) {
-            inputHash = await sha256(raw + globalSalt);
-        } else {
-            inputHash = await sha256(raw);
-        }
-
-        if (inputHash === globalAdminHash) {
-            isAdminLoggedIn = true;
-            sessionPassword = raw;
-
-            // Auto-Migration: if we have a raw API key but no token, generate one
-            if (globalApiKey && !globalAuthToken) {
-                showToast("Upgrading Security...", "loading");
-                const newToken = await requestTokenGeneration(globalApiKey, raw);
-                if (newToken) {
-                    globalAuthToken = newToken;
-                    globalApiKey = null;
-                    saveSystem();
-                    showToast("Security Upgrade Complete!", "success");
-                } else {
-                    showToast("Security upgrade failed. Check bridge connection.", "error");
-                }
-            }
-
-            document.getElementById('admin-login').style.display = 'none';
-            document.getElementById('admin-panel').style.display = 'block';
-            populateAdminFields();
-            renderLeaflets();
-            showToast('Welcome back!');
-        } else {
-            showToast('Incorrect password', 'error');
-        }
-    }
-
-    function logoutAdmin() {
-        isAdminLoggedIn = false;
-        sessionPassword = null;
-        document.getElementById('admin-login').style.display = 'block';
-        document.getElementById('admin-panel').style.display = 'none';
-        document.getElementById('admin-pass').value = '';
-        renderLeaflets();
-        showToast('Logged out');
-    }
-
-    function populateAdminFields() {
-        document.getElementById('settings-window-title').value = currentConfig.metaTitle || '';
-        document.getElementById('settings-meta-desc').value = currentConfig.metaDescription || '';
-        document.getElementById('settings-sitename').value = currentConfig.siteName || '';
-        document.getElementById('settings-tagline').value = currentConfig.tagline || '';
-        document.getElementById('settings-posts-tab').value = currentConfig.leafletsName || '';
-        document.getElementById('settings-copyright').value = currentConfig.copyright || '';
-        document.getElementById('settings-pfp').value = currentConfig.pfpImage || '';
-        document.getElementById('settings-banner').value = currentConfig.bannerImage || '';
-        document.getElementById('settings-about-text').value = currentConfig.aboutBio || localStorage.getItem('lbmc_about_bio') || '';
-        document.getElementById('settings-bg-image').value = currentConfig.bgImage || '';
-        document.getElementById('settings-widget-padding').value = currentConfig.widgetPadding || '1.5rem';
-        document.getElementById('settings-custom-css').value = currentConfig.customCss || '';
-        document.getElementById('settings-reactions').value = String(currentConfig.reactionsEnabled);
-        document.getElementById('settings-icon-style').value = currentConfig.reactionIcon || 'faces';
-        document.getElementById('settings-like-label').value = currentConfig.likeLabel || '';
-        document.getElementById('settings-dislike-label').value = currentConfig.dislikeLabel || '';
-        document.getElementById('settings-comments').value = String(currentConfig.allowComments);
-
-        const c = currentConfig.colors;
-        document.getElementById('settings-bg').value = c.bg || '#0a0a0a';
-        document.getElementById('settings-text').value = c.text || '#f0f0f0';
-        document.getElementById('settings-sidebar').value = c.sidebar || '#111111';
-        document.getElementById('settings-accent').value = c.accent || '#ff6b35';
-        document.getElementById('settings-post-bg').value = c.leaflet || '#191515';
-        document.getElementById('settings-borders').value = c.border || '#333333';
-        document.getElementById('settings-nav-active').value = c.navActive || '#c8ff00';
-        document.getElementById('settings-like-color').value = c.like || '#c8ff00';
-        document.getElementById('settings-dislike-color').value = c.dislike || '#ff3c8e';
-        document.getElementById('settings-like-btn').value = c.likeBtn || '#0a0a0a';
-        document.getElementById('settings-dislike-btn').value = c.dislikeBtn || '#0a0a0a';
-    }
-
-    /* FILE UPLOAD HANDLER */
-
-    // Store actual File object — NOT base64. The bridge uploads it as a real file.
-    let pendingUploadFile = null;
-
-    // Batch upload state (for uploading multiple files through the bridge)
-    let isBatchUploading = false;
-    let currentBatchResolve = null;
-    let currentBatchReject = null;
-
-    function handleFileUpload(input) {
-        const file = input.files[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            showToast('Warning: Large file (' + (file.size / 1024 / 1024).toFixed(1) + 'MB). Consider compressing first.', 'error');
-        }
-        pendingUploadFile = file;
-        const previewUrl = URL.createObjectURL(file);
-        const preview = document.getElementById('upload-preview');
-        const previewImg = document.getElementById('upload-preview-img');
-        if (file.type.startsWith('video/')) {
-            preview.innerHTML = `<video src="${previewUrl}" style="max-width:200px;max-height:150px;border-radius:8px;border:1px solid var(--border);" muted loop playsinline></video>
-                <button type="button" onclick="clearUpload()" style="display:block;margin-top:0.3rem;font-family:var(--font-mono);font-size:0.65rem;color:var(--pink);background:none;border:none;cursor:pointer;">✕ Remove</button>`;
-            preview.style.display = 'block';
-        } else {
-            previewImg.src = previewUrl;
-            preview.style.display = 'block';
-        }
-        document.getElementById('new-post-media-url').value = '';
-        showToast(`File ready: ${file.name} — will upload to img/ on post`, 'info');
-    }
-
-    function clearUpload() {
-        pendingUploadFile = null;
-        document.getElementById('new-post-media-file').value = '';
-        document.getElementById('upload-preview').style.display = 'none';
-    }
-
-    /* BRIDGE COMMUNICATION (LBM Secure Upload System) */
-
-    function injectBridge(url) {
-        let frame = document.getElementById('bridge-frame');
-        if (!frame) {
-            frame = document.createElement('iframe');
-            frame.id = 'bridge-frame';
-            frame.style.cssText = 'width:1px;height:1px;opacity:0;position:absolute;pointer-events:none;';
-            document.body.appendChild(frame);
-        }
-        frame.src = url;
-    }
-
-    // Token generation — encrypts the API key with the admin password via the bridge
-    let tokenizeResolve = null;
-
-    function requestTokenGeneration(key, pass) {
-        return new Promise((resolve) => {
-            tokenizeResolve = resolve;
-            const frame = document.getElementById('bridge-frame');
-            if (!frame) { resolve(null); return; }
-            frame.contentWindow.postMessage({
-                type: 'TOKENIZE',
-                rawKey: key,
-                adminPass: pass
-            }, FIXED_BRIDGE_URL);
-            // Timeout after 10 seconds
-            setTimeout(() => { if (tokenizeResolve) { tokenizeResolve(null); } }, 10000);
-        });
-    }
-
-    // Handle messages back from the bridge
-    function handleBridgeMessage(e) {
-        if (e.data.type === 'TOKEN_RESULT') {
-            if (e.data.success && tokenizeResolve) {
-                tokenizeResolve(e.data.token);
-            } else if (!e.data.success && tokenizeResolve) {
-                showToast("Token Generation Failed: " + e.data.message, "error");
-                tokenizeResolve(null);
-            }
-            tokenizeResolve = null;
-        }
-
-        if (e.data.type === 'UPLOAD_RESULT') {
-            // Batch upload mode — resolve/reject the promise and return
-            if (isBatchUploading) {
-                if (e.data.success) {
-                    if (currentBatchResolve) currentBatchResolve(true);
-                } else {
-                    if (currentBatchReject) currentBatchReject(e.data.message);
-                }
-                return;
-            }
-
-            if (currentLoadingToast && currentLoadingToast.parentNode) currentLoadingToast.remove();
-
-            if (e.data.success) {
-                showToast("✓ Synced! Everyone can see your changes now.", "success");
-            } else {
-                // Token rejected — show repair modal
-                if (e.data.message && (e.data.message.includes("Invalid") || e.data.message.includes("403") || e.data.message.includes("invalid credentials"))) {
-                    document.getElementById('repair-modal').style.display = 'flex';
-                } else {
-                    showToast("Sync failed: " + (e.data.message || "Unknown error"), "error");
-                }
-            }
-        }
-    }
-
-    // Token Repair — re-authenticate when token is rejected
-    async function runRepair() {
-        const k = document.getElementById('repair-api-key').value;
-        if (!k) { showToast("Please enter API Key", "error"); return; }
-
-        showToast("Repairing Connection...", "loading");
-        const newToken = await requestTokenGeneration(k.trim(), sessionPassword);
-
-        if (newToken) {
-            globalAuthToken = newToken;
-            globalApiKey = null;
-            document.getElementById('repair-modal').style.display = 'none';
-            showToast("Repair Successful! Saving...", "success");
-            setTimeout(() => saveSystem(), 1000);
-        } else {
-            showToast("Repair Failed. Check Key.", "error");
-        }
-    }
-
-    // Upload file content to Neocities via the bridge
-    // Now supports media uploads: pass mediaFile (File object) and mediaName (destination path)
-    function uploadToBridge(target, overrideToken, mediaFile, mediaName) {
-        const tokenToSend = overrideToken || globalAuthToken;
-        if (!tokenToSend) {
-            showToast("No Auth Token found. Run setup or repair.", "error");
-            return;
-        }
-
-        // System and media uploads require the admin password check
-        let passwordCheck = null;
-        if (target === 'system' || target === 'media_only') {
-            if (!sessionPassword) {
-                showToast("Session expired. Please re-login.", "error");
-                return;
-            }
-            passwordCheck = sessionPassword;
-        }
-
-        let fileContent = "";
-        let fileName = "";
-
-        if (target === 'system') {
-            const data = {
-                adminHash: globalAdminHash,
-                salt: globalSalt,
-                siteConfig: currentConfig,
-                posts: postsCache,
-                authToken: tokenToSend,
-                apiKey: null
-            };
-            fileContent = `window.AZUMINT_SYSTEM = "${unicodeToBase64(JSON.stringify(data))}";`;
-            fileName = "system.js";
-        } else if (target === 'interactions') {
-            fileContent = `window.AZUMINT_INTERACTIONS = "${unicodeToBase64(JSON.stringify(interactionsCache))}";`;
-            fileName = "interactions.js";
-            showToast("Syncing interactions...", "loading");
-        }
-        // target === 'media_only' sends no fileContent, just the media
-
-        // Ensure media paths go into img/ folder
-        if (mediaFile && mediaName && mediaName.indexOf('/') === -1) {
-            mediaName = 'img/' + mediaName;
-        }
-
-        if (!isBatchUploading && (target === 'system' || target === 'media_only')) {
-            showToast(mediaFile ? "Uploading media..." : "Saving system...", "loading");
-        }
-
-        const frame = document.getElementById('bridge-frame');
-        if (frame && frame.contentWindow) {
-            frame.contentWindow.postMessage({
-                type: 'UPLOAD',
-                authToken: tokenToSend,
-                passwordCheck: passwordCheck,
-                fileContent: fileContent,
-                filename: fileName,
-                mediaFile: mediaFile || null,
-                mediaName: mediaName || null
-            }, FIXED_BRIDGE_URL);
-        } else {
-            showToast("Bridge disconnected. Try refreshing.", "error");
-        }
-    }
-
-    // Promise wrapper for uploading a single media file through the bridge
-    function promisifiedUpload(mediaFile, path) {
-        return new Promise((resolve, reject) => {
-            currentBatchResolve = resolve;
-            currentBatchReject = reject;
-            uploadToBridge('media_only', null, mediaFile, path);
-        });
-    }
-
-    // Main save function — uploads system.js to Neocities
-    function saveSystem(overrideToken) {
-        saveDataLocally();
-
-        if (!globalAuthToken && !overrideToken && window.location.protocol === 'file:') {
-            // Local mode — just download
-            downloadSystemJS();
-            showToast("Downloaded system.js (local mode)");
-            return;
-        }
-
-        uploadToBridge('system', overrideToken);
-    }
-
-    // Save interactions to Neocities (matches original LBM)
-    function saveInteractions() {
-        if (!globalAuthToken && window.location.protocol === 'file:') return;
-        uploadToBridge('interactions');
-    }
-
-    // Force sync everything
-    function forceSyncAll() {
-        saveDataLocally();
-        uploadToBridge('system');
-        setTimeout(() => uploadToBridge('interactions'), 2000);
-        showToast("Force syncing all files...");
-    }
-
-    // Local backup (always runs as safety net)
-    function saveDataLocally() {
-        const data = { adminHash: globalAdminHash, salt: globalSalt, siteConfig: currentConfig, posts: postsCache, authToken: globalAuthToken };
-        localStorage.setItem('LBMC_SYSTEM_BACKUP', JSON.stringify(data));
-        localStorage.setItem('LBMC_INTERACTIONS_BACKUP', JSON.stringify(interactionsCache));
-    }
-
-    function loadLocalBackup() {
-        try {
-            const backup = localStorage.getItem('LBMC_SYSTEM_BACKUP');
-            if (backup) {
-                const data = JSON.parse(backup);
-                if (data.posts && data.posts.length > postsCache.length) {
-                    postsCache = data.posts;
-                    if (data.siteConfig) currentConfig = { ...currentConfig, ...data.siteConfig, colors: { ...currentConfig.colors, ...(data.siteConfig.colors || {}) } };
-                    if (data.adminHash) globalAdminHash = data.adminHash;
-                    if (data.salt) globalSalt = data.salt;
-                }
-                if (data.authToken && !globalAuthToken) globalAuthToken = data.authToken;
-            }
-            // Interactions: server file (interactions.js) is always authoritative.
-            // Only use localStorage backup for posts that DON'T exist in server data.
-            const intBackup = localStorage.getItem('LBMC_INTERACTIONS_BACKUP');
-            if (intBackup) {
-                const intData = JSON.parse(intBackup);
-                for (const key in intData) {
-                    if (!interactionsCache[key]) {
-                        interactionsCache[key] = intData[key];
-                    }
-                }
-            }
-        } catch(e) { console.log('No local backup found'); }
-    }
-
-    /* CREATE POST */
-
-    async function createPost() {
-        const content = document.getElementById('new-post-content').value.trim();
-
-        // Get media — prefer file upload, fallback to URL
-        let mediaUrl = document.getElementById('new-post-media-url').value.trim();
-
-        // If a file is pending, upload it via the bridge first
-        if (pendingUploadFile) {
-            const fileName = pendingUploadFile.name;
-            const mediaPath = 'img/' + fileName;
-
-            // Check if we're online (have auth token)
-            if (globalAuthToken) {
-                showToast(`Uploading ${fileName}...`, 'loading');
-                isBatchUploading = true;
-                try {
-                    await promisifiedUpload(pendingUploadFile, mediaPath);
-                    showToast(`Uploaded ${fileName} ✓`, 'success');
-                } catch(err) {
-                    showToast(`Upload failed: ${err}`, 'error');
-                    isBatchUploading = false;
-                    return;
-                }
-                isBatchUploading = false;
-            } else {
-                showToast(`Local mode: manually move ${fileName} to your img/ folder`, 'info');
-            }
-            mediaUrl = mediaPath; // Store the PATH, not the data
-        }
-
-        // Require at least content OR media
-        if (!content && !mediaUrl) { showToast('Add some text or an image first!', 'error'); return; }
-
-        // Get tags from clickable buttons
-        const selectedTags = Array.from(document.querySelectorAll('#new-post-tags-bar .tag-toggle.selected')).map(btn => btn.dataset.tag);
-        const customTag = (document.getElementById('new-post-custom-tag').value || '').trim();
-        if (customTag) selectedTags.push(customTag);
-
-        const pinned = document.getElementById('new-post-pinned').value === 'true';
-
-        const newPost = {
-            id: Date.now(),
-            content: content,
-            media: mediaUrl || null,
-            tags: selectedTags,
-            date: new Date().toLocaleDateString(),
-            pinned: pinned
-        };
-
-        postsCache.push(newPost);
-        interactionsCache[newPost.id] = { likes: 0, dislikes: 0, comments: [] };
-
-        // Clear form
-        document.getElementById('new-post-content').value = '';
-        document.getElementById('new-post-media-url').value = '';
-        document.getElementById('new-post-custom-tag').value = '';
-        document.querySelectorAll('#new-post-tags-bar .tag-toggle').forEach(btn => btn.classList.remove('selected'));
-        document.getElementById('new-post-pinned').value = 'false';
-        clearUpload();
-
-        currentPage = 1;
-        renderLeaflets();
-        renderGallery();
-        populateArtScroll();
-
-        // Auto-sync to Neocities
-        saveSystem();
-        showToast('Post created & syncing!');
-    }
-
-    // Bulk upload — preview thumbnails (uses blob URLs, NOT base64)
-    document.addEventListener('DOMContentLoaded', () => {
-        const bulkInput = document.getElementById('bulk-upload-files');
-        if (bulkInput) bulkInput.addEventListener('change', function() {
-            const preview = document.getElementById('bulk-preview');
-            preview.innerHTML = '';
-            if (!this.files.length) return;
-            Array.from(this.files).forEach((file, i) => {
-                const blobUrl = URL.createObjectURL(file);
-                const thumb = document.createElement('div');
-                thumb.style.cssText = 'position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border);';
-                thumb.innerHTML = `<img src="${blobUrl}" style="width:100%;height:100%;object-fit:cover;">
-                    <span style="position:absolute;bottom:2px;right:4px;font-size:0.55rem;font-family:var(--font-mono);color:#fff;text-shadow:0 1px 3px #000;">${i+1}</span>`;
-                preview.appendChild(thumb);
-            });
-        });
-    });
-
-    async function bulkUpload() {
-        const fileInput = document.getElementById('bulk-upload-files');
-        const files = fileInput.files;
-        if (!files.length) { showToast('Select some images first!', 'error'); return; }
-
-        // Get shared tags from the tag bar
-        const selectedTags = Array.from(document.querySelectorAll('#new-post-tags-bar .tag-toggle.selected')).map(btn => btn.dataset.tag);
-        const customTag = (document.getElementById('new-post-custom-tag').value || '').trim();
-        if (customTag) selectedTags.push(customTag);
-
-        const total = files.length;
-        const isOnline = !!globalAuthToken;
-
-        // Show progress UI, disable button
-        const progressEl = document.getElementById('bulk-progress');
-        const progressText = document.getElementById('bulk-progress-text');
-        const progressCount = document.getElementById('bulk-progress-count');
-        const progressBar = document.getElementById('bulk-progress-bar');
-        const progressFile = document.getElementById('bulk-progress-file');
-        const uploadBtn = document.getElementById('bulk-upload-btn');
-
-        progressEl.style.display = 'block';
-        uploadBtn.disabled = true;
-        uploadBtn.style.opacity = '0.5';
-        uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
-
-        if (isOnline) {
-            isBatchUploading = true;
-
-            for (let i = 0; i < total; i++) {
-                const file = files[i];
-                const mediaPath = 'img/' + file.name;
-                const pct = Math.round(((i) / total) * 100);
-
-                progressText.textContent = 'Uploading...';
-                progressCount.textContent = `${i + 1}/${total}`;
-                progressBar.style.width = pct + '%';
-                progressFile.textContent = file.name;
-
-                try {
-                    await promisifiedUpload(file, mediaPath);
-                } catch(err) {
-                    progressText.textContent = 'FAILED';
-                    progressText.style.color = 'var(--pink)';
-                    progressFile.textContent = `Error on ${file.name}: ${err}`;
-                    isBatchUploading = false;
-                    uploadBtn.disabled = false;
-                    uploadBtn.style.opacity = '1';
-                    uploadBtn.innerHTML = '<i class="fa-solid fa-images"></i> Upload All as Separate Posts';
-                    return;
-                }
-
-                // Create post with PATH only
-                const newPost = {
-                    id: Date.now() + i,
-                    content: '',
-                    media: mediaPath,
-                    tags: [...selectedTags],
-                    date: new Date().toLocaleDateString(),
-                    pinned: false
-                };
-                postsCache.push(newPost);
-                interactionsCache[newPost.id] = { likes: 0, dislikes: 0, comments: [] };
-            }
-
-            isBatchUploading = false;
-        } else {
-            // Local mode
-            for (let i = 0; i < total; i++) {
-                const file = files[i];
-                const pct = Math.round(((i + 1) / total) * 100);
-                progressCount.textContent = `${i + 1}/${total}`;
-                progressBar.style.width = pct + '%';
-                progressFile.textContent = file.name;
-
-                const newPost = {
-                    id: Date.now() + i,
-                    content: '',
-                    media: 'img/' + file.name,
-                    tags: [...selectedTags],
-                    date: new Date().toLocaleDateString(),
-                    pinned: false
-                };
-                postsCache.push(newPost);
-                interactionsCache[newPost.id] = { likes: 0, dislikes: 0, comments: [] };
-            }
-            showToast(`Local mode: move your ${total} files to img/ folder manually`, 'info');
-        }
-
-        // Done — update progress to complete
-        progressBar.style.width = '100%';
-        progressText.textContent = 'Complete!';
-        progressCount.textContent = `${total}/${total}`;
-        progressFile.textContent = 'All files uploaded ✓';
-
-        // Refresh and save
-        currentPage = 1;
-        renderLeaflets();
-        renderGallery();
-        populateArtScroll();
-        saveSystem();
-
-        // Clear bulk form
-        fileInput.value = '';
-        document.getElementById('bulk-preview').innerHTML = '';
-        document.querySelectorAll('#new-post-tags-bar .tag-toggle').forEach(btn => btn.classList.remove('selected'));
-        document.getElementById('new-post-custom-tag').value = '';
-
-        // Re-enable button
-        uploadBtn.disabled = false;
-        uploadBtn.style.opacity = '1';
-        uploadBtn.innerHTML = '<i class="fa-solid fa-images"></i> Upload All as Separate Posts';
-
-        showToast(`${total} posts created & syncing!`);
-
-        // Auto-hide progress after a few seconds
-        setTimeout(() => { progressEl.style.display = 'none'; }, 4000);
-    }
-
-    function deletePost(postId) {
-        if (!confirm('Delete this post permanently?')) return;
-        postsCache = postsCache.filter(p => p.id !== postId);
-        delete interactionsCache[postId];
-        renderLeaflets();
-        renderGallery();
-        populateArtScroll();
-        saveSystem();
-        showToast('Post deleted & syncing.');
-    }
-
-    // CLEANUP: Detect and strip base64 data embedded in posts
-    function cleanupBase64() {
-        let affected = 0;
-        let totalBytes = 0;
-
-        postsCache.forEach(p => {
-            if (p.media && typeof p.media === 'string' && p.media.startsWith('data:')) {
-                affected++;
-                totalBytes += p.media.length;
-            }
-            if (Array.isArray(p.media)) {
-                p.media.forEach(m => {
-                    if (typeof m === 'string' && m.startsWith('data:')) {
-                        affected++;
-                        totalBytes += m.length;
-                    }
-                });
-            }
-        });
-
-        if (affected === 0) {
-            showToast('No base64 data found — system.js is clean!', 'success');
-            return;
-        }
-
-        const sizeMB = (totalBytes / 1024 / 1024).toFixed(1);
-        const msg = `Found ${affected} embedded image(s) using ~${sizeMB}MB of bloat in system.js.\n\n` +
-            'This will REMOVE the embedded images from your posts.\n' +
-            'The posts themselves will remain, but their images will be gone.\n\n' +
-            'You should re-upload those images to your Neocities img/ folder\n' +
-            'and use the Media URL field (img/filename.png) instead.\n\n' +
-            'Continue?';
-
-        if (!confirm(msg)) return;
-
-        let cleaned = 0;
-        postsCache.forEach(p => {
-            if (p.media && typeof p.media === 'string' && p.media.startsWith('data:')) {
-                p.media = null;
-                cleaned++;
-            }
-            if (Array.isArray(p.media)) {
-                p.media = p.media.filter(m => !(typeof m === 'string' && m.startsWith('data:')));
-                if (p.media.length === 0) p.media = null;
-                else if (p.media.length === 1) p.media = p.media[0];
-                cleaned++;
-            }
-        });
-
-        renderLeaflets();
-        renderGallery();
-        populateArtScroll();
-        saveSystem();
-        showToast(`Cleaned ${cleaned} post(s) — system.js is now much smaller!`, 'success');
-    }
-
-    /* MANAGE POSTS */
-
-    function renderManagePosts() {
-        const list = document.getElementById('manage-posts-list');
-        if (!list) return;
-        if (postsCache.length === 0) { list.innerHTML = '<p style="color:var(--gray);font-family:var(--font-mono);font-size:0.8rem;">No posts to manage.</p>'; return; }
-        list.innerHTML = [...postsCache].sort((a,b) => b.id - a.id).map(post => {
-            const preview = (post.content || '').substring(0, 80) + ((post.content || '').length > 80 ? '...' : '');
-            const date = post.date || new Date(post.id).toLocaleDateString();
-            return `<div style="background:var(--bg-card);padding:1rem;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:0.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
-                <div style="flex:1;min-width:0;">
-                    <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);">${date} ${post.pinned ? '📌' : ''}</div>
-                    <div style="font-size:0.85rem;color:var(--gray-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(preview)}</div>
-                </div>
-                <div style="display:flex;gap:0.3rem;flex-shrink:0;">
-                    <button class="btn-secondary" style="font-size:0.6rem;" onclick="togglePin(${post.id})">${post.pinned ? 'Unpin' : 'Pin'}</button>
-                    <button class="btn-danger" style="font-size:0.6rem;" onclick="deletePost(${post.id});renderManagePosts()">Delete</button>
-                </div>
-            </div>`;
-        }).join('');
-    }
-
-    function togglePin(postId) {
-        const post = postsCache.find(p => p.id === postId);
-        if (post) { post.pinned = !post.pinned; renderLeaflets(); renderManagePosts(); }
-    }
-
-    /* SAVE SETTINGS */
-
-    async function saveSettings() {
-        currentConfig.metaTitle = document.getElementById('settings-window-title').value;
-        currentConfig.metaDescription = document.getElementById('settings-meta-desc').value;
-        currentConfig.siteName = document.getElementById('settings-sitename').value;
-        currentConfig.tagline = document.getElementById('settings-tagline').value;
-        currentConfig.leafletsName = document.getElementById('settings-posts-tab').value;
-        currentConfig.copyright = document.getElementById('settings-copyright').value;
-        currentConfig.pfpImage = document.getElementById('settings-pfp').value;
-        currentConfig.bannerImage = document.getElementById('settings-banner').value;
-        currentConfig.bgImage = document.getElementById('settings-bg-image').value;
-        currentConfig.widgetPadding = document.getElementById('settings-widget-padding').value;
-        currentConfig.customCss = document.getElementById('settings-custom-css').value;
-        currentConfig.reactionsEnabled = document.getElementById('settings-reactions').value === 'true';
-        currentConfig.reactionIcon = document.getElementById('settings-icon-style').value;
-        currentConfig.likeLabel = document.getElementById('settings-like-label').value;
-        currentConfig.dislikeLabel = document.getElementById('settings-dislike-label').value;
-        currentConfig.allowComments = document.getElementById('settings-comments').value === 'true';
-
-        currentConfig.colors.bg = document.getElementById('settings-bg').value;
-        currentConfig.colors.text = document.getElementById('settings-text').value;
-        currentConfig.colors.sidebar = document.getElementById('settings-sidebar').value;
-        currentConfig.colors.accent = document.getElementById('settings-accent').value;
-        currentConfig.colors.leaflet = document.getElementById('settings-post-bg').value;
-        currentConfig.colors.border = document.getElementById('settings-borders').value;
-        currentConfig.colors.navActive = document.getElementById('settings-nav-active').value;
-        currentConfig.colors.like = document.getElementById('settings-like-color').value;
-        currentConfig.colors.dislike = document.getElementById('settings-dislike-color').value;
-        currentConfig.colors.likeBtn = document.getElementById('settings-like-btn').value;
-        currentConfig.colors.dislikeBtn = document.getElementById('settings-dislike-btn').value;
-
-        // Save about text to currentConfig (syncs to system.js)
-        const aboutText = document.getElementById('settings-about-text').value.trim();
-        currentConfig.aboutBio = aboutText;
-        if (aboutText) localStorage.setItem('lbmc_about_bio', aboutText);
-
-        // Handle API key rotation
-        const newKeyInput = document.getElementById('edit-neocities-key');
-        if (newKeyInput && newKeyInput.value && newKeyInput.value.length > 5) {
-            showToast("Rotating Security Token...");
-            const newToken = await requestTokenGeneration(newKeyInput.value.trim(), sessionPassword);
-            if (newToken) {
-                globalAuthToken = newToken;
-                newKeyInput.value = '';
-                showToast("Token rotated successfully!", "success");
-            } else {
-                showToast("Token rotation failed. Check bridge.", "error");
-            }
-        }
-
-        applyVisualConfig();
-        renderLeaflets();
-        saveSystem();
-        showToast('Settings saved & syncing!');
-    }
-
-    /* GENERATE & DOWNLOAD SYSTEM FILES */
-
-    async function generateSystem() {
-        const password = document.getElementById('setup-password').value;
-        const rawKey = document.getElementById('setup-neocities-key').value;
-        if (password.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
-        if (!rawKey) { showToast('API Key is required for syncing', 'error'); return; }
-
-        // Generate salt and hash
-        const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2,'0')).join('');
-        const hash = await sha256(password + salt);
-
-        // Generate encrypted token via the bridge
-        showToast("Encrypting credentials...");
-        const token = await requestTokenGeneration(rawKey.trim(), password);
-        if (!token) {
-            showToast("Token generation failed. Make sure the page loaded fully, then try again.", "error");
-            return;
-        }
-
-        // Read setup values
-        currentConfig.siteName = document.getElementById('setup-sitename').value || 'MY ART BLOG';
-        currentConfig.tagline = document.getElementById('setup-tagline').value || 'Digital Art Archive';
-        currentConfig.leafletsName = document.getElementById('setup-posts-tab').value || 'Works';
-        currentConfig.copyright = document.getElementById('setup-copyright').value || '2026 Artist Blog';
-        currentConfig.pfpImage = document.getElementById('setup-pfp').value || '';
-        currentConfig.bannerImage = document.getElementById('setup-banner').value || '';
-        currentConfig.reactionsEnabled = document.getElementById('setup-reactions').value === 'true';
-        currentConfig.reactionIcon = document.getElementById('setup-icon-style').value;
-        currentConfig.likeLabel = document.getElementById('setup-like-label').value || 'Like';
-        currentConfig.dislikeLabel = document.getElementById('setup-dislike-label').value || 'Dislike';
-        currentConfig.widgetPadding = document.getElementById('setup-widget-padding').value || '1.5rem';
-        currentConfig.bgImage = document.getElementById('setup-bg-image').value || '';
-        currentConfig.allowComments = document.getElementById('setup-comments').value === 'true';
-        currentConfig.customCss = document.getElementById('setup-custom-css').value || '';
-
-        currentConfig.colors.bg = document.getElementById('setup-bg').value;
-        currentConfig.colors.text = document.getElementById('setup-text').value;
-        currentConfig.colors.sidebar = document.getElementById('setup-sidebar').value;
-        currentConfig.colors.accent = document.getElementById('setup-accent').value;
-        currentConfig.colors.leaflet = document.getElementById('setup-post-bg').value;
-        currentConfig.colors.border = document.getElementById('setup-borders').value;
-        currentConfig.colors.navActive = document.getElementById('setup-nav-active').value;
-        currentConfig.colors.like = document.getElementById('setup-like-color').value;
-        currentConfig.colors.dislike = document.getElementById('setup-dislike-color').value;
-        currentConfig.colors.likeBtn = document.getElementById('setup-like-btn').value;
-        currentConfig.colors.dislikeBtn = document.getElementById('setup-dislike-btn').value;
-
-        globalAdminHash = hash;
-        globalSalt = salt;
-        globalAuthToken = token;
-        sessionPassword = password;
-
-        // Save locally first
-        saveDataLocally();
-
-        // Upload to Neocities via bridge
-        uploadToBridge('system');
-
-        hideSetup();
-        applyVisualConfig();
-        renderLeaflets();
-        renderGallery();
-        showToast('System configured & syncing to Neocities!');
-    }
-
-    function downloadSystemJS() {
-        const data = { adminHash: globalAdminHash, salt: globalSalt, siteConfig: currentConfig, posts: postsCache, authToken: globalAuthToken };
-        const content = `window.AZUMINT_SYSTEM = "${unicodeToBase64(JSON.stringify(data))}";`;
-        downloadFile(content, 'system.js');
-        showToast('system.js downloaded (backup).');
-    }
-
-    function downloadInteractionsJS() {
-        const content = `window.AZUMINT_INTERACTIONS = "${unicodeToBase64(JSON.stringify(interactionsCache))}";`;
-        downloadFile(content, 'interactions.js');
-    }
-
-    function downloadHTML() {
-        const html = document.documentElement.outerHTML;
-        downloadFile('<!DOCTYPE html>\n' + html, 'index.html');
-        showToast('HTML downloaded!');
-    }
-
-    /* INITIALIZATION */
-
-    document.addEventListener('DOMContentLoaded', () => {
-        // Configure marked
-        if (typeof marked !== 'undefined') {
-            marked.setOptions({ breaks: true, gfm: true });
-        }
-
-        initScrollReveal();
-        loadBannerSettings();
-        loadSocialLinks();
-
-        // Load saved theme
-        const savedTheme = localStorage.getItem('lbmc_theme');
-        if (savedTheme === 'light') {
-            isDarkMode = false;
-            document.body.classList.add('light-mode');
-            const toggleBtn = document.querySelector('.nav-icon-btn[title="Toggle theme"]');
-            if (toggleBtn) toggleBtn.textContent = '🌙';
-        }
-
-        // Pill indicator
-        requestAnimationFrame(updatePillIndicator);
-        window.addEventListener('resize', () => requestAnimationFrame(updatePillIndicator));
-
-        // Inject bridge iframe for Neocities API communication
-        window.addEventListener('message', handleBridgeMessage);
-        if (window.location.protocol !== 'file:') {
-            injectBridge(FIXED_BRIDGE_URL);
-        }
-
-        // Load system data
-        const timestamp = Date.now();
-        const loadScript = (src) => new Promise((resolve) => {
-            const s = document.createElement('script');
-            s.src = `${src}?v=${timestamp}`;
-            s.onload = resolve;
-            s.onerror = () => { console.log(`[LBM] ${src} not found`); resolve(); };
-            document.body.appendChild(s);
-        });
-
-        // Load system.js and interactions.js dynamically with cache-busting
-        Promise.all([loadScript('system.js'), loadScript('interactions.js')]).then(() => {
-            parseSystemData();
-            // Merge any local backup data (in case user made changes but didn't re-upload system.js)
-            loadLocalBackup();
-            if (postsCache.length > 0) {
-                renderLeaflets();
-                renderGallery();
-                populateArtScroll();
-            }
-        });
-
-        // Keyboard navigation
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeLightbox();
-                closeMediaViewer();
-            }
-            // Arrow keys for media viewer
-            const overlay = document.getElementById('media-fullscreen-overlay');
-            if (overlay && overlay.classList.contains('active')) {
-                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); mediaViewerNext(); }
-                if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); mediaViewerPrev(); }
-            }
-        });
-    });
-
-    </script>
 
 </body>
 </html>
