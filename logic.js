@@ -107,7 +107,7 @@ const HAZARD_WORDS = ['COMMISSIONS CLOSED', 'CLOSED', 'CHECK BACK SOON'];
 const COMM_DEFAULTS = { open: true, title: '', handle: '', contact: '', button: '', tiers: [], terms: '', termsImage: '', tapeWords: [], closedNote: '', paper: '#DFDAD0', ink: '#161616', tape: '#3AA6F2' };
 // Hazard tapes all over the page while closed: [kind (y yellow, k black, s stripes), distance down the page in %, tilt in degrees]
 const HAZARD_LAYOUT = [['y', 5, -6], ['s', 13, 10], ['k', 21, 3], ['y', 30, -9], ['s', 38, 6], ['k', 46, -4], ['y', 55, 8], ['s', 63, -11], ['k', 71, 4], ['y', 79, -6], ['s', 87, 9], ['k', 94, -3]];
-// Comic "POW" burst behind each price: red outline, yellow band, orange glow (viewBox 0 0 220 150)
+// Comic "POW" burst behind each price, tinted with the tier's color (viewBox 0 0 220 150)
 const BURST_PATH = 'M37 67 61 62 60 51 75 49 74 33 97 44 108 36 120 41 138 32 141 50 183 42 156 64 178 71 164 79 182 89 154 92 156 102 141 104 135 118 115 107 101 114 90 107 68 114 73 97 56 94 55 81Z';
 const ARROWS_SVG = '<svg class="cm-arrows" viewBox="0 0 44 18" aria-hidden="true"><path d="M2 16 14 4M5 3h10v10" fill="none" stroke="currentColor" stroke-width="3.4"/><path d="M26 16 38 4M29 3h10v10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 
@@ -633,11 +633,12 @@ function tierCardHTML(t, i) {
         + '</article>';
 }
 
+// Colors come from the tier's own color in CSS (.cm-burst rules); the attributes are only a fallback
 function burstSVG(id) {
-    return '<svg class="cm-burst" viewBox="0 0 220 150" aria-hidden="true"><defs><radialGradient id="' + id + '" cx="50%" cy="50%" r="55%"><stop offset="0" stop-color="#FFE34A"/><stop offset=".5" stop-color="#FF9B30"/><stop offset="1" stop-color="#EE3F2A"/></radialGradient></defs>'
-        + '<path d="' + BURST_PATH + '" fill="#C3141B" stroke="#C3141B" stroke-width="22" stroke-linejoin="miter" stroke-miterlimit="12"/>'
-        + '<path d="' + BURST_PATH + '" fill="#FFE21C" stroke="#FFE21C" stroke-width="16" stroke-linejoin="miter" stroke-miterlimit="12"/>'
-        + '<path d="' + BURST_PATH + '" fill="url(#' + id + ')" stroke="#D9351E" stroke-width="2"/></svg>';
+    return '<svg class="cm-burst" viewBox="0 0 220 150" aria-hidden="true"><defs><radialGradient id="' + id + '" cx="50%" cy="50%" r="55%"><stop class="b-s0" offset="0" stop-color="#FFE34A"/><stop class="b-s1" offset=".5" stop-color="#FF9B30"/><stop class="b-s2" offset="1" stop-color="#EE3F2A"/></radialGradient></defs>'
+        + '<path class="b-out" d="' + BURST_PATH + '" fill="#C3141B" stroke="#C3141B" stroke-width="22" stroke-linejoin="miter" stroke-miterlimit="12"/>'
+        + '<path class="b-band" d="' + BURST_PATH + '" fill="#FFE21C" stroke="#FFE21C" stroke-width="16" stroke-linejoin="miter" stroke-miterlimit="12"/>'
+        + '<path class="b-fill" d="' + BURST_PATH + '" fill="url(#' + id + ')" stroke="#D9351E" stroke-width="2"/></svg>';
 }
 
 function hazardHTML(words) {
