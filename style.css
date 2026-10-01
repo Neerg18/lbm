@@ -1043,7 +1043,10 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .cm-board { position: relative; }
 .cm-tiers { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: clamp(76px, 7vw, 112px) clamp(36px, 3.2vw, 64px); }
 /* Cards grow with the screen (up to 780px) so the art reads big on desktops; text inside scales with the card */
-.cm-tier { position: relative; flex: 1 1 340px; max-width: 780px; min-width: 0; display: flex; flex-direction: column; padding-bottom: 60px; container-type: inline-size; }
+.cm-tier {
+    --bw: clamp(170px, 46cqi, 340px); --bh: calc(var(--bw) * .68); /* price burst size, used to leave room for it below the notes */
+    position: relative; flex: 1 1 340px; max-width: 780px; min-width: 0; display: flex; flex-direction: column; container-type: inline-size;
+}
 .cm.is-closed .cm-tier { filter: saturate(.4); }
 .cm-arrows { position: absolute; left: -2px; top: -30px; width: 44px; height: 18px; color: var(--cm-ink); }
 .cm-frame {
@@ -1077,30 +1080,32 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .cm-tier.is-pop .cm-art:hover img { transform: translateY(-6px) rotate(-1deg); }
 .cm-ticks { display: block; width: 40px; height: 10px; margin: 10px auto; background: repeating-linear-gradient(110deg, var(--cm-ink) 0 2px, transparent 2px 7px); }
 /* Grows so every info box in a row matches the tallest, keeping the price badges level */
-.cm-info { flex: 1 0 auto; display: flex; border: 2px solid var(--cm-ink); background: var(--cm-card); min-height: 108px; }
+.cm-info { flex: 1 0 auto; margin-bottom: calc(var(--bh) * .45); display: flex; border: 2px solid var(--cm-ink); background: var(--cm-card); min-height: 108px; }
 .cm-bang { flex: none; width: clamp(36px, 6cqi, 50px); display: grid; place-items: center; background: var(--cm-ink); color: var(--tc); font-family: 'Anton', Impact, sans-serif; font-size: clamp(2.6rem, 7cqi, 3.6rem); line-height: 1; }
-.cm-notes { flex: 1; min-width: 0; padding: 12px 16px 34px; font-size: clamp(.92rem, 2.4cqi, 1.15rem); line-height: 1.5; color: var(--cm-ink); overflow-wrap: anywhere; }
+.cm-notes { flex: 1; min-width: 0; padding: 12px 16px calc(var(--bh) * .36 + 8px); font-size: clamp(.92rem, 2.4cqi, 1.15rem); line-height: 1.5; color: var(--cm-ink); overflow-wrap: anywhere; }
 .cm-notes > * + * { margin-top: .5em; }
 .cm-notes strong { font-weight: 800; }
 .cm-notes a { text-decoration: underline; text-underline-offset: 2px; }
 .cm-notes ul, .cm-notes ol { padding-left: 1.2em; }
+/* Comic burst price tag: the SVG draws the star, the price sits on top */
 .cm-price {
-    position: absolute; right: -14px; bottom: 0; z-index: 5; margin: 0;
+    position: absolute; right: -22px; bottom: 0; translate: 0 25%; z-index: 5; margin: 0;
     display: grid; place-items: center;
-    width: clamp(150px, 40%, 300px); aspect-ratio: 2.05;
-    border-radius: 50%;
-    background: var(--cm-ink);
-    transform: rotate(-11deg);
+    width: var(--bw); aspect-ratio: 220 / 150;
+    transform: rotate(-8deg);
     container-type: inline-size;
-    box-shadow: 0 12px 20px -10px rgba(0,0,0,.5);
+    filter: drop-shadow(5px 6px 0 rgba(0,0,0,.5));
+    transition: transform .25s var(--ease-out);
 }
-.cm-price::before { content: ""; position: absolute; inset: 14% 8.5%; border-radius: 50%; background: var(--tc); box-shadow: inset 0 0 0 3px var(--cm-ink); }
-.cm-price > span:last-child {
+.cm-tier:hover .cm-price { transform: rotate(-4deg) scale(1.06); }
+.cm-tier:not(:has(.cm-info)) .cm-ticks { margin-bottom: calc(var(--bh) * .8); }
+.cm-burst { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cm-price-text {
     position: relative; white-space: nowrap;
     font-family: var(--font-display); font-weight: 400; line-height: 1; letter-spacing: .02em;
-    font-size: min(19cqi, calc(68cqi / var(--pc)));
-    color: #F3F0FF;
-    text-shadow: -.05em -.05em 0 var(--cm-ink), .05em -.05em 0 var(--cm-ink), -.05em .05em 0 var(--cm-ink), .05em .05em 0 var(--cm-ink), .07em .11em 0 var(--cm-ink);
+    font-size: min(15cqi, calc(50cqi / var(--pc)));
+    color: #fff;
+    text-shadow: -.06em -.06em 0 var(--cm-ink), .06em -.06em 0 var(--cm-ink), -.06em .06em 0 var(--cm-ink), .06em .06em 0 var(--cm-ink), .08em .13em 0 var(--cm-ink);
     transform: skewX(-8deg);
 }
 .cm-empty { flex: 0 1 680px; padding: clamp(36px, 5vw, 64px) 28px; text-align: center; border: 2px dashed var(--cm-ink); background: var(--cm-card); }
@@ -1160,6 +1165,7 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
     .cm { --cm-cy: 54px; }
     .cm-band { --bh: 24px; }
     .cm-tier { flex-basis: 100%; }
+    .cm-price { right: -6px; }
     .cm-request { min-height: 48px; font-size: 1.1rem; }
     .cm-terms-pic { width: 76px; }
     .cm-terms-text { columns: 1; }
