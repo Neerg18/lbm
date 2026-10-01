@@ -105,8 +105,8 @@ const STATUS_PRESETS = [
 const TIER_COLORS = ['#35E04A', '#5B2EE8', '#C04BFF', '#FF6B2C', '#00B8F5', '#FF3D7F'];
 const HAZARD_WORDS = ['COMMISSIONS CLOSED', 'CLOSED', 'CHECK BACK SOON'];
 const COMM_DEFAULTS = { open: true, title: '', handle: '', contact: '', button: '', tiers: [], terms: '', termsImage: '', tapeWords: [], closedNote: '', paper: '#DFDAD0', ink: '#161616', tape: '#3AA6F2' };
-// Hazard tapes over the tiers while closed: [kind (y yellow, k black, s stripes), distance down the board in %, tilt in degrees]
-const HAZARD_LAYOUT = [['y', 16, -5], ['s', 30, 9], ['k', 44, 4], ['y', 60, -7], ['s', 74, -2], ['k', 87, 3]];
+// Hazard tapes all over the page while closed: [kind (y yellow, k black, s stripes), distance down the page in %, tilt in degrees]
+const HAZARD_LAYOUT = [['y', 5, -6], ['s', 13, 10], ['k', 21, 3], ['y', 30, -9], ['s', 38, 6], ['k', 46, -4], ['y', 55, 8], ['s', 63, -11], ['k', 71, 4], ['y', 79, -6], ['s', 87, 9], ['k', 94, -3]];
 const ARROWS_SVG = '<svg class="cm-arrows" viewBox="0 0 44 18" aria-hidden="true"><path d="M2 16 14 4M5 3h10v10" fill="none" stroke="currentColor" stroke-width="3.4"/><path d="M26 16 38 4M29 3h10v10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 
 const PLATFORM_OPTIONS = ['Twitter/X', 'Instagram', 'Bluesky', 'Tumblr', 'YouTube', 'TikTok', 'DeviantArt', 'Pixiv', 'Twitch', 'Ko-fi', 'Patreon', 'Discord', 'Threads', 'Cara', 'Email', 'Other'];

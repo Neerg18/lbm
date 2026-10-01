@@ -1003,10 +1003,10 @@ img.is-broken { visibility: hidden; }
 .cm-chev { display: block; width: .5em; height: .8em; background: currentColor; clip-path: polygon(0 0, 48% 0, 100% 50%, 48% 100%, 0 100%, 52% 50%); }
 
 /* Title, status and request button */
-.cm-inner { position: relative; z-index: 1; max-width: 1840px; margin: 0 auto; padding: 0 var(--gutter); }
+.cm-inner { position: relative; max-width: 2400px; margin: 0 auto; padding: 0 var(--gutter); }
 .cm-title {
     font-family: 'Anton', Impact, 'Arial Narrow', sans-serif; font-weight: 400;
-    font-size: min(15.5vw, calc(186vw / var(--chars, 11)), 19rem);
+    font-size: min(15.5vw, calc(186vw / var(--chars, 11)), 21rem);
     line-height: .86; letter-spacing: .005em; text-transform: uppercase; text-align: center;
     overflow-wrap: anywhere;
     color: var(--cm-ink);
@@ -1014,7 +1014,7 @@ img.is-broken { visibility: hidden; }
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-.cm-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 22px; margin: clamp(18px, 2.4vw, 34px) 0 clamp(72px, 7vw, 120px); }
+.cm-bar { position: relative; z-index: 7; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 22px; margin: clamp(18px, 2.4vw, 34px) 0 clamp(72px, 7vw, 120px); }
 .cm-status {
     display: inline-flex; align-items: center; gap: 10px;
     padding: 10px 18px 10px 16px;
@@ -1037,12 +1037,13 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .cm-request.is-closed::before, .cm-request.is-closed::after { content: ""; position: absolute; left: 0; right: 0; height: 8px; background: repeating-linear-gradient(-50deg, #111 0 8px, var(--cm-hz) 8px 16px); }
 .cm-request.is-closed::before { top: 0; }
 .cm-request.is-closed::after { bottom: 0; }
-.cm-closed-note { width: fit-content; max-width: min(100%, 640px); margin: calc(clamp(72px, 7vw, 120px) * -.55) auto clamp(64px, 6vw, 100px); padding: 12px 22px; background: var(--cm-ink); color: var(--cm-paper); font-weight: 700; text-align: center; transform: rotate(-1deg); }
+.cm-closed-note { position: relative; z-index: 7; width: fit-content; max-width: min(100%, 640px); margin: calc(clamp(72px, 7vw, 120px) * -.55) auto clamp(64px, 6vw, 100px); padding: 12px 22px; background: var(--cm-ink); color: var(--cm-paper); font-weight: 700; text-align: center; transform: rotate(-1deg); }
 
 /* Tier cards */
 .cm-board { position: relative; }
-.cm-tiers { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: clamp(76px, 7vw, 112px) clamp(40px, 4.5vw, 84px); }
-.cm-tier { position: relative; flex: 1 1 330px; max-width: 540px; min-width: 0; display: flex; flex-direction: column; padding-bottom: 54px; }
+.cm-tiers { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: clamp(76px, 7vw, 112px) clamp(36px, 3.2vw, 64px); }
+/* Cards grow with the screen (up to 780px) so the art reads big on desktops; text inside scales with the card */
+.cm-tier { position: relative; flex: 1 1 340px; max-width: 780px; min-width: 0; display: flex; flex-direction: column; padding-bottom: 60px; container-type: inline-size; }
 .cm.is-closed .cm-tier { filter: saturate(.4); }
 .cm-arrows { position: absolute; left: -2px; top: -30px; width: 44px; height: 18px; color: var(--cm-ink); }
 .cm-frame {
@@ -1077,8 +1078,8 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .cm-ticks { display: block; width: 40px; height: 10px; margin: 10px auto; background: repeating-linear-gradient(110deg, var(--cm-ink) 0 2px, transparent 2px 7px); }
 /* Grows so every info box in a row matches the tallest, keeping the price badges level */
 .cm-info { flex: 1 0 auto; display: flex; border: 2px solid var(--cm-ink); background: var(--cm-card); min-height: 108px; }
-.cm-bang { flex: none; width: 36px; display: grid; place-items: center; background: var(--cm-ink); color: var(--tc); font-family: 'Anton', Impact, sans-serif; font-size: 2.6rem; line-height: 1; }
-.cm-notes { flex: 1; min-width: 0; padding: 12px 16px 34px; font-size: .92rem; line-height: 1.5; color: var(--cm-ink); overflow-wrap: anywhere; }
+.cm-bang { flex: none; width: clamp(36px, 6cqi, 50px); display: grid; place-items: center; background: var(--cm-ink); color: var(--tc); font-family: 'Anton', Impact, sans-serif; font-size: clamp(2.6rem, 7cqi, 3.6rem); line-height: 1; }
+.cm-notes { flex: 1; min-width: 0; padding: 12px 16px 34px; font-size: clamp(.92rem, 2.4cqi, 1.15rem); line-height: 1.5; color: var(--cm-ink); overflow-wrap: anywhere; }
 .cm-notes > * + * { margin-top: .5em; }
 .cm-notes strong { font-weight: 800; }
 .cm-notes a { text-decoration: underline; text-underline-offset: 2px; }
@@ -1086,7 +1087,7 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .cm-price {
     position: absolute; right: -14px; bottom: 0; z-index: 5; margin: 0;
     display: grid; place-items: center;
-    width: clamp(150px, 42%, 220px); aspect-ratio: 2.05;
+    width: clamp(150px, 40%, 300px); aspect-ratio: 2.05;
     border-radius: 50%;
     background: var(--cm-ink);
     transform: rotate(-11deg);
@@ -1105,12 +1106,12 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .cm-empty { flex: 0 1 680px; padding: clamp(36px, 5vw, 64px) 28px; text-align: center; border: 2px dashed var(--cm-ink); background: var(--cm-card); }
 .cm-empty h2 { font-family: 'Anton', Impact, sans-serif; font-weight: 400; font-size: clamp(1.8rem, 3vw, 2.6rem); text-transform: uppercase; letter-spacing: .02em; }
 .cm-empty p { margin-top: 8px; color: var(--text-2); }
-.cm .cm-note { max-width: 1080px; margin: clamp(48px, 5vw, 72px) auto 0; padding: clamp(20px, 3vw, 36px); border: 2px solid var(--cm-ink); background: var(--cm-card); }
-.cm-tiers > .cm-note { flex: 0 1 1080px; margin: 0; }
+.cm .cm-note { max-width: 1400px; margin: clamp(48px, 5vw, 72px) auto 0; padding: clamp(20px, 3vw, 36px); border: 2px solid var(--cm-ink); background: var(--cm-card); }
+.cm-tiers > .cm-note { flex: 0 1 1400px; margin: 0; }
 .cm-note > :first-child, .cm-notes > :first-child, .cm-terms-text > :first-child { margin-top: 0; }
 
 /* Terms */
-.cm-terms { display: flex; max-width: 1080px; min-height: 150px; margin: clamp(84px, 8vw, 130px) auto 0; border: 2px solid var(--cm-ink); background: var(--cm-card); }
+.cm-terms { position: relative; display: flex; max-width: 1400px; min-height: 150px; margin: clamp(84px, 8vw, 130px) auto 0; border: 2px solid var(--cm-ink); background: var(--cm-card); }
 .cm-terms-x { flex: none; width: 34px; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; gap: 8px; padding: 10px 0; background: var(--cm-ink); }
 .cm-terms-x i { display: block; width: 16px; height: 16px; background: var(--cm-tape); clip-path: polygon(20% 0, 50% 30%, 80% 0, 100% 20%, 70% 50%, 100% 80%, 80% 100%, 50% 70%, 20% 100%, 0 80%, 30% 50%, 0 20%); }
 .cm-terms-pic { flex: none; align-self: stretch; width: clamp(96px, 12vw, 176px); height: auto; object-fit: cover; border-right: 2px solid var(--cm-ink); background: var(--raise); }
@@ -1129,12 +1130,12 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .cm-terms-text > * + * { margin-top: .6em; }
 .cm-terms-text strong { color: var(--cm-ink); }
 .cm-terms-text ul, .cm-terms-text ol { padding-left: 1.2em; }
-.cm .comm-contact { align-items: center; text-align: center; margin-top: clamp(48px, 5vw, 72px); }
+.cm .comm-contact { position: relative; z-index: 7; align-items: center; text-align: center; margin-top: clamp(48px, 5vw, 72px); }
 .cm .comm-contact .link-list { justify-content: center; }
 .cm .link-pill { background: var(--cm-card); border-color: var(--cm-ink); }
 
-/* Closed: hazard tape across the tiers, edge to edge */
-.cm-hazard { position: absolute; z-index: 6; top: 0; bottom: 0; left: calc(50% - 50vw); width: 100vw; pointer-events: none; }
+/* Closed: hazard tape all over the poster. The status, closed message and contact links stay on top so they can still be read. */
+.cm-hazard { position: absolute; z-index: 6; inset: 0; pointer-events: none; }
 .hz {
     position: absolute; left: -8%; width: 116%; top: var(--t);
     height: clamp(42px, 4.4vw, 68px);
@@ -1151,7 +1152,7 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .hz-run { display: flex; gap: 2.4em; padding-left: 1em; font-family: 'Anton', Impact, sans-serif; font-size: clamp(1rem, 1.8vw, 1.7rem); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; }
 .hz-run span { display: inline-flex; align-items: center; gap: .7em; }
 .hz-run span::before { content: ""; width: .85em; height: .75em; background: currentColor; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
-.cm-hazard.is-in .hz { animation: hzIn .55s var(--ease-out) both; animation-delay: calc(var(--d) * 110ms + 150ms); }
+.cm-hazard.is-in .hz { animation: hzIn .55s var(--ease-out) both; animation-delay: calc(var(--d) * 70ms + 150ms); }
 @keyframes hzIn { from { opacity: 0; transform: translateY(-50%) rotate(var(--r)) scaleX(.04); } }
 
 @media (max-width: 640px) {
