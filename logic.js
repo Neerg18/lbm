@@ -154,14 +154,14 @@ let currentConfig = {
 
 const ui = {
     view: null,
-    feed: { tag: 'all', q: '', sort: 'newest', limit: FEED_STEP },
+    feed: { tag: 'all', q: '', sort: 'newest', limit: FEED_STEP, cols: 1 },
     gallery: { mode: 'boards', board: null },
     revealed: new Set(),
     post: { id: null, img: 0, list: [], pushed: false },
     viewer: { list: [], i: 0 },
     comic: { id: null, pushed: false },
     reader: { id: null, page: 0 },
-    featured: { i: 0, timer: null },
+    featured: { i: 0, timer: null, stops: 0 },
     lastCommentAt: 0
 };
 
@@ -721,7 +721,7 @@ function showView(view) {
     updateScrollState();
 
     if (leaving === 'admin' && Studio.dirty) applyTheme();
-    if (view === 'home') { startFeatured(); } else stopFeatured();
+    if (view === 'home') { fitHome(); startFeatured(); } else stopFeatured();
     if (view === 'gallery') renderGallery();
     if (view === 'comics') renderComics();
     if (view === 'admin') renderAdminView();
@@ -865,7 +865,7 @@ function featuredPosts() {
 }
 
 function renderFeatured() {
-    const sec = byId('featured'), track = byId('featured-track'), dots = byId('featured-dots');
+    const sec = byId('featured'), track = byId('featured-track');
     const list = featuredPosts();
     if (!list.length) { sec.hidden = true; stopFeatured(); return; }
     sec.hidden = false;
@@ -884,17 +884,30 @@ function renderFeatured() {
             + '<span class="btn feat-cta">View post</span>'
             + '</div></a>';
     }).join('');
-    dots.innerHTML = list.length > 1 ? list.map((_, i) => '<button data-action="featured-go" data-index="' + i + '" aria-label="Show featured post ' + (i + 1) + '"' + (i === 0 ? ' aria-current="true"' : '') + '></button>').join('') : '';
-    $$('.carousel-ctrl', sec).forEach(c => { c.hidden = list.length < 2; });
     ui.featured.i = 0;
+    renderFeaturedDots();
     track.scrollLeft = 0;
     startFeatured();
+}
+
+// Places the carousel can rest: one per card, fewer when wide screens show several cards side by side
+function featuredStops() {
+    const track = byId('featured-track'); if (!track) return 0;
+    const per = parseInt(getComputedStyle(track).getPropertyValue('--per'), 10) || 1;
+    return Math.max($$('.feat', track).length - per + 1, 1);
+}
+function renderFeaturedDots() {
+    const stops = ui.featured.stops = featuredStops();
+    ui.featured.i = Math.min(ui.featured.i, stops - 1);
+    byId('featured-dots').innerHTML = stops > 1 ? Array.from({ length: stops }, (_, i) => '<button data-action="featured-go" data-index="' + i + '" aria-label="Show featured post ' + (i + 1) + '"' + (i === ui.featured.i ? ' aria-current="true"' : '') + '></button>').join('') : '';
+    $$('#featured .carousel-ctrl').forEach(c => { c.hidden = stops < 2; });
 }
 
 function featuredGo(i) {
     const track = byId('featured-track'); if (!track) return;
     const cards = $$('.feat', track); if (!cards.length) return;
-    ui.featured.i = (i + cards.length) % cards.length;
+    const stops = featuredStops();
+    ui.featured.i = (i + stops) % stops;
     track.scrollTo({ left: cards[ui.featured.i].offsetLeft - track.offsetLeft, behavior: reduceMotion() ? 'auto' : 'smooth' });
     syncFeaturedDots();
 }
@@ -902,7 +915,7 @@ function syncFeaturedDots() { $$('#featured-dots button').forEach((d, n) => d.se
 function startFeatured() {
     stopFeatured();
     if (reduceMotion() || ui.view !== 'home') return;
-    const n = $$('#featured-track .feat').length; if (n < 2) return;
+    if (featuredStops() < 2) return;
     ui.featured.timer = setInterval(() => {
         const sec = byId('featured');
         if (document.hidden || !sec || sec.matches(':hover') || sec.contains(document.activeElement)) return;
@@ -956,7 +969,9 @@ function tileHTML(post) {
 function renderFeed() {
     const grid = byId('feed-grid'); if (!grid) return;
     const all = filteredPosts();
-    const shown = all.slice(0, ui.feed.limit);
+    // Round each batch up to whole rows so the grid never ends on a half-empty row
+    const cols = ui.feed.cols = feedColumns();
+    const shown = all.slice(0, Math.ceil(ui.feed.limit / cols) * cols);
     const count = byId('feed-count');
     const filtering = ui.feed.tag !== 'all' || ui.feed.q.trim();
     if (count) count.textContent = filtering ? plural(all.length, 'match', 'matches') : plural(postsCache.length, 'post');
@@ -975,7 +990,20 @@ function renderFeed() {
     }
 }
 
+function feedColumns() {
+    const grid = byId('feed-grid');
+    if (!grid || !grid.offsetParent) return 1;
+    return getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+}
+
 function renderHome() { renderHero(); renderFeatured(); renderTagChips(); renderFeed(); }
+
+// After a resize, or on coming back to Home, refit the carousel and feed to the new width
+function fitHome() {
+    if (ui.view !== 'home') return;
+    if (!byId('featured').hidden && featuredStops() !== ui.featured.stops) { renderFeaturedDots(); featuredGo(ui.featured.i); startFeatured(); }
+    if (postsCache.length && feedColumns() !== ui.feed.cols) renderFeed();
+}
 
 function refreshReactionsUI(postId) {
     const post = postsCache.find(p => p.id === postId); if (!post) return;
@@ -3105,7 +3133,8 @@ function bindEvents() {
     const ft = byId('featured-track');
     ft.addEventListener('scroll', debounce(() => {
         const cards = $$('.feat', ft); if (!cards.length) return;
-        ui.featured.i = clamp(Math.round(ft.scrollLeft / ft.clientWidth), 0, cards.length - 1);
+        const step = cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : ft.clientWidth;
+        ui.featured.i = clamp(Math.round(ft.scrollLeft / step), 0, featuredStops() - 1);
         syncFeaturedDots();
     }, 80), { passive: true });
 
@@ -3161,7 +3190,7 @@ function bindEvents() {
     window.addEventListener('hashchange', route);
     window.addEventListener('message', handleBridgeMessage);
     window.addEventListener('scroll', () => { if (!scrollTicking) { scrollTicking = true; requestAnimationFrame(updateScrollState); } }, { passive: true });
-    window.addEventListener('resize', debounce(() => { updateNavPill(); updateScrollState(); }, 100));
+    window.addEventListener('resize', debounce(() => { updateNavPill(); updateScrollState(); fitHome(); }, 100));
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateNavPill);
     document.addEventListener('visibilitychange', () => { if (!document.hidden && pendingOps.length) scheduleInteractionsSync(); });
 }
