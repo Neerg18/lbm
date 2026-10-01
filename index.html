@@ -1,1644 +1,850 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Art Blog</title>
-    <!-- ↑ CHANGE THIS to your site name — also update in Admin → Site Settings -->
-    <meta name="description" content="My digital art archive">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>NEERG</title>
+    <meta name="description" content="Digital art archive">
+    <meta name="theme-color" content="#000F08">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    ╔══════════════════════════════════════════════════════════════════════╗
-    ║                                                                      ║
-    ║   NEERG 5.0 — Digital Art Archive                                    ║
-    ║   A fork of LBM (Leaflet Blog Manager) by applesaucy                 ║
-    ║   Original engine: https://lbm-test.neocities.org                   ║
-    ║                                                                      ║
-    ║   NEERG 5.0 NEW FEATURES                                             ║
-    ║   ───────────────────────                                            ║
-    ║   ✦ New header design                                                ║
-    ║   ✦ Mobile improvements                                              ║
-    ║   ✦ Featured Works now sorts by popularity                           ║
-    ║   ✦ New and improved image boards                                    ║
-    ║   ✦ General UI polish throughout                                     ║
-    ║                                                                      ║
-    ╠══════════════════════════════════════════════════════════════════════╣
-    ║                                                                      ║
-    ║   GETTING STARTED — 3 steps                                          ║
-    ║   ─────────────────────────                                          ║
-    ║   1. Upload index.html + style.css + logic.js to Neocities           ║
-    ║   2. Open your site — a Setup Wizard will appear                     ║
-    ║   3. Enter a password + your Neocities API key → done                ║
-    ║                                                                      ║
-    ║   After setup, everything is managed from the Admin Login tab.       ║
-    ║   No code editing needed.                                            ║
-    ║                                                                      ║
-    ╠══════════════════════════════════════════════════════════════════════╣
-    ║                                                                      ║
-    ║   WANT TO CUSTOMIZE?                                                 ║
-    ║   ──────────────────                                                 ║
-    ║   • Site name / colors / fonts → Admin → Site Settings              ║
-    ║   • Nav tabs / menu items      → Search "nav-link" in this file     ║
-    ║   • Tag filter pills           → Search "tags-bar" in this file     ║
-    ║   • Page zoom scale            → Search "style.zoom" in this file   ║
-    ║   • Banner text / colors       → Admin → Banner tab                 ║
-    ║   • Social links               → Admin → Social Links tab           ║
-    ║                                                                      ║
-    ╠══════════════════════════════════════════════════════════════════════╣
-    ║                                                                      ║
-    ║   FILE STRUCTURE ON YOUR NEOCITIES SITE                              ║
-    ║   ─────────────────────────────────────                              ║
-    ║   index.html       ← this file                                       ║
-    ║   style.css        ← all styles                                      ║
-    ║   logic.js         ← all backend logic                               ║
-    ║   system.js        ← auto-generated on first setup                   ║
-    ║   posts.js         ← auto-generated when you post                    ║
-    ║   comics.js        ← auto-generated when you add a comic             ║
-    ║   interactions.js  ← auto-generated on first like/comment            ║
-    ║   img/             ← uploaded images go here automatically           ║
-    ║                                                                      ║
-    ╚══════════════════════════════════════════════════════════════════════╝
+    NEERG v7 · index.html
+    A self-hosted art blog for Neocities, built on LBM by applesaucy.
+
+    Upload index.html, style.css and logic.js to your Neocities root.
+    Your content lives in system.js, posts.js, comics.js and interactions.js,
+    which the site writes for you. Everything else is managed from the
+    Admin page (the gear icon). No code editing needed.
     -->
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        /* Paint saved colors before anything else, so returning visitors never see a flash of the wrong theme. */
+        (function () {
+            try {
+                var root = document.documentElement;
+                var mode = localStorage.getItem('neerg_theme') === 'light' ? 'light' : 'dark';
+                root.setAttribute('data-theme', mode);
+                var cache = JSON.parse(localStorage.getItem('neerg_palette_cache') || 'null');
+                if (cache && cache[mode]) { for (var k in cache[mode]) root.style.setProperty(k, cache[mode][k]); }
+                var ok = parseInt(localStorage.getItem('neerg_age_ok') || '0', 10);
+                if (ok && Date.now() - ok < 30 * 86400000) root.classList.add('gate-passed');
+            } catch (e) {}
+        })();
+    </script>
 
-    <!-- Font Awesome for social icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+
+    <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script defer src="logic.js"></script>
 </head>
 <body>
 
-    <!-- Toast Container -->
-    <div id="toast-container" style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:0.5rem;align-items:center;"></div>
+<a class="skip-link" href="#main">Skip to content</a>
 
-    <!-- ══════════════ TOP NAVIGATION BAR ══════════════ -->
-    <!-- NOTE: nav, backdrop, and mobile-menu are OUTSIDE page-wrapper so zoom does not trap position:fixed children -->
-    <nav class="top-nav">
-        <div class="nav-left">
-            <a class="nav-logo" onclick="switchTab('posts', this)" style="cursor:pointer;">
-                <img class="pfp" id="nav-pfp" src="" alt="PFP" onerror="this.style.display='none'">
-                <span class="site-name" id="nav-sitename">My Blog</span>
-            </a>
+<!-- ═══════════ LOADING + AGE CHECK ═══════════ -->
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-question">
+    <div class="gate-loader" id="gate-loader">
+        <div class="gate-loader-row">
+            <span id="gate-label">LOADING...</span>
+            <span id="gate-pct">0%</span>
         </div>
+        <div class="gate-bar"><div class="gate-bar-fill" id="gate-bar"></div></div>
+    </div>
+    <div class="gate-window" id="gate-window" hidden>
+        <div class="gate-titlebar"><span>verify.exe</span><span aria-hidden="true">✕</span></div>
+        <div class="gate-body" id="gate-body">
+            <p class="gate-warn">⚠ CONTENT WARNING</p>
+            <p class="gate-question" id="gate-question">Are you <strong>18 years or older?</strong></p>
+            <div class="gate-actions">
+                <button class="gate-btn gate-yes" data-action="gate-yes">YES</button>
+                <button class="gate-btn gate-no" data-action="gate-no">NO</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        <div class="nav-center" id="nav-center">
-            <div class="pill-indicator" id="pill-indicator"></div>
-            <button class="nav-link active" onclick="switchTab('posts', this)">Home</button>
-            <button class="nav-link" onclick="switchTab('about', this)">About</button>
-            <button class="nav-link" onclick="switchTab('gallery', this)">Gallery</button>
-            <button class="nav-link" onclick="switchTab('commissions', this)">Commissions</button>
-            <button class="nav-link" onclick="switchTab('comics', this)">Comics</button>
-        </div>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 
-        <div class="nav-right">
-            <button class="nav-icon-btn" onclick="toggleDarkLight()" title="Toggle theme"><i class="fa-solid fa-circle-half-stroke"></i></button>
-            <button class="nav-link" onclick="switchTab('admin', this)">Admin Login</button>
-            <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Open menu" aria-expanded="false">
-                <span class="hbg-bar"></span>
-                <span class="hbg-bar"></span>
-                <span class="hbg-bar"></span>
-            </button>
-        </div>
+<!-- ═══════════ TOP BAR ═══════════ -->
+<header class="topbar" id="topbar">
+    <a class="brand" href="#/" aria-label="Home">
+        <img class="brand-pfp" id="brand-pfp" alt="" hidden>
+        <span class="brand-name" id="brand-name">NEERG</span>
+    </a>
+
+    <nav class="mainnav" id="mainnav" aria-label="Main">
+        <span class="mainnav-pill" id="mainnav-pill" aria-hidden="true"></span>
+        <a href="#/" data-view-link="home">Home</a>
+        <a href="#/gallery" data-view-link="gallery">Gallery</a>
+        <a href="#/comics" data-view-link="comics">Comics</a>
+        <a href="#/commissions" data-view-link="commissions">Commissions</a>
+        <a href="#/about" data-view-link="about">About</a>
     </nav>
 
-    <!-- Backdrop — outside page-wrapper -->
-    <div class="mobile-backdrop" id="mobile-backdrop" onclick="closeMobileMenu()"></div>
-
-    <!-- Full-screen mobile nav panel — outside page-wrapper so zoom:1.7 doesn't trap it -->
-    <aside class="mobile-menu" id="mobile-menu" aria-hidden="true">
-        <div class="mobile-menu-header">
-            <span class="mobile-menu-header-name" id="mobile-menu-site-name">Menu</span>
-            <button class="mobile-menu-header-close" onclick="closeMobileMenu()" aria-label="Close menu">✕</button>
-        </div>
-        <div class="mobile-menu-inner">
-            <ul class="mobile-menu-list">
-                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('posts', this); closeMobileMenu();">Home</button></li>
-                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('about', this); closeMobileMenu();">About</button></li>
-                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('gallery', this); closeMobileMenu();">Gallery</button></li>
-                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('commissions', this); closeMobileMenu();">Commissions</button></li>
-                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('comics', this); closeMobileMenu();">Comics</button></li>
-                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="switchTab('admin', this); closeMobileMenu();">Admin Login</button></li>
-                <li class="mobile-menu-item"><button class="mobile-menu-link" onclick="toggleDarkLight(); closeMobileMenu();">Toggle Theme</button></li>
-            </ul>
-        </div>
-    </aside>
-
-    <!-- Page wrapper for zoom scaling — nav/menu live ABOVE this -->
-    <div id="page-wrapper">
-
-    <!-- Bridge Frame (handles Neocities API uploads) -->
-    <iframe id="bridge-frame" style="width:1px;height:1px;opacity:0;position:absolute;pointer-events:none;"></iframe>
-
-    <!-- Token Repair Modal -->
-    <div id="repair-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;backdrop-filter:blur(5px);">
-        <div style="background:var(--bg-card);border:1px solid var(--pink);padding:30px;width:320px;text-align:center;border-radius:12px;">
-            <h3 style="color:var(--pink);margin-bottom:10px;font-family:var(--font-display);">CONNECTION REPAIR</h3>
-            <p style="color:#aaa;font-size:12px;margin-bottom:15px;font-family:var(--font-mono);">Your Secure Token was rejected. Please re-authenticate.</p>
-            <input type="password" id="repair-api-key" class="setup-input" placeholder="Neocities API Key" style="margin-bottom:15px;" autocomplete="off">
-            <button class="action-btn" onclick="runRepair()">Generate New Token & Sync</button>
-            <button onclick="document.getElementById('repair-modal').style.display='none'" style="background:transparent;border:none;margin-top:10px;color:#888;cursor:pointer;font-family:var(--font-mono);">Cancel</button>
-        </div>
+    <div class="topbar-actions">
+        <button class="icon-btn" id="theme-btn" data-action="toggle-theme" aria-label="Switch to light mode" title="Switch theme">
+            <i class="fa-solid fa-sun" aria-hidden="true"></i>
+        </button>
+        <a class="icon-btn" href="#/admin" data-view-link="admin" aria-label="Admin" title="Admin">
+            <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        </a>
+        <button class="icon-btn menu-btn" id="menu-btn" data-action="open-menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+            <span></span><span></span><span></span>
+        </button>
     </div>
+</header>
 
-    <!-- ══════════════ SYNC OVERLAY ══════════════ -->
-    <div id="sync-overlay" style="display:none;">
-        <h3>SYSTEM SYNC</h3>
-        <div class="sync-bar"></div>
-        <p style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);">Initiating upload sequence...</p>
-        <button onclick="document.getElementById('sync-overlay').style.display='none';document.getElementById('sync-overlay').classList.remove('active')" 
-                style="margin-top:0.5rem;padding:0.4rem 1rem;background:var(--border);border:none;color:var(--white);border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-mono);font-size:0.65rem;">Close</button>
+<!-- Full screen mobile menu -->
+<div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+    <div class="mobile-menu-head">
+        <span class="mobile-menu-name" id="mobile-menu-name">Menu</span>
+        <button class="icon-btn" data-action="close-menu" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
-
-    <!-- ══════════════ CLEANUP MODAL ══════════════ -->
-    <div id="cleanup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10001;align-items:center;justify-content:center;backdrop-filter:blur(5px);">
-        <div class="cleanup-panel">
-            <div class="cleanup-header">
-                <h3>🧹 SYSTEM CLEANUP</h3>
-                <button onclick="document.getElementById('cleanup-modal').style.display='none'" class="cleanup-close">✕</button>
-            </div>
-
-            <div id="cleanup-size-breakdown" class="cleanup-section">
-                <p class="cleanup-label">Storage Breakdown</p>
-                <div id="cleanup-size-bars"></div>
-                <div class="cleanup-total" id="cleanup-total-size"></div>
-            </div>
-
-            <div class="cleanup-section">
-                <p class="cleanup-label">Issues Found</p>
-                <div id="cleanup-issues"></div>
-            </div>
-
-            <div class="cleanup-section">
-                <p class="cleanup-label">Actions</p>
-                <div class="cleanup-actions" id="cleanup-actions">
-                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupTrimWhitespace)"><i class="fa-solid fa-scissors"></i> Trim Whitespace</button>
-                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupDuplicates)"><i class="fa-solid fa-copy"></i> Remove Duplicates</button>
-                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupOrphanedInteractions)"><i class="fa-solid fa-ghost"></i> Purge Orphans</button>
-                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupEmptyFields)"><i class="fa-solid fa-broom"></i> Strip Empty Fields</button>
-                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupCompactData)"><i class="fa-solid fa-compress"></i> Compact Data</button>
-                    <button class="cleanup-action-btn" onclick="runCleanupAction(this, cleanupStripInlineMedia)"><i class="fa-solid fa-image"></i> Strip Inline Base64</button>
-                    <button class="cleanup-action-btn danger" onclick="runCleanupAction(this, cleanupPurgeOldPosts)"><i class="fa-solid fa-calendar-xmark"></i> Purge Old Posts…</button>
-                    <button class="cleanup-action-btn danger" onclick="runCleanupAction(this, cleanupPurgeAllInteractions)"><i class="fa-solid fa-fire"></i> Nuke All Interactions</button>
-                </div>
-            </div>
-
-            <!-- Inline Activity Log -->
-            <div class="cleanup-section cleanup-log-section">
-                <p class="cleanup-label">Activity Log</p>
-                <div class="cleanup-log" id="cleanup-log">
-                    <div class="cleanup-log-entry dim">Waiting for actions…</div>
-                </div>
-            </div>
-
-            <div class="cleanup-section" style="border-top:1px solid var(--border);padding-top:1rem;">
-                <button class="action-btn" onclick="runCleanupAction(this, runFullCleanup)" style="width:100%;">🚀 Run Full Cleanup & Sync</button>
-                <p style="font-family:var(--font-mono);font-size:0.55rem;color:var(--gray-dim);margin-top:0.5rem;text-align:center;">Runs all safe cleanups, syncs system.js + interactions.js</p>
-            </div>
-        </div>
+    <nav class="mobile-menu-nav" aria-label="Mobile">
+        <ul>
+            <li><a href="#/" data-view-link="home">Home</a></li>
+            <li><a href="#/gallery" data-view-link="gallery">Gallery</a></li>
+            <li><a href="#/comics" data-view-link="comics">Comics</a></li>
+            <li><a href="#/commissions" data-view-link="commissions">Commissions</a></li>
+            <li><a href="#/about" data-view-link="about">About</a></li>
+            <li><a href="#/admin" data-view-link="admin">Admin</a></li>
+        </ul>
+    </nav>
+    <div class="mobile-menu-foot">
+        <button class="text-btn" data-action="toggle-theme"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i> <span class="theme-label">Light mode</span></button>
+        <div class="social-icons" id="menu-social"></div>
     </div>
+</div>
 
-    <!-- ══════════════ SETUP WIZARD ══════════════ -->
-    <div id="setup-wizard">
-        <h1>SYSTEM BOOT // INITIAL SETUP</h1>
+<main id="main">
 
-        <h3>1. System Configuration</h3>
-        <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:1rem;">Configure admin credentials and API connectivity.</p>
-        <p style="font-family:var(--font-mono);font-size:0.6rem;color:var(--lime);margin-bottom:1rem;padding:0.75rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);">
-            🔒 <strong>SECURITY TIPS:</strong><br>
-            • Use a strong, unique password (8+ characters)<br>
-            • Your API key is stored ONLY on this device<br>
-            • Never share your API key with anyone<br>
-            • Regenerate your Neocities API key if compromised
-        </p>
-        <label>Create Admin Password (min 8 characters):</label>
-        <input type="password" id="setup-password" class="setup-input" placeholder="Minimum 8 characters">
-        <label>Neocities API Key:</label>
-        <input type="password" id="setup-neocities-key" class="setup-input" placeholder="API Key (will be encrypted into a Secure Token)" autocomplete="off">
-        <p style="font-family:var(--font-mono);font-size:0.55rem;color:var(--lime);margin-top:0.25rem;">✓ Key is encrypted — never stored as plain text</p>
+    <!-- ═══════════ HOME ═══════════ -->
+    <section class="view" data-view="home" id="view-home">
 
-        <h3>2. Branding</h3>
-        <label>Site Name</label><input type="text" id="setup-sitename" class="setup-input" value="MY ART BLOG">
-        <label>Tagline</label><input type="text" id="setup-tagline" class="setup-input" value="Digital Art Archive">
-        <label>Posts Tab</label><input type="text" id="setup-posts-tab" class="setup-input" value="Works">
-        <label>Copyright</label><input type="text" id="setup-copyright" class="setup-input" value="2026 Artist Blog">
-        <label>Profile Picture URL</label><input type="text" id="setup-pfp" class="setup-input" placeholder="https://...">
-        <label>Header Banner URL</label><input type="text" id="setup-banner" class="setup-input" placeholder="https://...">
-
-        <h3>3. Theme</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem;">
-            <div><label>Background</label><input type="color" id="setup-bg" value="#0d0d0d"></div>
-            <div><label>Text</label><input type="color" id="setup-text" value="#f0f0f0"></div>
-            <div><label>Sidebar/Footer</label><input type="color" id="setup-sidebar" value="#1a1a1a"></div>
-            <div><label>Accent</label><input type="color" id="setup-accent" value="#ff6b35"></div>
-            <div><label>Post Bg</label><input type="color" id="setup-post-bg" value="#1a1a1a"></div>
-            <div><label>Borders</label><input type="color" id="setup-borders" value="#333333"></div>
-            <div><label>Active Nav</label><input type="color" id="setup-nav-active" value="#c8ff00"></div>
-        </div>
-
-        <h3>4. Interactions</h3>
-        <label>Enable Reactions?</label>
-        <select id="setup-reactions" class="setup-input" style="max-width:200px;">
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-        </select>
-        <label>Icon Style</label>
-        <select id="setup-icon-style" class="setup-input" style="max-width:200px;">
-            <option value="faces">Faces (^_^)</option>
-            <option value="thumbs">Thumbs 👍</option>
-            <option value="arrows">Arrows ⬆</option>
-        </select>
-        <label>Like Label</label><input type="text" id="setup-like-label" class="setup-input" value="Like">
-        <label>Dislike Label</label><input type="text" id="setup-dislike-label" class="setup-input" value="Dislike">
-        <label>Like Color</label><input type="color" id="setup-like-color" value="#c8ff00">
-        <label>Dislike Color</label><input type="color" id="setup-dislike-color" value="#ff3c8e">
-        <label>Like Button Text</label><input type="color" id="setup-like-btn" value="#0d0d0d">
-        <label>Dislike Button Text</label><input type="color" id="setup-dislike-btn" value="#0d0d0d">
-        <label>Widget Padding</label><input type="text" id="setup-widget-padding" class="setup-input" value="1.5rem">
-        <label>Global Background Image (Optional)</label><input type="text" id="setup-bg-image" class="setup-input" placeholder="URL or leave empty">
-        <label>Allow Comments?</label>
-        <select id="setup-comments" class="setup-input" style="max-width:200px;">
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-        </select>
-        <label>Custom CSS (Advanced)</label>
-        <textarea id="setup-custom-css" class="setup-input" rows="3" style="max-width:100%;"></textarea>
-
-        <br><br>
-        <button class="action-btn" onclick="generateSystem()" style="width:100%;max-width:400px;padding:0.8rem;">GENERATE system.js</button>
-    </div>
-
-    <!-- ══════════════ HERO SECTION ══════════════ -->
-    <div class="hero-section" id="hero-section">
-        <!-- Four gemstone-tinted panels -->
-        <div class="hero-panels" id="hero-panels">
-            <div class="hero-panel" id="hero-panel-0" style="--panel-color:#2A1535;">
-                <div class="hero-panel-overlay"></div>
+        <div class="hero" id="hero">
+            <div class="hero-strip" id="hero-strip" aria-label="Latest work">
+                <div class="hero-panel is-empty" style="--i:0"></div>
+                <div class="hero-panel is-empty" style="--i:1"></div>
+                <div class="hero-panel is-empty" style="--i:2"></div>
+                <div class="hero-panel is-empty" style="--i:3"></div>
             </div>
-            <div class="hero-panel" id="hero-panel-1" style="--panel-color:#1A1A3A;">
-                <div class="hero-panel-overlay"></div>
-            </div>
-            <div class="hero-panel" id="hero-panel-2" style="--panel-color:#0F2A28;">
-                <div class="hero-panel-overlay"></div>
-            </div>
-            <div class="hero-panel" id="hero-panel-3" style="--panel-color:#2A2018;">
-                <div class="hero-panel-overlay"></div>
+            <div class="wrap hero-id">
+                <div class="ring ring-hero" id="hero-ring">
+                    <img class="ring-img" id="hero-pfp" alt="" hidden>
+                    <span class="ring-fallback" id="hero-fallback" aria-hidden="true">N</span>
+                </div>
+                <div class="hero-text">
+                    <h1 class="hero-name" id="hero-name">NEERG</h1>
+                    <p class="hero-tagline" id="hero-tagline"></p>
+                </div>
+                <div class="hero-side">
+                    <a class="status-pill" id="hero-status" href="#/commissions" hidden>
+                        <span class="status-dot" aria-hidden="true"></span>
+                        <span id="hero-status-text"></span>
+                    </a>
+                    <div class="social-icons" id="hero-social"></div>
+                </div>
             </div>
         </div>
 
-        <!-- Profile overlap bar -->
-        <div class="hero-bar">
-            <div class="hero-pfp-anchor">
-                <div class="hero-pfp-ring" id="hero-pfp-ring">
-                    <img id="hero-pfp" class="hero-pfp-img" src="" alt="Profile"
-                         onerror="this.style.display='none';document.getElementById('hero-pfp-fallback').style.display='flex'">
-                    <div class="hero-pfp-fallback" id="hero-pfp-fallback">✦</div>
-                </div>
-            </div>
-            <div class="hero-identity">
-                <h1 class="hero-name" id="hero-name">MY BLOG</h1>
-                <p class="hero-tagline-text" id="hero-tagline">An artist with a passion for creating</p>
-            </div>
+        <div class="marquee" id="marquee" hidden aria-hidden="true">
+            <div class="marquee-track" id="marquee-track"></div>
         </div>
-    </div>
 
-    <!-- ══════════════ FEATURED CARDS CAROUSEL ══════════════ -->
-    <div class="featured-cards-section" id="featured-cards-section" style="display:none;">
-        <div style="max-width:100%;padding:0 2rem 0.85rem;display:flex;align-items:center;gap:0.85rem;">
-            <span style="font-family:var(--font-display);font-size:0.75rem;font-style:italic;color:var(--rose);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">✦ Featured Works</span>
-            <div style="flex:1;height:1px;background:rgba(255,143,173,0.15);"></div>
-        </div>
-        <div class="featured-cards-viewport">
-            <div class="featured-cards-track" id="featured-cards-track">
-                <!-- Populated dynamically: up to 5 newest image posts -->
-            </div>
-        </div>
-        <div class="featured-cards-dots" id="featured-cards-dots"></div>
-    </div>
-
-    <!-- ══════════════ MAIN CONTENT ══════════════ -->
-    <main class="main-content">
-
-        <!-- ════════ POSTS SECTION (Home) ════════ -->
-        <section id="section-posts" class="content-section active">
-
-            <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Search posts..." oninput="filterPosts()">
-                <button class="search-btn" onclick="filterPosts()">Search</button>
-            </div>
-
-            <div class="filter-bar">
-                <label>Sort by</label>
-                <select class="sort-select" id="sort-select" onchange="sortPosts()">
-                    <option value="newest">Newest</option>
-                    <option value="oldest">Oldest</option>
-                    <option value="popular">Most Popular</option>
-                    <option value="unpopular">Less Popular</option>
-                </select>
-            </div>
-
-            <div class="tags-bar" id="tags-bar">
-                <button class="tag-pill active" data-tag="all" onclick="filterByTag('all', this)">All</button>
-                <button class="tag-pill" data-tag="sfw" onclick="filterByTag('sfw', this)">SFW</button>
-                <button class="tag-pill" data-tag="nsfw" onclick="filterByTag('nsfw', this)">NSFW</button>
-                <button class="tag-pill" data-tag="sketch" onclick="filterByTag('sketch', this)">Sketch</button>
-                <button class="tag-pill" data-tag="commissions" onclick="filterByTag('commissions', this)">Commissions</button>
-                <button class="tag-pill" data-tag="animation" onclick="filterByTag('animation', this)">Animation</button>
-            </div>
-
-            <h2 style="font-family:var(--font-heading);font-weight:800;font-size:1.2rem;margin-bottom:1rem;color:var(--cream);" id="posts-title">Recent Works</h2>
-
-            <div id="leaflets-container">
-                <p style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gray);">Loading content...</p>
-            </div>
-
-            <div class="pagination" id="pagination"></div>
-        </section>
-
-        <!-- ════════ GALLERY / BOARDS SECTION ════════ -->
-        <section id="section-gallery" class="content-section">
-
-            <!-- View Toggle Bar -->
-            <div class="gallery-header">
-                <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.3rem;margin:0;" id="gallery-section-title">Boards</h2>
-                <div class="gallery-view-toggle">
-                    <button class="view-toggle-btn active" id="toggle-boards" onclick="toggleGalleryView('boards')">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="7" height="7" rx="1.5"/><rect x="9" y="0" width="7" height="4" rx="1.5"/><rect x="0" y="9" width="7" height="4" rx="1.5"/><rect x="9" y="6" width="7" height="7" rx="1.5"/></svg>
-                        Boards
-                    </button>
-                    <button class="view-toggle-btn" id="toggle-all-media" onclick="toggleGalleryView('all')">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="4.5" height="4.5" rx="1"/><rect x="5.75" y="0" width="4.5" height="4.5" rx="1"/><rect x="11.5" y="0" width="4.5" height="4.5" rx="1"/><rect x="0" y="5.75" width="4.5" height="4.5" rx="1"/><rect x="5.75" y="5.75" width="4.5" height="4.5" rx="1"/><rect x="11.5" y="5.75" width="4.5" height="4.5" rx="1"/><rect x="0" y="11.5" width="4.5" height="4.5" rx="1"/><rect x="5.75" y="11.5" width="4.5" height="4.5" rx="1"/><rect x="11.5" y="11.5" width="4.5" height="4.5" rx="1"/></svg>
-                        All Media
-                    </button>
-                </div>
-            </div>
-
-            <!-- Boards View (Pinterest-style) -->
-            <div id="boards-view">
-                <div id="boards-grid" class="boards-grid">Loading boards...</div>
-            </div>
-
-            <!-- Board Detail View -->
-            <div id="board-detail-view" style="display:none;">
-                <button class="board-back-btn" onclick="closeBoard()">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 1L4 7l6 6"/></svg>
-                    Back to Boards
-                </button>
-                <div class="board-detail-header">
-                    <h3 id="board-detail-title" class="board-detail-name"></h3>
-                    <span id="board-detail-count" class="board-detail-count"></span>
-                </div>
-                <div id="board-detail-grid" class="gallery-grid"></div>
-            </div>
-
-            <!-- All Media View -->
-            <div id="all-media-view" style="display:none;">
-                <div id="gallery-container" class="gallery-grid">Loading...</div>
-            </div>
-
-        </section>
-
-        <!-- ════════ ABOUT SECTION ════════ -->
-        <section id="section-about" class="content-section">
-            <div class="about-hero">
-                <img class="about-pfp" id="about-pfp" src="" alt="Profile" onerror="this.style.display='none'">
-                <div class="about-name" id="about-name">MY BLOG</div>
-                <div class="about-tagline" id="about-tagline">Digital Art Archive</div>
-                <div class="about-bio" id="about-bio">Welcome to my art blog! This is where I share my digital artwork, original characters, and fanart. Feel free to explore and leave comments on anything you like.</div>
-                <div class="social-links" id="social-links-display"></div>
-            </div>
-        </section>
-
-        <!-- ════════ COMMISSIONS SECTION ════════ -->
-        <section id="section-commissions" class="content-section">
-            <div class="about-hero">
-                <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.5rem;margin-bottom:1rem;">Commissions</h2>
-                <p id="commissions-text" style="max-width:600px;margin:0 auto;line-height:1.8;color:var(--gray-light);">Commission info coming soon! Check back later for pricing and availability.</p>
-            </div>
-        </section>
-
-        <!-- ════════ ADMIN SECTION ════════ -->
-        <section id="section-admin" class="content-section">
-            <div id="admin-login">
-                <h2>Admin // Access</h2>
-                <p>Enter your admin password to access the dashboard.</p>
-                <input type="password" id="admin-pass" placeholder="Password" onkeydown="if(event.key==='Enter')loginAdmin()">
-                <br><button class="action-btn" onclick="loginAdmin()" style="margin-top:0.75rem;">Access System</button>
-            </div>
-
-            <div id="admin-panel" style="display:none;">
-
-                <div class="admin-toolbar">
-                    <button class="action-btn" onclick="forceSyncAll()" style="font-size:0.75rem;">🔄 FORCE SYNC</button>
-                    <button class="btn-secondary" onclick="openCleanupPanel()">🧹 Clean</button>
-                    <button class="btn-secondary" onclick="downloadBackup()">⬇ JS</button>
-                    <button class="btn-secondary" onclick="downloadHTML()">⬇ HTML</button>
-                </div>
-
-                <div style="display:flex;gap:0.4rem;margin-bottom:1.5rem;flex-wrap:wrap;">
-                    <button class="nav-link active" onclick="showAdminTab('create', this)">New Post</button>
-                    <button class="nav-link" onclick="showAdminTab('manage', this)">Manage Posts</button>
-                    <button class="nav-link" onclick="showAdminTab('settings', this)">Site Settings</button>
-                    <button class="nav-link" onclick="showAdminTab('banner-settings', this)">Banner</button>
-                    <button class="nav-link" onclick="showAdminTab('social', this)">Social Links</button>
-                    <button class="nav-link" onclick="showAdminTab('comics-admin', this)">Comics</button>
-                    <button class="btn-danger" onclick="logoutAdmin()" style="margin-left:auto;">Logout</button>
-                </div>
-
-                <!-- ── CREATE POST TAB ── -->
-                <div id="admin-tab-create" class="admin-tab active" style="display:block;">
-                    <h3>Create New Content</h3>
-                    <textarea id="new-post-content" style="width:100%;min-height:120px;margin-bottom:0.5rem;" placeholder="Write your post... (supports **bold**, *italic*, [links](url))"></textarea>
-                    <label style="color:var(--accent-color);font-family:var(--font-mono);font-size:0.7rem;">Media Upload (uploads to img/)</label>
-                    <input type="file" id="new-post-media-file" accept="image/*,video/*,audio/*" multiple
-                           style="width:100%;max-width:500px;margin-bottom:0.5rem;font-family:var(--font-mono);font-size:0.75rem;color:var(--gray-light);"
-                           onchange="handleFileSelect(this)">
-                    <div id="admin-media-queue" class="media-queue"></div>
-                    <label style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-top:0.25rem;">Add External URL</label>
-                    <div style="display:flex;gap:5px;margin-bottom:0.75rem;">
-                        <input type="text" id="new-post-media-url" style="flex:1;margin-bottom:0;" placeholder="https://...">
-                        <button class="action-btn" style="width:auto;padding:0.5rem 1rem;" onclick="addUrlToQueue()">Add</button>
-                    </div>
-                    <label>Tags (click to select)</label>
-                    <div id="new-post-tags-bar" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.75rem;">
-                        <button type="button" class="tag-toggle" data-tag="SFW" onclick="this.classList.toggle('selected')" style="font-family:var(--font-body);font-size:0.8rem;padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--gray-light);cursor:pointer;transition:all 0.2s;">SFW</button>
-                        <button type="button" class="tag-toggle" data-tag="NSFW" onclick="this.classList.toggle('selected')" style="font-family:var(--font-body);font-size:0.8rem;padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--gray-light);cursor:pointer;transition:all 0.2s;">NSFW</button>
-                        <button type="button" class="tag-toggle" data-tag="Sketch" onclick="this.classList.toggle('selected')" style="font-family:var(--font-body);font-size:0.8rem;padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--gray-light);cursor:pointer;transition:all 0.2s;">Sketch</button>
-                        <button type="button" class="tag-toggle" data-tag="Commissions" onclick="this.classList.toggle('selected')" style="font-family:var(--font-body);font-size:0.8rem;padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--gray-light);cursor:pointer;transition:all 0.2s;">Commissions</button>
-                        <button type="button" class="tag-toggle" data-tag="Animation" onclick="this.classList.toggle('selected')" style="font-family:var(--font-body);font-size:0.8rem;padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--gray-light);cursor:pointer;transition:all 0.2s;">Animation</button>
-                        <button type="button" class="tag-toggle" data-tag="Fanart" onclick="this.classList.toggle('selected')" style="font-family:var(--font-body);font-size:0.8rem;padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--gray-light);cursor:pointer;transition:all 0.2s;">Fanart</button>
-                        <button type="button" class="tag-toggle" data-tag="OC" onclick="this.classList.toggle('selected')" style="font-family:var(--font-body);font-size:0.8rem;padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--gray-light);cursor:pointer;transition:all 0.2s;">OC</button>
-                        <button type="button" class="tag-toggle" data-tag="WIP" onclick="this.classList.toggle('selected')" style="font-family:var(--font-body);font-size:0.8rem;padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--gray-light);cursor:pointer;transition:all 0.2s;">WIP</button>
-                    </div>
-                    <label>Custom Tag (optional)</label>
-                    <input type="text" id="new-post-custom-tag" style="width:100%;max-width:200px;margin-bottom:0.75rem;" placeholder="e.g. collab">
-                    <label>Pin this post?</label>
-                    <select id="new-post-pinned" style="max-width:150px;margin-bottom:0.75rem;">
-                        <option value="false">No</option>
-                        <option value="true">Yes</option>
-                    </select>
-                    <br>
-                    <button class="action-btn" onclick="createPost()" style="width:100%;">Post & Save</button>
-
-                    <div style="border-top:1px solid var(--border);margin-top:1.5rem;padding-top:1.5rem;">
-                        <h3>Bulk Upload</h3>
-                        <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray-light);margin-bottom:0.75rem;">Select multiple images — each uploads to img/ and becomes its own post. Tags above will apply to all.</p>
-                        <input type="file" id="bulk-upload-files" accept="image/*" multiple
-                               style="width:100%;max-width:500px;margin-bottom:0.5rem;font-family:var(--font-mono);font-size:0.75rem;color:var(--gray-light);">
-                        <div id="bulk-preview" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;"></div>
-                        <div id="bulk-progress" style="display:none;margin-bottom:0.75rem;padding:1rem;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                                <span id="bulk-progress-text" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--lime);">Uploading...</span>
-                                <span id="bulk-progress-count" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray-light);">0/0</span>
-                            </div>
-                            <div style="width:100%;height:6px;background:var(--bg-dark);border-radius:3px;overflow:hidden;">
-                                <div id="bulk-progress-bar" style="height:100%;background:var(--lime);width:0%;transition:width 0.3s;border-radius:3px;"></div>
-                            </div>
-                            <div id="bulk-progress-file" style="font-family:var(--font-mono);font-size:0.6rem;color:var(--gray-dim);margin-top:0.4rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-                        </div>
-                        <button id="bulk-upload-btn" class="action-btn" onclick="bulkUpload()" style="width:100%;"><i class="fa-solid fa-images"></i> Upload All as Separate Posts</button>
+        <div class="wrap">
+            <section class="featured" id="featured" hidden aria-labelledby="featured-title">
+                <div class="section-head">
+                    <h2 id="featured-title">Featured</h2>
+                    <div class="carousel-ctrl">
+                        <button class="icon-btn small" data-action="featured-prev" aria-label="Previous featured post"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                        <button class="icon-btn small" data-action="featured-next" aria-label="Next featured post"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
                     </div>
                 </div>
+                <div class="featured-track" id="featured-track"></div>
+                <div class="featured-dots" id="featured-dots"></div>
+            </section>
 
-                <!-- ── MANAGE POSTS TAB ── -->
-                <div id="admin-tab-manage" class="admin-tab" style="display:none;">
-                    <h3>Manage Existing Posts</h3>
-                    <div id="manage-posts-list"></div>
+            <section class="feed" aria-labelledby="feed-title">
+                <div class="section-head">
+                    <h2 id="feed-title">Recent works</h2>
+                    <span class="section-count" id="feed-count"></span>
                 </div>
-
-                <!-- ── SITE SETTINGS TAB ── -->
-                <div id="admin-tab-settings" class="admin-tab" style="display:none;">
-                    <h3>System Configuration</h3>
-
-                    <!-- SYNC STATUS -->
-                    <div style="padding:1rem;background:var(--bg-elevated);border:2px solid var(--lime);border-radius:var(--radius-sm);margin-bottom:1.5rem;">
-                        <h4 style="margin-top:0 !important;color:var(--lime) !important;border:none !important;">🔗 Auto-Sync Status</h4>
-                        <p style="font-family:var(--font-mono);font-size:0.68rem;color:var(--gray-light);line-height:1.6;">
-                            Posts and settings auto-sync to your Neocities site via the LBM bridge.<br>
-                            Your API key is encrypted into a Secure Token — it's never stored as plain text.
-                        </p>
-                        <div id="sync-status-display" style="font-family:var(--font-mono);font-size:0.65rem;margin-top:0.5rem;color:var(--lime);">Token Loaded ✓</div>
-                    </div>
-
-                    <h4>SEO & Metadata</h4>
-                    <label>Window Title</label>
-                    <input type="text" id="settings-window-title" style="max-width:400px;display:block;margin-bottom:0.5rem;">
-                    <label>Meta Description</label>
-                    <input type="text" id="settings-meta-desc" style="max-width:400px;display:block;margin-bottom:1rem;">
-
-                    <h4>Visual Customization</h4>
-                    <label>Site Name</label><input type="text" id="settings-sitename" style="max-width:300px;display:block;margin-bottom:0.5rem;">
-                    <label>Tagline</label><input type="text" id="settings-tagline" style="max-width:300px;display:block;margin-bottom:0.5rem;">
-                    <label>Posts Tab Name</label><input type="text" id="settings-posts-tab" style="max-width:200px;display:block;margin-bottom:0.5rem;">
-                    <label>Copyright</label><input type="text" id="settings-copyright" style="max-width:300px;display:block;margin-bottom:0.5rem;">
-                    <label>PFP URL</label><input type="text" id="settings-pfp" style="max-width:400px;display:block;margin-bottom:1.25rem;">
-
-                    <!-- Profile Ring Customization -->
-                    <h4>Profile Ring Customization</h4>
-                    <div class="pfp-gradient-editor">
-                        <div style="display:flex;align-items:center;gap:1.25rem;margin-bottom:0.5rem;">
-                            <div class="pfp-preview-ring" id="pfp-preview-ring">
-                                <div class="pfp-preview-inner">🎨</div>
-                            </div>
-                            <div>
-                                <p style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">Live Preview</p>
-                                <p style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray-dim);">Changes apply immediately</p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:0.5rem;">Gradient Colors</label>
-                            <div class="color-stop-row">
-                                <input type="color" id="pfp-color-1" value="#ff6b35" oninput="updatePfpGradientPreview()">
-                                <input type="color" id="pfp-color-2" value="#b8ff38" oninput="updatePfpGradientPreview()">
-                                <input type="color" id="pfp-color-3" value="#ff3c8e" oninput="updatePfpGradientPreview()">
-                                <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray-dim);margin-left:0.25rem;">3 color stops</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:0.5rem;">Preset Gradients</label>
-                            <div class="pfp-gradient-swatches">
-                                <button class="pfp-swatch-btn active" title="Neon Sunset" style="background:linear-gradient(135deg,#ff6b35,#b8ff38,#ff3c8e);" onclick="applyPfpPreset(['#ff6b35','#b8ff38','#ff3c8e'],'135deg',this)"></button>
-                                <button class="pfp-swatch-btn" title="Ocean" style="background:linear-gradient(135deg,#00d4ff,#8b5cf6,#00d4ff);" onclick="applyPfpPreset(['#00d4ff','#8b5cf6','#00d4ff'],'135deg',this)"></button>
-                                <button class="pfp-swatch-btn" title="Fire" style="background:linear-gradient(135deg,#ff6b35,#ff3c8e,#ffca28);" onclick="applyPfpPreset(['#ff6b35','#ff3c8e','#ffca28'],'135deg',this)"></button>
-                                <button class="pfp-swatch-btn" title="Forest" style="background:linear-gradient(135deg,#b8ff38,#00d4ff,#8b5cf6);" onclick="applyPfpPreset(['#b8ff38','#00d4ff','#8b5cf6'],'135deg',this)"></button>
-                                <button class="pfp-swatch-btn" title="Mono White" style="background:linear-gradient(135deg,#ffffff,#aaaaaa,#ffffff);" onclick="applyPfpPreset(['#ffffff','#aaaaaa','#ffffff'],'135deg',this)"></button>
-                                <button class="pfp-swatch-btn" title="Gold" style="background:linear-gradient(135deg,#f5a623,#f8e71c,#f5a623);" onclick="applyPfpPreset(['#f5a623','#f8e71c','#f5a623'],'135deg',this)"></button>
-                            </div>
-                        </div>
-
-                        <div class="pfp-slider-row">
-                            <label>Direction</label>
-                            <select id="pfp-gradient-dir" onchange="updatePfpGradientPreview()" style="flex:1;max-width:180px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);padding:0.35rem 0.6rem;font-family:var(--font-body);font-size:0.82rem;">
-                                <option value="135deg">Diagonal ↘</option>
-                                <option value="to right">Horizontal →</option>
-                                <option value="to bottom">Vertical ↓</option>
-                                <option value="to top right">Diagonal ↗</option>
-                                <option value="circle">Radial</option>
-                            </select>
-                        </div>
-
-                        <div class="pfp-slider-row">
-                            <label>Thickness</label>
-                            <input type="range" id="pfp-thickness" min="2" max="12" value="4" oninput="updatePfpGradientPreview(); document.getElementById('pfp-thickness-val').textContent = this.value + 'px';">
-                            <span class="pfp-slider-value" id="pfp-thickness-val">4px</span>
-                        </div>
-
-                        <div class="pfp-slider-row">
-                            <label>Glow</label>
-                            <input type="range" id="pfp-glow" min="0" max="30" value="8" oninput="updatePfpGradientPreview(); document.getElementById('pfp-glow-val').textContent = this.value + 'px';">
-                            <span class="pfp-slider-value" id="pfp-glow-val">8px</span>
-                        </div>
-                    </div>
-                    <button class="btn-secondary" onclick="applyPfpGradient()" style="margin-top:0.75rem;margin-bottom:1.25rem;">Apply Ring Style</button>
-
-                    <label>Banner URL</label><input type="text" id="settings-banner" style="max-width:400px;display:block;margin-bottom:0.5rem;">
-                    <label>About Text</label>
-                    <textarea id="settings-about-text" rows="4" style="width:100%;margin-bottom:0.5rem;" placeholder="Write about yourself..."></textarea>
-
-                    <h4>Colors & Theme</h4>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.5rem;margin-bottom:1rem;">
-                        <div><label>Bg</label><input type="color" id="settings-bg"></div>
-                        <div><label>Text</label><input type="color" id="settings-text"></div>
-                        <div><label>Sidebar</label><input type="color" id="settings-sidebar"></div>
-                        <div><label>Accent</label><input type="color" id="settings-accent"></div>
-                        <div><label>Post Bg</label><input type="color" id="settings-post-bg"></div>
-                        <div><label>Borders</label><input type="color" id="settings-borders"></div>
-                        <div><label>Active Nav</label><input type="color" id="settings-nav-active"></div>
-                    </div>
-
-                    <h4>Interaction Settings</h4>
-                    <label>Enable?</label>
-                    <select id="settings-reactions" style="max-width:100px;display:block;margin-bottom:0.5rem;">
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </select>
-                    <label>Icon Style</label>
-                    <select id="settings-icon-style" style="max-width:150px;display:block;margin-bottom:0.5rem;">
-                        <option value="faces">Faces</option>
-                        <option value="thumbs">Thumbs</option>
-                        <option value="arrows">Arrows</option>
-                    </select>
-                    <label>Like Label</label><input type="text" id="settings-like-label" style="max-width:150px;display:block;margin-bottom:0.5rem;">
-                    <label>Dislike Label</label><input type="text" id="settings-dislike-label" style="max-width:150px;display:block;margin-bottom:0.5rem;">
-                    <label>Like Color</label><input type="color" id="settings-like-color">
-                    <label>Dislike Color</label><input type="color" id="settings-dislike-color">
-                    <label>Like Text</label><input type="color" id="settings-like-btn">
-                    <label>Dislike Text</label><input type="color" id="settings-dislike-btn">
-                    <label>Widget Padding</label><input type="text" id="settings-widget-padding" style="max-width:150px;display:block;margin-bottom:0.5rem;">
-                    <label>Global Background Image</label><input type="text" id="settings-bg-image" style="max-width:400px;display:block;margin-bottom:0.5rem;">
-                    <label>Comments</label>
-                    <select id="settings-comments" style="max-width:100px;display:block;margin-bottom:0.5rem;">
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </select>
-                    <label>Custom CSS</label>
-                    <textarea id="settings-custom-css" rows="4" style="width:100%;margin-bottom:1rem;"></textarea>
-
-                    <!-- Token Rotation -->
-                    <div style="border-top:1px dotted var(--border);padding-top:1rem;margin-bottom:1rem;">
-                        <label>Update API Key (Optional — rotates your Secure Token)</label>
-                        <input type="password" id="edit-neocities-key" class="setup-input" placeholder="Enter new key to rotate token" autocomplete="off">
-                    </div>
-
-                    <button class="action-btn" onclick="saveSettings()" style="width:100%;max-width:300px;">Save Settings & Sync</button>
-                </div>
-
-                <!-- ════════ BANNER CUSTOMIZATION TAB ════════ -->
-                <div id="admin-tab-banner-settings" class="admin-tab" style="display:none;">
-                    <h3>Banner Settings</h3>
-                    <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:1.25rem;">
-                        Configure how the hero banner panels are populated.
-                    </p>
-
-                    <!-- Mode Toggle -->
-                    <label style="font-family:var(--font-mono);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray);display:block;margin-bottom:0.5rem;">Banner Image Source</label>
-                    <div class="banner-mode-toggle">
-                        <button class="banner-mode-btn active" id="banner-mode-auto" onclick="setBannerMode('auto')">
-                            ↻ Auto (Recent Posts)
-                        </button>
-                        <button class="banner-mode-btn" id="banner-mode-manual" onclick="setBannerMode('manual')">
-                            ✎ Manual Select
-                        </button>
-                    </div>
-
-                    <!-- Auto mode info -->
-                    <div id="banner-auto-section">
-                        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:1rem;margin-bottom:1.25rem;">
-                            <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray-light);margin-bottom:0.5rem;">
-                                ● The 4 most recent posts with images will automatically populate the banner panels.
-                            </p>
-                            <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);">
-                                New posts will update the banner automatically.
-                            </p>
-                        </div>
-
-                        <label>Number of Panels</label>
-                        <select id="banner-panel-count" style="max-width:100px;display:block;margin-bottom:1rem;" onchange="previewBannerMode()">
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4" selected>4</option>
+                <div class="feed-tools" id="feed-tools">
+                    <label class="search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" id="feed-search" placeholder="Search posts and tags" aria-label="Search posts and tags" autocomplete="off">
+                    </label>
+                    <label class="select">
+                        <span class="sr-only">Sort posts</span>
+                        <select id="feed-sort">
+                            <option value="newest">Newest</option>
+                            <option value="oldest">Oldest</option>
+                            <option value="popular">Most liked</option>
+                            <option value="discussed">Most discussed</option>
+                            <option value="unpopular">Least liked</option>
                         </select>
-                    </div>
-
-                    <!-- Manual mode -->
-                    <div id="banner-manual-section" style="display:none;">
-                        <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:0.85rem;">
-                            Enter image URLs for each panel. Leave blank to use a color placeholder.
-                        </p>
-                        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.25rem;">
-                            <div style="display:flex;align-items:center;gap:0.5rem;">
-                                <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);min-width:52px;">Panel 1</span>
-                                <input type="text" id="banner-img-0" placeholder="https://..." style="flex:1;">
-                                <button class="btn-secondary" onclick="pickBannerImage(0)" style="padding:0.4rem 0.75rem;font-size:0.75rem;white-space:nowrap;">From Gallery</button>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:0.5rem;">
-                                <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);min-width:52px;">Panel 2</span>
-                                <input type="text" id="banner-img-1" placeholder="https://..." style="flex:1;">
-                                <button class="btn-secondary" onclick="pickBannerImage(1)" style="padding:0.4rem 0.75rem;font-size:0.75rem;white-space:nowrap;">From Gallery</button>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:0.5rem;">
-                                <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);min-width:52px;">Panel 3</span>
-                                <input type="text" id="banner-img-2" placeholder="https://..." style="flex:1;">
-                                <button class="btn-secondary" onclick="pickBannerImage(2)" style="padding:0.4rem 0.75rem;font-size:0.75rem;white-space:nowrap;">From Gallery</button>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:0.5rem;">
-                                <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray);min-width:52px;">Panel 4</span>
-                                <input type="text" id="banner-img-3" placeholder="https://..." style="flex:1;">
-                                <button class="btn-secondary" onclick="pickBannerImage(3)" style="padding:0.4rem 0.75rem;font-size:0.75rem;white-space:nowrap;">From Gallery</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Marquee Toggle -->
-                    <div style="border-top:1px solid var(--border);padding-top:1rem;margin-bottom:1rem;">
-                        <label>Show Scrolling Marquee Text Banner?</label>
-                        <select id="banner-visible" style="max-width:120px;display:block;margin-bottom:1rem;" onchange="previewBannerMode()">
-                            <option value="false">No (Recommended)</option>
-                            <option value="true">Yes</option>
-                        </select>
-
-                        <div id="marquee-settings-section" style="display:none;">
-                            <label>Marquee Text (one item per line)</label>
-                            <textarea id="banner-text-input" rows="4" style="width:100%;max-width:500px;margin-bottom:0.75rem;" placeholder="ART WEEKLY&#10;SFW ART&#10;NSFW ART"></textarea>
-
-                            <label>Scroll Speed</label>
-                            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
-                                <input type="range" id="banner-speed-range" min="5" max="60" value="20"
-                                       oninput="document.getElementById('banner-speed-value').textContent = this.value + 's';"
-                                       style="flex:1;max-width:200px;accent-color:var(--lime);">
-                                <span id="banner-speed-value" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--lime);min-width:40px;">20s</span>
-                            </div>
-
-                            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-                                <div><label>Background</label><input type="color" id="banner-bg-color" value="#ff6b35"></div>
-                                <div><label>Text Color</label><input type="color" id="banner-text-color" value="#0d0d0d"></div>
-                                <div><label>Separator</label><input type="text" id="banner-separator" style="max-width:80px;" value="✦"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Gallery image picker modal (hidden) -->
-                    <div id="banner-gallery-picker" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);overflow-y:auto;padding:2rem;">
-                        <div style="max-width:700px;margin:0 auto;background:var(--bg-card);border-radius:var(--radius-lg);padding:1.5rem;">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                                <h4 style="margin:0;">Pick an Image</h4>
-                                <button class="btn-secondary" onclick="document.getElementById('banner-gallery-picker').style.display='none'">✕ Close</button>
-                            </div>
-                            <div id="banner-picker-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.5rem;"></div>
-                        </div>
-                    </div>
-
-                    <button class="action-btn" onclick="applyBannerSettings()">Apply & Save</button>
+                    </label>
+                    <div class="chips" id="feed-tags" role="group" aria-label="Filter by tag"></div>
                 </div>
-
-                <!-- ════════ SOCIAL LINKS TAB ════════ -->
-                <div id="admin-tab-social" class="admin-tab" style="display:none;">
-                    <h3>Social Media Links</h3>
-                    <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:1rem;">
-                        These links appear on your About page.
-                    </p>
-                    <div id="social-links-editor"></div>
-                    <button class="btn-secondary" onclick="addSocialRow('','','')" style="margin-top:0.5rem;">+ Add Link</button>
-                    <br><br>
-                    <button class="action-btn" onclick="saveSocialLinks()">Save Social Links</button>
+                <div class="tiles" id="feed-grid">
+                    <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                    <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                    <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                    <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                    <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                    <div class="tile is-skeleton"><div class="tile-frame"></div></div>
                 </div>
-
-                <!-- ════════ COMICS ADMIN TAB ════════ -->
-                <div id="admin-tab-comics-admin" class="admin-tab" style="display:none;">
-                    <h3>Manage Comics</h3>
-                    <p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);margin-bottom:1rem;">
-                        Create and manage comic series. Upload pages as images.
-                    </p>
-
-                    <div id="comics-admin-create" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.25rem;margin-bottom:1.5rem;">
-                        <h4 style="margin-top:0 !important;">New Comic</h4>
-                        <label>Title</label>
-                        <input type="text" id="comic-title-input" style="width:100%;max-width:400px;margin-bottom:0.5rem;" placeholder="Comic title">
-                        <label>Cover Image URL (optional — first page used if empty)</label>
-                        <input type="text" id="comic-cover-input" style="width:100%;max-width:500px;margin-bottom:0.5rem;" placeholder="https://...">
-                        <label>Tags (comma separated)</label>
-                        <input type="text" id="comic-tags-input" style="width:100%;max-width:400px;margin-bottom:0.75rem;" placeholder="e.g. fantasy, action">
-                        <label>Upload Pages (select multiple images in order)</label>
-                        <input type="file" id="comic-pages-input" accept="image/*" multiple
-                               style="width:100%;max-width:500px;margin-bottom:0.5rem;font-family:var(--font-mono);font-size:0.75rem;color:var(--gray-light);">
-                        <div id="comic-pages-preview" class="comic-pages-sortable"></div>
-                        <p style="font-family:var(--font-mono);font-size:0.6rem;color:var(--gray-dim);margin-bottom:0.75rem;">Drag to reorder pages after upload. Pages upload to img/ on your site.</p>
-                        <div id="comic-upload-progress" style="display:none;margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-dark);border:1px solid var(--border);border-radius:var(--radius-sm);">
-                            <span id="comic-upload-text" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--lime);">Uploading...</span>
-                            <div style="width:100%;height:4px;background:var(--bg-card);border-radius:2px;margin-top:0.4rem;overflow:hidden;">
-                                <div id="comic-upload-bar" style="height:100%;background:var(--lime);width:0%;transition:width 0.3s;border-radius:2px;"></div>
-                            </div>
-                        </div>
-                        <button class="action-btn" onclick="createComic()" style="width:100%;">Create Comic & Upload Pages</button>
-                    </div>
-
-                    <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;">
-                        <h4 style="margin:0;">Existing Comics</h4>
-                        <button class="btn-secondary" style="font-size:0.65rem;margin-left:auto;" onclick="downloadComicsJS();showToast('comics.js downloaded — upload to Neocities root!')">⬇ Download comics.js</button>
-                        <button class="btn-secondary" style="font-size:0.65rem;" onclick="uploadToBridge('comics');showToast('Force syncing comics.js...')">🔄 Force Sync Comics</button>
-                    </div>
-                    <div id="comics-admin-list"></div>
+                <div class="feed-more">
+                    <button class="btn" id="feed-more" data-action="feed-more" hidden>Show more</button>
                 </div>
-
-            </div>
-        </section>
-
-
-        <!-- ════════ COMICS SECTION ════════ -->
-        <section id="section-comics" class="content-section">
-            <div class="gallery-header">
-                <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.3rem;margin:0;">Comics</h2>
-            </div>
-            <div id="comics-grid" class="comics-list">
-                <p style="font-family:var(--font-mono);font-size:0.8rem;color:var(--gray);">No comics yet.</p>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- ══════════════ FOOTER ══════════════ -->
-    <footer>
-        <div class="footer-links">
-            <a href="#" onclick="switchTab('posts')">Home</a>
-            <a href="#" onclick="switchTab('commissions')">Commission ToS</a>
-            <span style="font-family:var(--font-mono);font-size:0.55rem;color:var(--gray-dim);">
-                Built on <a href="https://lbm-test.neocities.org" target="_blank" style="color:var(--gray-dim);">LBM</a>
-            </span>
+            </section>
         </div>
-        <div class="footer-copy" id="footer-copyright">© 2026 My Blog</div>
-    </footer>
+    </section>
 
-    </div><!-- /page-wrapper -->
-
-    <!-- ══════════════ LIGHTBOX ══════════════ -->
-    <div id="leaflet-lightbox" class="lightbox" style="display:none;" onclick="if(event.target === this) closeLightbox()">
-        <div class="lightbox-content">
-            <span class="close-btn" onclick="closeLightbox()">&times;</span>
-            <div id="lightbox-body"></div>
+    <!-- ═══════════ GALLERY ═══════════ -->
+    <section class="view" data-view="gallery" id="view-gallery" hidden>
+        <div class="wrap">
+            <div class="page-head">
+                <h1 id="gallery-title">Gallery</h1>
+                <div class="seg" role="group" aria-label="Gallery view">
+                    <button data-action="gallery-mode" data-mode="boards" aria-pressed="true">Boards</button>
+                    <button data-action="gallery-mode" data-mode="all" aria-pressed="false">All media</button>
+                </div>
+            </div>
+            <div class="boards" id="gallery-boards"></div>
+            <div id="gallery-board" hidden>
+                <button class="back-btn" data-action="close-board"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> All boards</button>
+                <div class="board-head">
+                    <h2 id="board-title"></h2>
+                    <span class="section-count" id="board-count"></span>
+                </div>
+                <div class="masonry" id="board-grid"></div>
+            </div>
+            <div class="masonry" id="gallery-all" hidden></div>
         </div>
-        <div class="lb-post-counter" id="lb-post-counter"></div>
-    </div>
-
-    <!-- ══════════════ MEDIA VIEWER ══════════════ -->
-    <div id="media-fullscreen-overlay" class="media-overlay" style="display:none;" onclick="closeMediaViewer()">
-        <span class="close-media-btn" onclick="closeMediaViewer()">&times;</span>
-        <button class="media-nav-btn media-prev" onclick="event.stopPropagation();mediaViewerPrev()">&#8249;</button>
-        <div id="media-content-wrapper" onclick="event.stopPropagation()"></div>
-        <button class="media-nav-btn media-next" onclick="event.stopPropagation();mediaViewerNext()">&#8250;</button>
-        <div class="media-counter" id="media-counter"></div>
-    </div>
-
-    <!-- Scroll to top -->
-    <button class="scroll-top-btn" id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-
-
-    <!-- ══════════════════════════════════════════════════
-         V5.0 SCRIPTS — UI Layer
-         Pill Nav + Scroll Velocity + Staggered Menu
-         ══════════════════════════════════════════════════ -->
-    <script>
-
-    const PLATFORM_ICONS = {
-        'twitter': '<i class="fa-brands fa-x-twitter"></i>', 'x': '<i class="fa-brands fa-x-twitter"></i>',
-        'instagram': '<i class="fa-brands fa-instagram"></i>', 'bluesky': '<i class="fa-brands fa-bluesky"></i>',
-        'tumblr': '<i class="fa-brands fa-tumblr"></i>', 'youtube': '<i class="fa-brands fa-youtube"></i>',
-        'tiktok': '<i class="fa-brands fa-tiktok"></i>', 'deviantart': '<i class="fa-brands fa-deviantart"></i>',
-        'pixiv': '<i class="fa-brands fa-pixiv"></i>', 'twitch': '<i class="fa-brands fa-twitch"></i>',
-        'ko-fi': '<i class="fa-solid fa-mug-hot"></i>', 'patreon': '<i class="fa-brands fa-patreon"></i>',
-        'discord': '<i class="fa-brands fa-discord"></i>', 'threads': '<i class="fa-brands fa-threads"></i>',
-        'cara': '<i class="fa-solid fa-palette"></i>', 'other': '<i class="fa-solid fa-link"></i>'
-    };
-
-    const PLATFORM_OPTIONS = [
-        'Twitter/X', 'Instagram', 'Bluesky', 'Tumblr', 'YouTube', 'TikTok',
-        'DeviantArt', 'Pixiv', 'Twitch', 'Ko-fi', 'Patreon', 'Discord', 'Threads', 'Cara', 'Other'
-    ];
-
-    /* ═════════════════════════════════════════════
-       PILL NAV — Sliding indicator
-       ═════════════════════════════════════════════ */
-
-    function updatePillIndicator() {
-        const navCenter = document.getElementById('nav-center');
-        const pill = document.getElementById('pill-indicator');
-        if (!navCenter || !pill) return;
-        const activeBtn = navCenter.querySelector('.nav-link.active');
-        if (!activeBtn) { pill.style.opacity = '0'; return; }
-        // nav is outside page-wrapper (no zoom), so use direct getBoundingClientRect values
-        const navRect = navCenter.getBoundingClientRect();
-        const btnRect = activeBtn.getBoundingClientRect();
-        pill.style.opacity = '1';
-        pill.style.left = (btnRect.left - navRect.left) + 'px';
-        pill.style.width = btnRect.width + 'px';
-    }
-
-    /* ── Tab switching ── */
-    function switchTab(tab, btn) {
-        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.nav-center .nav-link, .nav-right .nav-link, .mobile-menu-link').forEach(b => b.classList.remove('active'));
-        const section = document.getElementById('section-' + tab);
-        if (section) section.classList.add('active');
-        if (btn && (btn.classList.contains('nav-link') || btn.classList.contains('mobile-menu-link'))) btn.classList.add('active');
-        const centerButtons = document.querySelectorAll('.nav-center .nav-link');
-        const tabMap = { 'posts': 'Home', 'about': 'About', 'gallery': 'Gallery', 'commissions': 'Commissions', 'comics': 'Comics' };
-        centerButtons.forEach(b => { if (b.textContent.trim() === tabMap[tab]) b.classList.add('active'); });
-        document.querySelectorAll('.mobile-menu-link').forEach(b => { if (b.textContent.trim() === tabMap[tab]) b.classList.add('active'); });
-
-        // Show hero & featured sections ONLY on Home (posts) tab
-        const heroSection = document.getElementById('hero-section');
-        const featuredSection = document.getElementById('featured-cards-section');
-        const isHome = (tab === 'posts');
-        if (heroSection) heroSection.style.display = isHome ? '' : 'none';
-        // Featured section respects its own display logic (only shows if posts exist), so only hide on non-home
-        if (featuredSection && !isHome) featuredSection.style.display = 'none';
-        else if (featuredSection && isHome) { populateArtScroll(); } // re-evaluate if returning home
-
-        if (tab === 'gallery') { if (typeof currentGalleryView !== 'undefined' && currentGalleryView === 'boards') renderBoards(); else renderGallery(); }
-        if (tab === 'comics') renderComicsGrid();
-        requestAnimationFrame(updatePillIndicator);
-        closeMobileMenu();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    /* ── Mobile slide-in panel ── */
-    function toggleMobileMenu() {
-        const menu = document.getElementById('mobile-menu');
-        if (menu.classList.contains('open')) { closeMobileMenu(); return; }
-        menu.querySelectorAll('.mobile-menu-link').forEach(l => {
-            l.style.animation = 'none';
-            l.offsetHeight;
-            l.style.animation = '';
-        });
-        menu.classList.add('open');
-        document.getElementById('mobile-backdrop').classList.add('open');
-        document.getElementById('hamburger-btn').classList.add('open');
-        document.getElementById('hamburger-btn').setAttribute('aria-expanded', 'true');
-        menu.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-    }
-    function closeMobileMenu() {
-        const menu = document.getElementById('mobile-menu');
-        if (!menu) return;
-        menu.classList.remove('open');
-        const bd = document.getElementById('mobile-backdrop');
-        if (bd) bd.classList.remove('open');
-        const hbg = document.getElementById('hamburger-btn');
-        if (hbg) { hbg.classList.remove('open'); hbg.setAttribute('aria-expanded', 'false'); }
-        menu.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-    }
-    document.addEventListener('click', (e) => {
-        const menu = document.getElementById('mobile-menu');
-        const btn = document.getElementById('hamburger-btn');
-        if (menu && menu.classList.contains('open') && !menu.contains(e.target) && btn && !btn.contains(e.target)) closeMobileMenu();
-    });
-
-    /* ═════════════════════════════════════════════
-       HERO ENTRANCE ANIMATION
-       ═════════════════════════════════════════════ */
-
-    (function initHeroEntrance() {
-        const hero = document.querySelector('.hero-section');
-        if (!hero) return;
-        // Stagger each panel's reveal
-        const panels = hero.querySelectorAll('.hero-panel');
-        panels.forEach((panel, i) => {
-            panel.style.opacity = '0';
-            panel.style.transform = 'scaleY(0.92)';
-            panel.style.transformOrigin = 'bottom';
-            panel.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            setTimeout(() => {
-                panel.style.opacity = '1';
-                panel.style.transform = 'scaleY(1)';
-            }, 80 + i * 80);
-        });
-        const bar = hero.querySelector('.hero-bar');
-        if (bar) {
-            bar.style.opacity = '0';
-            bar.style.transform = 'translateY(12px)';
-            bar.style.transition = 'opacity 0.5s ease 0.4s, transform 0.5s ease 0.4s';
-            setTimeout(() => { bar.style.opacity = '1'; bar.style.transform = 'translateY(0)'; }, 440);
-        }
-    })();
-
-    /* ── Scroll to top button ── */
-    window.addEventListener('scroll', () => {
-        document.getElementById('scroll-top-btn').classList.toggle('visible', window.scrollY > 400);
-        // Nav gets background once scrolled past hero
-        const heroSection = document.getElementById('hero-section');
-        const navH = document.querySelector('.top-nav')?.offsetHeight || 60;
-        const threshold = heroSection ? heroSection.offsetTop + heroSection.offsetHeight - navH : 200;
-        document.querySelector('.top-nav').classList.toggle('scrolled', window.scrollY > threshold);
-    });
-
-    /* ── Fixed layout scale ── */
-    // ── ZOOM SCALE ──────────────────────────────────────────────────────────────
-    // This scales the entire page layout up or down.
-    // Useful for high-DPI screens or personal preference.
-    // 1.0 = no zoom (default browser size)
-    // 1.7 = 170% size (recommended for most desktop monitors)
-    // Try values between 1.3–2.0. Change it and refresh to see the result.
-    document.getElementById('page-wrapper').style.zoom = 1.7;
-
-
-    /* ── Search / filter posts ── */
-    function filterPosts() {
-        const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
-        document.querySelectorAll('#leaflets-container .leaflet-item').forEach(post => {
-            const text = (post.textContent || '').toLowerCase();
-            post.style.display = !q || text.includes(q) ? '' : 'none';
-        });
-    }
-
-    /* ── Sort posts ── */
-    function sortPosts() {
-        const method = document.getElementById('sort-select').value;
-        const container = document.getElementById('leaflets-container');
-        const posts = Array.from(container.querySelectorAll('.leaflet-item'));
-        posts.sort((a, b) => {
-            if (method === 'newest') return (b.dataset.timestamp || 0) - (a.dataset.timestamp || 0);
-            if (method === 'oldest') return (a.dataset.timestamp || 0) - (b.dataset.timestamp || 0);
-            if (method === 'popular') return (b.dataset.likes || 0) - (a.dataset.likes || 0);
-            return (a.dataset.likes || 0) - (b.dataset.likes || 0);
-        });
-        posts.forEach(p => container.appendChild(p));
-    }
-
-    /* ── Filter by tag ── */
-    function filterByTag(tag, btn) {
-        document.querySelectorAll('.tags-bar .tag-pill').forEach(p => p.classList.remove('active'));
-        if (btn) btn.classList.add('active');
-        document.querySelectorAll('#leaflets-container .leaflet-item').forEach(post => {
-            if (tag === 'all') { post.style.display = ''; return; }
-            // Use exact word match — prevents 'sfw' from matching posts tagged 'nsfw'
-            const rawTags = (post.dataset.tags || '').toLowerCase();
-            // Tags are stored comma-separated; split and trim for precise comparison
-            const postTags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
-            post.style.display = postTags.includes(tag.toLowerCase()) ? '' : 'none';
-        });
-    }
-
-    /* ── Admin sub-tabs ── */
-    function showAdminTab(tab, btn) {
-        document.querySelectorAll('.admin-tab').forEach(t => t.style.display = 'none');
-        const target = document.getElementById('admin-tab-' + tab);
-        if (target) target.style.display = 'block';
-        if (btn) {
-            const parent = btn.parentElement;
-            parent.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        }
-        if (tab === 'manage') renderManagePosts();
-        if (tab === 'comics-admin') renderComicsAdmin();
-    }
-
-    /* ═════════════════════════════════════════════
-       BANNER CUSTOMIZATION — Multi-image system
-       ═════════════════════════════════════════════ */
-
-    function loadBannerSettings() {
-        let s = currentConfig.bannerSettings;
-        if (!s) {
-            const saved = localStorage.getItem('neerg_banner_settings');
-            if (saved) { try { s = JSON.parse(saved); } catch(e) {} }
-        }
-        if (s) {
-            try {
-                // Load mode
-                const mode = s.bannerMode || 'auto';
-                setBannerMode(mode, false);
-
-                // Load panel images (manual mode)
-                if (s.bannerImages) {
-                    for (let i = 0; i < 4; i++) {
-                        const el = document.getElementById('banner-img-' + i);
-                        if (el && s.bannerImages[i]) el.value = s.bannerImages[i];
-                    }
-                }
-
-                // Panel count
-                if (s.panelCount) {
-                    const el = document.getElementById('banner-panel-count');
-                    if (el) el.value = String(s.panelCount);
-                }
-
-                // Marquee settings
-                if (s.text) { const el = document.getElementById('banner-text-input'); if(el) el.value = s.text; }
-                if (s.speed) {
-                    const sr = document.getElementById('banner-speed-range');
-                    const sv = document.getElementById('banner-speed-value');
-                    if (sr) sr.value = s.speed;
-                    if (sv) sv.textContent = s.speed + 's';
-                }
-                if (s.bgColor) { const el = document.getElementById('banner-bg-color'); if(el) el.value = s.bgColor; }
-                if (s.textColor) { const el = document.getElementById('banner-text-color'); if(el) el.value = s.textColor; }
-                if (s.separator) { const el = document.getElementById('banner-separator'); if(el) el.value = s.separator; }
-
-                const visEl = document.getElementById('banner-visible');
-                if (visEl && s.visible !== undefined) visEl.value = String(s.visible);
-
-                // Show/hide marquee settings
-                toggleMarqueeSettings();
-                applyBannerToPage(s);
-            } catch(e) {}
-        }
-    }
-
-    function setBannerMode(mode, save) {
-        const autoBtn = document.getElementById('banner-mode-auto');
-        const manBtn = document.getElementById('banner-mode-manual');
-        const autoSec = document.getElementById('banner-auto-section');
-        const manSec = document.getElementById('banner-manual-section');
-        if (!autoBtn) return;
-
-        if (mode === 'auto') {
-            autoBtn.classList.add('active'); manBtn.classList.remove('active');
-            autoSec.style.display = 'block'; manSec.style.display = 'none';
-        } else {
-            manBtn.classList.add('active'); autoBtn.classList.remove('active');
-            manSec.style.display = 'block'; autoSec.style.display = 'none';
-            // Populate picker with gallery images if empty
-            populateBannerPickerGrid();
-        }
-        if (save !== false) previewBannerMode();
-    }
-
-    function toggleMarqueeSettings() {
-        const visEl = document.getElementById('banner-visible');
-        const sec = document.getElementById('marquee-settings-section');
-        if (visEl && sec) sec.style.display = visEl.value === 'true' ? 'block' : 'none';
-    }
-
-    // Watch marquee visibility toggle
-    document.addEventListener('change', function(e) {
-        if (e.target && e.target.id === 'banner-visible') toggleMarqueeSettings();
-    });
-
-    function previewBannerMode() {}
-
-    function getBannerFormValues() {
-        const modeAutoBtn = document.getElementById('banner-mode-auto');
-        const mode = (modeAutoBtn && modeAutoBtn.classList.contains('active')) ? 'auto' : 'manual';
-
-        const bannerImages = [];
-        for (let i = 0; i < 4; i++) {
-            const el = document.getElementById('banner-img-' + i);
-            bannerImages.push(el ? el.value.trim() : '');
-        }
-
-        const panelCountEl = document.getElementById('banner-panel-count');
-        const panelCount = panelCountEl ? parseInt(panelCountEl.value) : 4;
-
-        const textEl = document.getElementById('banner-text-input');
-        const textRaw = textEl ? textEl.value.trim() : '';
-        const items = textRaw ? textRaw.split('\n').filter(l => l.trim()) : ['ART WEEKLY', 'SFW ART', 'NSFW ART'];
-
-        const speedEl = document.getElementById('banner-speed-range');
-        const bgEl = document.getElementById('banner-bg-color');
-        const tcEl = document.getElementById('banner-text-color');
-        const sepEl = document.getElementById('banner-separator');
-        const visEl = document.getElementById('banner-visible');
-
-        return {
-            bannerMode: mode,
-            bannerImages,
-            panelCount,
-            text: textRaw,
-            items,
-            speed: speedEl ? (parseInt(speedEl.value) || 20) : 20,
-            bgColor: bgEl ? bgEl.value : '#ff6b35',
-            textColor: tcEl ? tcEl.value : '#0d0d0d',
-            separator: sepEl ? sepEl.value : '✦',
-            visible: visEl ? visEl.value === 'true' : false
-        };
-    }
-
-    function applyBannerToPage(settings) {
-        const container = document.getElementById('marquee-container');
-        const track = document.getElementById('marquee-track');
-
-        // Apply marquee visibility
-        if (container) {
-            if (!settings.visible) {
-                container.style.display = 'none';
-            } else {
-                container.style.display = 'block';
-                container.style.background = settings.bgColor || '#ff6b35';
-                if (track) {
-                    const items = settings.items || ['ART WEEKLY', 'SFW ART', 'NSFW ART'];
-                    const sep = settings.separator || '✦';
-                    let html = '';
-                    for (let i = 0; i < 4; i++) { items.forEach(item => { html += `<span style="color:${settings.textColor || '#0d0d0d'}">${item.trim().toUpperCase()}</span>`; }); }
-                    track.innerHTML = html;
-                    const style = document.getElementById('banner-sep-style') || document.createElement('style');
-                    style.id = 'banner-sep-style';
-                    style.textContent = `.marquee span::after { content: '${sep}'; margin-left: 1.5rem; }`;
-                    if (!style.parentNode) document.head.appendChild(style);
-                    const spd = (settings.speed || 20) + 's';
-                    document.documentElement.style.setProperty('--banner-speed', spd);
-                    track.style.animationDuration = spd;
-                }
-            }
-        }
-
-        // Apply hero panel images based on mode
-        const mode = settings.bannerMode || 'auto';
-        if (mode === 'manual' && settings.bannerImages) {
-            for (let i = 0; i < 4; i++) {
-                const panel = document.getElementById('hero-panel-' + i);
-                if (!panel) continue;
-                const url = settings.bannerImages[i];
-                if (url) {
-                    panel.style.backgroundImage = 'url("' + url + '")';
-                    panel.style.backgroundSize = 'cover';
-                    panel.style.backgroundPosition = 'center top';
-                } else {
-                    panel.style.backgroundImage = '';
-                }
-            }
-        }
-        // Auto mode: populateHero() handles it
-    }
-
-    function applyBannerSettings() {
-        const settings = getBannerFormValues();
-        currentConfig.bannerSettings = settings;
-        localStorage.setItem('neerg_banner_settings', JSON.stringify(settings));
-        applyBannerToPage(settings);
-        // If auto mode, re-populate hero from posts
-        if (settings.bannerMode === 'auto' && typeof populateHero === 'function') populateHero();
-        saveSystem();
-        showToast('Banner settings saved!');
-    }
-
-    /* Gallery image picker for banner panels */
-    let _bannerPickerTarget = 0;
-    function pickBannerImage(panelIndex) {
-        _bannerPickerTarget = panelIndex;
-        populateBannerPickerGrid();
-        document.getElementById('banner-gallery-picker').style.display = 'block';
-    }
-
-    function populateBannerPickerGrid() {
-        const grid = document.getElementById('banner-picker-grid');
-        if (!grid) return;
-        if (typeof postsCache === 'undefined' || postsCache.length === 0) {
-            grid.innerHTML = '<p style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray);">No posts with images found.</p>';
-            return;
-        }
-        const imgPosts = postsCache.filter(p => p.media && !String(Array.isArray(p.media) ? p.media[0] : p.media).match(/\.(mp4|webm|mov)$/i));
-        grid.innerHTML = imgPosts.map(p => {
-            const url = Array.isArray(p.media) ? p.media[0] : p.media;
-            return `<div style="aspect-ratio:1;overflow:hidden;border-radius:var(--radius-sm);cursor:pointer;border:2px solid transparent;transition:border-color 0.2s;"
-                onclick="selectBannerImage('${url.replace(/'/g,"\\'")}', this)"
-                onmouseover="this.style.borderColor='var(--lime)'" onmouseout="this.style.borderColor='transparent'">
-                <img src="${url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
-            </div>`;
-        }).join('');
-    }
-
-    function selectBannerImage(url, el) {
-        const input = document.getElementById('banner-img-' + _bannerPickerTarget);
-        if (input) input.value = url;
-        document.getElementById('banner-gallery-picker').style.display = 'none';
-        showToast('Panel ' + (_bannerPickerTarget + 1) + ' image set!');
-    }
-
-
-    /* ═════════════════════════════════════════════
-       PROFILE RING GRADIENT CUSTOMIZATION
-       ═════════════════════════════════════════════ */
-
-    function _buildPfpGradient(c1, c2, c3, dir) {
-        return dir === 'circle'
-            ? `radial-gradient(circle, ${c1}, ${c2}, ${c3})`
-            : `linear-gradient(${dir}, ${c1}, ${c2}, ${c3})`;
-    }
-
-    function _applyPfpStyleTag(gradient, thickness, glowSize, c2) {
-        // Inject a <style> block with a UNIQUE animation name so it doesn't clash with
-        // the existing ringPulse in style.css, and use !important to guarantee override.
-        let el = document.getElementById('pfp-ring-custom-style');
-        if (!el) {
-            el = document.createElement('style');
-            el.id = 'pfp-ring-custom-style';
-            document.head.appendChild(el);
-        }
-        const glowColor = c2 + '55';
-        const t = Number(thickness) || 4;
-        const g = Number(glowSize) || 8;
-        el.textContent = `
-            .hero-pfp-ring {
-                background: ${gradient} !important;
-                padding: ${t}px !important;
-                animation: ringPulseCustom 5s ease-in-out infinite !important;
-            }
-            @keyframes ringPulseCustom {
-                0%,100% { box-shadow: 0 0 0 4px var(--bg-dark,#1a1a1a), 0 0 ${g}px ${glowColor}, 0 16px 48px rgba(0,0,0,0.6); }
-                50%     { box-shadow: 0 0 0 4px var(--bg-dark,#1a1a1a), 0 0 ${g * 2}px ${glowColor}, 0 20px 56px rgba(0,0,0,0.65); }
-            }
-        `;
-
-        // ALSO directly set on element (belt-and-suspenders for same-session apply)
-        const ring = document.querySelector('.hero-pfp-ring');
-        if (ring) {
-            ring.style.setProperty('background', gradient, 'important');
-            ring.style.setProperty('padding', t + 'px', 'important');
-        }
-    }
-
-    function updatePfpGradientPreview() {
-        const c1 = document.getElementById('pfp-color-1')?.value || '#ff6b35';
-        const c2 = document.getElementById('pfp-color-2')?.value || '#b8ff38';
-        const c3 = document.getElementById('pfp-color-3')?.value || '#ff3c8e';
-        const dir = document.getElementById('pfp-gradient-dir')?.value || '135deg';
-        const thickness = parseInt(document.getElementById('pfp-thickness')?.value || '4');
-        const glowSize = parseInt(document.getElementById('pfp-glow')?.value || '8');
-        const gradient = _buildPfpGradient(c1, c2, c3, dir);
-
-        // Update the small preview ring
-        const preview = document.getElementById('pfp-preview-ring');
-        if (preview) {
-            preview.style.background = gradient;
-            preview.style.padding = thickness + 'px';
-            const glowColor = c2 + '55';
-            preview.style.boxShadow = `0 0 0 3px var(--bg-dark), 0 0 ${glowSize}px ${glowColor}`;
-        }
-    }
-
-    function applyPfpPreset(colors, dir, btn) {
-        const [c1, c2, c3] = colors;
-        const el1 = document.getElementById('pfp-color-1');
-        const el2 = document.getElementById('pfp-color-2');
-        const el3 = document.getElementById('pfp-color-3');
-        const dirEl = document.getElementById('pfp-gradient-dir');
-        if (el1) el1.value = c1;
-        if (el2) el2.value = c2;
-        if (el3) el3.value = c3;
-        if (dirEl) dirEl.value = dir;
-        document.querySelectorAll('.pfp-swatch-btn').forEach(b => b.classList.remove('active'));
-        if (btn) btn.classList.add('active');
-        updatePfpGradientPreview();
-    }
-
-    function applyPfpGradient() {
-        const c1 = document.getElementById('pfp-color-1')?.value || '#ff6b35';
-        const c2 = document.getElementById('pfp-color-2')?.value || '#b8ff38';
-        const c3 = document.getElementById('pfp-color-3')?.value || '#ff3c8e';
-        const dir = document.getElementById('pfp-gradient-dir')?.value || '135deg';
-        const thickness = parseInt(document.getElementById('pfp-thickness')?.value || '4');
-        const glowSize = parseInt(document.getElementById('pfp-glow')?.value || '8');
-        const gradient = _buildPfpGradient(c1, c2, c3, dir);
-
-        // Apply via style tag (most reliable — overrides inline & animation)
-        _applyPfpStyleTag(gradient, thickness, glowSize, c2);
-
-        // Persist
-        const pfpStyle = { gradient, thickness, glowSize, c1, c2, c3, dir };
-        try { currentConfig.pfpRingStyle = pfpStyle; } catch(e) {}
-        localStorage.setItem('neerg_pfp_ring_style', JSON.stringify(pfpStyle));
-        try { saveSystem(); } catch(e) {}
-        if (typeof showToast === 'function') showToast('Profile ring style applied!');
-    }
-
-    function loadPfpRingStyle() {
-        let s = null;
-        try { s = (typeof currentConfig !== 'undefined') ? currentConfig.pfpRingStyle : null; } catch(e) {}
-        if (!s) {
-            try { const raw = localStorage.getItem('neerg_pfp_ring_style'); if (raw) s = JSON.parse(raw); } catch(e) {}
-        }
-        if (!s) return;
-
-        // Restore form values if elements exist (admin panel may not be open yet)
-        try {
-            if (document.getElementById('pfp-color-1')) document.getElementById('pfp-color-1').value = s.c1 || '#ff6b35';
-            if (document.getElementById('pfp-color-2')) document.getElementById('pfp-color-2').value = s.c2 || '#b8ff38';
-            if (document.getElementById('pfp-color-3')) document.getElementById('pfp-color-3').value = s.c3 || '#ff3c8e';
-            if (document.getElementById('pfp-gradient-dir') && s.dir) document.getElementById('pfp-gradient-dir').value = s.dir;
-            const thickEl = document.getElementById('pfp-thickness');
-            if (thickEl && s.thickness) {
-                thickEl.value = s.thickness;
-                const sv = document.getElementById('pfp-thickness-val');
-                if (sv) sv.textContent = s.thickness + 'px';
-            }
-            const glowEl = document.getElementById('pfp-glow');
-            if (glowEl && s.glowSize !== undefined) {
-                glowEl.value = s.glowSize;
-                const sv = document.getElementById('pfp-glow-val');
-                if (sv) sv.textContent = s.glowSize + 'px';
-            }
-        } catch(e) {}
-
-        // Apply the saved style via tag — works even before admin panel is opened
-        _applyPfpStyleTag(s.gradient, s.thickness || 4, s.glowSize !== undefined ? s.glowSize : 8, s.c2 || '#b8ff38');
-    }
-
-
-    /* ═════════════════════════════════════════════
-       SOCIAL LINKS
-       ═════════════════════════════════════════════ */
-
-    function loadSocialLinks() {
-        // Primary source: currentConfig (synced via system.js)
-        let links = currentConfig.socialLinks || [];
-        // Fallback: localStorage (for migration from old versions)
-        if (links.length === 0) {
-            const saved = localStorage.getItem('neerg_social_links');
-            if (saved) { try { links = JSON.parse(saved); } catch(e) {} }
-        }
-        if (links.length > 0) { renderSocialLinksDisplay(links); renderSocialLinksEditor(links); }
-    }
-    function renderSocialLinksDisplay(links) {
-        const container = document.getElementById('social-links-display');
-        if (!container || !links.length) { if(container) container.innerHTML = ''; return; }
-        container.innerHTML = links.map(link => {
-            const platform = link.platform.toLowerCase().replace('twitter/x', 'twitter').replace('/', '');
-            const icon = PLATFORM_ICONS[platform] || '🔗';
-            return `<a class="social-link" href="${link.url}" target="_blank" data-platform="${platform}"><span class="social-icon">${icon}</span> ${link.label || link.platform}</a>`;
-        }).join('');
-    }
-    function renderSocialLinksEditor(links) { const ed = document.getElementById('social-links-editor'); if(!ed) return; ed.innerHTML = ''; links.forEach(l => addSocialRow(l.platform, l.url, l.label)); }
-    function addSocialRow(platform, url, label) {
-        const editor = document.getElementById('social-links-editor');
-        const row = document.createElement('div'); row.className = 'social-editor-row';
-        let options = PLATFORM_OPTIONS.map(p => `<option value="${p}" ${p === platform ? 'selected' : ''}>${p}</option>`).join('');
-        row.innerHTML = `<select>${options}</select><input type="text" placeholder="Display name" value="${label || ''}"><input type="text" placeholder="https://..." value="${url || ''}"><button class="btn-remove-social" onclick="this.parentElement.remove()">×</button>`;
-        editor.appendChild(row);
-    }
-    function saveSocialLinks() {
-        const rows = document.querySelectorAll('#social-links-editor .social-editor-row');
-        const links = [];
-        rows.forEach(row => { const p = row.querySelector('select').value, l = row.querySelectorAll('input')[0].value.trim(), u = row.querySelectorAll('input')[1].value.trim(); if(u) links.push({platform:p,label:l,url:u}); });
-        // Save to currentConfig (syncs via system.js to Neocities)
-        currentConfig.socialLinks = links;
-        localStorage.setItem('neerg_social_links', JSON.stringify(links));
-        renderSocialLinksDisplay(links);
-        saveSystem();
-        showToast('Social links saved & syncing!');
-    }
-
-    /* ═════════════════════════════════════════════
-       DARK / LIGHT MODE TOGGLE
-       ═════════════════════════════════════════════ */
-
-    let isDarkMode = true;
-    function toggleDarkLight() {
-        isDarkMode = !isDarkMode;
-        document.body.classList.toggle('light-mode', !isDarkMode);
-        const wrapper = document.getElementById('page-wrapper');
-        if (wrapper) wrapper.classList.toggle('light-mode', !isDarkMode);
-        localStorage.setItem('neerg_theme', isDarkMode ? 'dark' : 'light');
-        // Update toggle icon
-        const toggleBtn = document.querySelector('.nav-icon-btn[title="Toggle theme"]');
-        if (toggleBtn) toggleBtn.innerHTML = isDarkMode ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-        requestAnimationFrame(updatePillIndicator);
-    }
-
-    /* ═════════════════════════════════════════════
-       HERO SECTION — populate panels with latest post images
-       ═════════════════════════════════════════════ */
-
-    function populateHero() {
-        // Check if manual mode is set
-        const savedSettings = currentConfig.bannerSettings || (() => {
-            try { return JSON.parse(localStorage.getItem('neerg_banner_settings') || '{}'); } catch(e) { return {}; }
-        })();
-
-        if (savedSettings.bannerMode === 'manual' && savedSettings.bannerImages) {
-            // Manual mode: use specified images
-            const imgs = savedSettings.bannerImages;
-            const fallbackColors = ['#2A1535','#1A1A3A','#0F2A28','#2A2018'];
-            for (let i = 0; i < 4; i++) {
-                const panel = document.getElementById('hero-panel-' + i);
-                if (!panel) continue;
-                if (imgs[i]) {
-                    panel.style.backgroundImage = 'url("' + imgs[i] + '")';
-                    panel.style.backgroundSize = 'cover';
-                    panel.style.backgroundPosition = 'center top';
-                    panel.classList.add('has-image');
-                } else {
-                    panel.style.backgroundImage = '';
-                    panel.style.background = fallbackColors[i];
-                }
-            }
-            return;
-        }
-
-        // Auto mode: use latest post images
-        if (typeof postsCache === 'undefined' || postsCache.length === 0) return;
-
-        const imagePosts = [...postsCache]
-            .filter(p => p.media && !String(Array.isArray(p.media) ? p.media[0] : p.media).match(/\.(mp4|webm|mov)$/i))
-            .sort((a, b) => b.id - a.id)
-            .slice(0, 4);
-
-        const fallbackColors = ['#2A1535','#1A1A3A','#0F2A28','#2A2018'];
-
-        for (let i = 0; i < 4; i++) {
-            const panel = document.getElementById('hero-panel-' + i);
-            if (!panel) continue;
-            if (imagePosts[i]) {
-                const url = Array.isArray(imagePosts[i].media) ? imagePosts[i].media[0] : imagePosts[i].media;
-                panel.style.backgroundImage = 'url("' + url + '")';
-                panel.style.backgroundSize = 'cover';
-                panel.style.backgroundPosition = 'center top';
-                panel.classList.add('has-image');
-            } else {
-                panel.style.background = fallbackColors[i];
-            }
-        }
-    }
-
-    /* ═════════════════════════════════════════════
-       FEATURED CARDS CAROUSEL
-       ═════════════════════════════════════════════ */
-
-    let featuredCardIndex = 0;
-    let featuredCardTimer = null;
-
-    function populateArtScroll() {
-        const section = document.getElementById('featured-cards-section');
-        const track = document.getElementById('featured-cards-track');
-        const dotsEl = document.getElementById('featured-cards-dots');
-        if (!track || !section) return;
-
-        let mediaPosts = [];
-        if (typeof postsCache !== 'undefined' && postsCache.length > 0) {
-            mediaPosts = [...postsCache]
-                .filter(p => p.media && !String(p.media).match(/\.(mp4|webm|mov)$/i))
-                .sort((a, b) => {
-                    const intA = (typeof interactionsCache !== 'undefined' && interactionsCache[a.id]) ? interactionsCache[a.id] : { likes: 0, dislikes: 0, comments: [] };
-                    const intB = (typeof interactionsCache !== 'undefined' && interactionsCache[b.id]) ? interactionsCache[b.id] : { likes: 0, dislikes: 0, comments: [] };
-                    const scoreA = (intA.likes || 0) + (intA.comments ? intA.comments.length : 0);
-                    const scoreB = (intB.likes || 0) + (intB.comments ? intB.comments.length : 0);
-                    return scoreB - scoreA;
-                })
-                .slice(0, 5);
-        }
-
-        if (mediaPosts.length === 0) { section.style.display = 'none'; return; }
-        section.style.display = 'block';
-
-        // Build cards
-        track.innerHTML = mediaPosts.map((post, i) => {
-            const mediaUrl = Array.isArray(post.media) ? post.media[0] : post.media;
-            const inter = (typeof interactionsCache !== 'undefined' && interactionsCache[post.id]) ? interactionsCache[post.id] : { likes: 0, dislikes: 0, comments: [] };
-            const commentCount = inter.comments ? inter.comments.length : 0;
-            const totalReply = inter.comments ? inter.comments.reduce((sum, c) => sum + (c.replies ? c.replies.length : 0), 0) : 0;
-            const totalComments = commentCount + totalReply;
-            const contentPreview = (post.content || '').substring(0, 80) + ((post.content || '').length > 80 ? '...' : '');
-            const isTrending = (inter.likes + totalComments) >= 3;
-            const tagStr = (post.tags && post.tags.length > 0) ? post.tags[0] : '';
-
-            return `<div class="featured-card" data-index="${i}" onclick="openLightbox(${post.id})">
-                <div class="featured-card-img">
-                    <img src="${mediaUrl}" alt="" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%23222%22 width=%221%22 height=%221%22/></svg>'">
+    </section>
+
+    <!-- ═══════════ COMICS ═══════════ -->
+    <section class="view" data-view="comics" id="view-comics" hidden>
+        <div class="wrap">
+            <div class="page-head">
+                <h1>Comics</h1>
+                <span class="section-count" id="comics-count"></span>
+            </div>
+            <div class="shelf" id="comics-grid"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ COMMISSIONS ═══════════ -->
+    <section class="view" data-view="commissions" id="view-commissions" hidden>
+        <div class="wrap">
+            <div class="page-head"><h1>Commissions</h1></div>
+            <div class="comm">
+                <aside class="comm-card">
+                    <span class="status-pill is-large" id="comm-status">
+                        <span class="status-dot" aria-hidden="true"></span>
+                        <span id="comm-status-text"></span>
+                    </span>
+                    <a class="btn btn-primary" id="comm-request" href="#" target="_blank" rel="noopener" hidden>Request a commission</a>
+                    <div class="comm-contact" id="comm-contact"></div>
+                </aside>
+                <div class="prose" id="comm-info"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ ABOUT ═══════════ -->
+    <section class="view" data-view="about" id="view-about" hidden>
+        <div class="wrap">
+            <div class="about">
+                <div class="ring ring-about" id="about-ring">
+                    <img class="ring-img" id="about-pfp" alt="" hidden>
+                    <span class="ring-fallback" id="about-fallback" aria-hidden="true">N</span>
                 </div>
-                <div class="featured-card-body">
-                    <div class="featured-card-meta">
-                        <span class="featured-card-author">MY BLOG</span>
-                        <span class="featured-card-date">· ${post.date || 'Recent'}</span>
+                <div class="about-body">
+                    <h1 class="about-name" id="about-name">NEERG</h1>
+                    <p class="about-tagline" id="about-tagline"></p>
+                    <div class="prose" id="about-bio"></div>
+                    <div class="link-list" id="about-links"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ ADMIN ═══════════ -->
+    <section class="view" data-view="admin" id="view-admin" hidden>
+        <div class="wrap">
+
+            <div class="login" id="admin-login">
+                <h1>Admin</h1>
+                <p>Log in to post new work and manage your site.</p>
+                <form id="login-form" autocomplete="on">
+                    <label class="field">
+                        <span>Password</span>
+                        <input type="password" id="admin-pass" autocomplete="current-password" required>
+                    </label>
+                    <button class="btn btn-primary btn-block" type="submit">Log in</button>
+                </form>
+            </div>
+
+            <div class="dash" id="admin-panel" hidden>
+                <div class="dash-head">
+                    <div class="dash-title">
+                        <h1>Dashboard</h1>
+                        <span class="sync-chip" id="sync-chip" data-state="idle">All changes synced</span>
                     </div>
-                    <div class="featured-card-title">${escapeHtml(contentPreview)}</div>
-                    <div class="featured-card-stats">
-                        <span class="fc-stat"><span class="fc-icon">▲</span> ${inter.likes || 0}</span>
-                        <span class="fc-stat"><span class="fc-icon"><i class="fa-regular fa-comment"></i></span> ${totalComments}</span>
-                        ${isTrending ? '<span class="fc-trending">● Trending</span>' : ''}
-                        ${tagStr ? '<span class="fc-tag">' + escapeHtml(tagStr) + '</span>' : ''}
+                    <div class="dash-actions">
+                        <button class="btn" data-action="force-sync"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Sync everything</button>
+                        <button class="btn" data-action="open-cleanup"><i class="fa-solid fa-broom" aria-hidden="true"></i> Clean up</button>
+                        <button class="btn" data-action="download-backup"><i class="fa-solid fa-download" aria-hidden="true"></i> Back up</button>
+                        <button class="btn btn-ghost" data-action="logout">Log out</button>
                     </div>
                 </div>
-            </div>`;
-        }).join('');
 
-        // Build dots
-        dotsEl.innerHTML = mediaPosts.map((_, i) =>
-            `<button class="fc-dot${i === 0 ? ' active' : ''}" onclick="goToFeaturedCard(${i})"></button>`
-        ).join('');
+                <div class="notice" id="recovery" hidden></div>
 
-        featuredCardIndex = 0;
-        startFeaturedCardTimer();
-    }
+                <div class="dash-tabs" role="tablist" aria-label="Admin sections">
+                    <button role="tab" data-action="admin-tab" data-tab="post" aria-selected="true">New post</button>
+                    <button role="tab" data-action="admin-tab" data-tab="posts" aria-selected="false">Posts</button>
+                    <button role="tab" data-action="admin-tab" data-tab="comics" aria-selected="false">Comics</button>
+                    <button role="tab" data-action="admin-tab" data-tab="site" aria-selected="false">Site info</button>
+                    <button role="tab" data-action="admin-tab" data-tab="look" aria-selected="false">Colors &amp; style</button>
+                    <button role="tab" data-action="admin-tab" data-tab="banner" aria-selected="false">Home banner</button>
+                    <button role="tab" data-action="admin-tab" data-tab="links" aria-selected="false">Social links</button>
+                </div>
 
-    function goToFeaturedCard(index) {
-        const track = document.getElementById('featured-cards-track');
-        const cards = track.querySelectorAll('.featured-card');
-        const dots = document.querySelectorAll('.fc-dot');
-        if (cards.length === 0) return;
+                <!-- New post -->
+                <div class="dash-panel" data-tab-panel="post" role="tabpanel">
+                    <div class="compose">
+                        <div class="compose-main">
+                            <label class="field">
+                                <span>Caption</span>
+                                <textarea id="np-content" rows="7" placeholder="Say something about this piece. Markdown works: **bold**, *italic*, [link](https://...)"></textarea>
+                            </label>
+                            <div class="field">
+                                <span>Tags</span>
+                                <div class="chips chips-toggle" id="np-tags"></div>
+                                <input type="text" id="np-custom-tags" placeholder="More tags, separated by commas">
+                            </div>
+                            <label class="check"><input type="checkbox" id="np-pinned"> <span>Pin to the top of the feed</span></label>
+                        </div>
+                        <div class="compose-media">
+                            <div class="dropzone" id="np-drop" data-input="np-files" tabindex="0" role="button" aria-label="Add images, video or audio">
+                                <i class="fa-regular fa-image" aria-hidden="true"></i>
+                                <p><strong>Drop images or video here</strong><br>or click to browse. You can also paste an image.</p>
+                                <input type="file" id="np-files" accept="image/*,video/*,audio/*" multiple hidden>
+                            </div>
+                            <div class="inline-form">
+                                <input type="url" id="np-url" placeholder="Or paste a link to an image or video" aria-label="Media link">
+                                <button class="btn" data-action="np-add-url">Add</button>
+                            </div>
+                            <ol class="queue" id="np-queue"></ol>
+                        </div>
+                    </div>
+                    <div class="form-foot">
+                        <button class="btn btn-primary" data-action="publish-post"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publish post</button>
+                    </div>
 
-        featuredCardIndex = index;
-        if (featuredCardIndex >= cards.length) featuredCardIndex = 0;
-        if (featuredCardIndex < 0) featuredCardIndex = cards.length - 1;
+                    <details class="drawer">
+                        <summary>Upload many images as separate posts</summary>
+                        <div class="drawer-body">
+                            <p class="hint">Each image becomes its own post. The tags you picked above are added to all of them.</p>
+                            <div class="dropzone small" id="bulk-drop" data-input="bulk-files" tabindex="0" role="button" aria-label="Choose images for bulk upload">
+                                <p><strong>Choose images</strong> or drop them here</p>
+                                <input type="file" id="bulk-files" accept="image/*" multiple hidden>
+                            </div>
+                            <div class="thumb-row" id="bulk-preview"></div>
+                            <div class="progress" id="bulk-progress" hidden>
+                                <div class="progress-row"><span id="bulk-progress-text">Uploading</span><span id="bulk-progress-count"></span></div>
+                                <div class="progress-bar"><div class="progress-fill" id="bulk-progress-bar"></div></div>
+                            </div>
+                            <button class="btn btn-primary" data-action="bulk-upload" id="bulk-btn" disabled>Upload as separate posts</button>
+                        </div>
+                    </details>
+                </div>
 
-        // Scroll to card
-        const card = cards[featuredCardIndex];
-        track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+                <!-- Manage posts -->
+                <div class="dash-panel" data-tab-panel="posts" role="tabpanel" hidden>
+                    <div class="list-tools">
+                        <label class="search">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="mp-search" placeholder="Find a post" aria-label="Find a post">
+                        </label>
+                        <span class="section-count" id="mp-count"></span>
+                    </div>
+                    <div class="manage-list" id="mp-list"></div>
+                </div>
 
-        // Update dots
-        dots.forEach((d, i) => d.classList.toggle('active', i === featuredCardIndex));
+                <!-- Comics -->
+                <div class="dash-panel" data-tab-panel="comics" role="tabpanel" hidden>
+                    <div class="form-card">
+                        <h2>New comic</h2>
+                        <div class="form-grid">
+                            <label class="field"><span>Title</span><input type="text" id="nc-title" placeholder="Comic title"></label>
+                            <label class="field"><span>Tags</span><input type="text" id="nc-tags" placeholder="fantasy, action"></label>
+                            <label class="field span-2"><span>Cover image link <em>(optional, page 1 is used if empty)</em></span><input type="url" id="nc-cover" placeholder="https://..."></label>
+                        </div>
+                        <div class="dropzone small" id="nc-drop" data-input="nc-files" tabindex="0" role="button" aria-label="Choose comic pages">
+                            <p><strong>Choose pages</strong> or drop them here, in reading order</p>
+                            <input type="file" id="nc-files" accept="image/*" multiple hidden>
+                        </div>
+                        <p class="hint">Drag thumbnails to reorder. Pages upload to img/comics/ on your site.</p>
+                        <div class="page-sorter" id="nc-pages"></div>
+                        <div class="progress" id="nc-progress" hidden>
+                            <div class="progress-row"><span id="nc-progress-text">Uploading</span></div>
+                            <div class="progress-bar"><div class="progress-fill" id="nc-progress-bar"></div></div>
+                        </div>
+                        <button class="btn btn-primary" data-action="comic-create">Create comic</button>
+                    </div>
 
-        // Reset timer
-        startFeaturedCardTimer();
-    }
+                    <div class="section-head">
+                        <h2>Your comics</h2>
+                        <div class="row-actions">
+                            <button class="btn small" data-action="comics-download"><i class="fa-solid fa-download" aria-hidden="true"></i> comics.js</button>
+                            <button class="btn small" data-action="comics-sync"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Sync comics</button>
+                        </div>
+                    </div>
+                    <div class="manage-list" id="mc-list"></div>
+                </div>
 
-    function startFeaturedCardTimer() {
-        if (featuredCardTimer) clearInterval(featuredCardTimer);
-        featuredCardTimer = setInterval(() => {
-            const track = document.getElementById('featured-cards-track');
-            if (!track) return;
-            const total = track.querySelectorAll('.featured-card').length;
-            if (total === 0) return;
-            goToFeaturedCard((featuredCardIndex + 1) % total);
-        }, 5000); // Auto-advance every 5 seconds
-    }
+                <!-- Site info -->
+                <div class="dash-panel" data-tab-panel="site" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Identity</legend>
+                        <div class="form-grid">
+                            <label class="field"><span>Site name</span><input type="text" id="s-sitename"></label>
+                            <label class="field"><span>Tagline</span><input type="text" id="s-tagline"></label>
+                            <label class="field"><span>Name for your posts</span><input type="text" id="s-feedname" placeholder="Works"></label>
+                            <label class="field"><span>Copyright line</span><input type="text" id="s-copyright" placeholder="2026 NEERG"></label>
+                            <div class="field span-2">
+                                <span>Profile picture</span>
+                                <div class="inline-form">
+                                    <input type="text" id="s-pfp" placeholder="img/me.png or https://..." aria-label="Profile picture link">
+                                    <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="s-pfp" hidden></label>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
 
-    /* ═════════════════════════════════════════════
-       SCROLL REVEAL ANIMATION
-       ═════════════════════════════════════════════ */
+                    <fieldset class="group">
+                        <legend>About page</legend>
+                        <label class="field"><span>Bio <em>(Markdown works)</em></span><textarea id="s-bio" rows="5" placeholder="Who you are, what you make, what you're into."></textarea></label>
+                    </fieldset>
 
-    function initScrollReveal() {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('revealed'); });
-        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-        const watchForPosts = new MutationObserver(() => {
-            document.querySelectorAll('.leaflet-item:not(.reveal-on-scroll)').forEach(post => { post.classList.add('reveal-on-scroll'); observer.observe(post); });
-            populateArtScroll();
-            populateHero();
-        });
-        const container = document.getElementById('leaflets-container');
-        if (container) watchForPosts.observe(container, { childList: true, subtree: true });
-    }
+                    <fieldset class="group">
+                        <legend>Commissions</legend>
+                        <div class="field">
+                            <span>Status</span>
+                            <div class="chips" id="status-presets"></div>
+                        </div>
+                        <div class="form-grid">
+                            <label class="field"><span>Status text</span><input type="text" id="s-status-text" placeholder="AVAILABLE FOR COMMISSIONS"></label>
+                            <label class="field field-color"><span>Status color</span><input type="color" id="s-status-color"></label>
+                        </div>
+                        <label class="field"><span>Commission info <em>(prices, what you draw, terms; Markdown works)</em></span><textarea id="s-comm-info" rows="8"></textarea></label>
+                        <label class="field"><span>Request link <em>(optional form or email, like mailto:you@site.com)</em></span><input type="text" id="s-comm-link" placeholder="https://..."></label>
+                    </fieldset>
 
-    </script>
+                    <fieldset class="group">
+                        <legend>Visitors</legend>
+                        <label class="check"><input type="checkbox" id="s-agegate"> <span>Ask first-time visitors to confirm they're 18 or older</span></label>
+                        <label class="check"><input type="checkbox" id="s-blur"> <span>Blur posts tagged NSFW until a visitor taps to reveal</span></label>
+                        <label class="check"><input type="checkbox" id="s-comments"> <span>Allow comments</span></label>
+                        <label class="check"><input type="checkbox" id="s-reactions"> <span>Show like and dislike buttons</span></label>
+                        <div class="form-grid">
+                            <label class="field"><span>Reaction style</span>
+                                <select id="s-reaction-style">
+                                    <option value="thumb">Thumbs</option>
+                                    <option value="arrow">Arrows</option>
+                                    <option value="faces">Custom text</option>
+                                </select>
+                            </label>
+                            <label class="field"><span>Featured posts on Home</span>
+                                <select id="s-featured">
+                                    <option value="recent">Newest work</option>
+                                    <option value="popular">Most liked</option>
+                                    <option value="pinned">Pinned posts only</option>
+                                    <option value="off">Hide featured</option>
+                                </select>
+                            </label>
+                            <label class="field"><span>Like text <em>(custom text style)</em></span><input type="text" id="s-like-label"></label>
+                            <label class="field"><span>Dislike text <em>(custom text style)</em></span><input type="text" id="s-dislike-label"></label>
+                        </div>
+                    </fieldset>
 
-    <!-- ══════════════════════════════════════════════════
-         LBM BACKEND — Loaded from logic.js
-         (Split-file: posts in posts.js, config in system.js)
-         ══════════════════════════════════════════════════ -->
-    <script src="logic.js"></script>
+                    <fieldset class="group">
+                        <legend>Search and sharing</legend>
+                        <div class="form-grid">
+                            <label class="field"><span>Browser tab title</span><input type="text" id="s-title"></label>
+                            <label class="field"><span>Description for search engines</span><input type="text" id="s-desc"></label>
+                        </div>
+                    </fieldset>
 
+                    <fieldset class="group">
+                        <legend>Advanced</legend>
+                        <div class="field">
+                            <span>Page background image <em>(optional)</em></span>
+                            <div class="inline-form">
+                                <input type="text" id="s-bgimage" placeholder="https://..." aria-label="Background image link">
+                                <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="s-bgimage" hidden></label>
+                            </div>
+                        </div>
+                        <label class="field"><span>Custom CSS</span><textarea id="s-css" rows="5" class="code" spellcheck="false"></textarea></label>
+                        <label class="field"><span>New Neocities API key <em>(only if you regenerated it)</em></span><input type="password" id="s-newkey" autocomplete="off" placeholder="Leave empty to keep your current key"></label>
+                    </fieldset>
+
+                    <div class="form-foot sticky-foot">
+                        <button class="btn btn-primary" data-action="site-save">Save &amp; sync</button>
+                    </div>
+                </div>
+
+                <!-- Colors & style -->
+                <div class="dash-panel" data-tab-panel="look" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Palette</legend>
+                        <p class="hint">Your site has a dark and a light palette. Visitors switch between them with the sun and moon button. Changes preview live on this page.</p>
+                        <div class="seg" role="group" aria-label="Palette to edit">
+                            <button data-action="studio-mode" data-mode="dark" aria-pressed="true"><i class="fa-solid fa-moon" aria-hidden="true"></i> Dark palette</button>
+                            <button data-action="studio-mode" data-mode="light" aria-pressed="false"><i class="fa-solid fa-sun" aria-hidden="true"></i> Light palette</button>
+                        </div>
+                        <div class="swatches" id="studio-swatches"></div>
+                        <p class="contrast" id="studio-contrast"></p>
+
+                        <div class="field">
+                            <span>Start from a preset</span>
+                            <div class="presets" id="studio-presets"></div>
+                        </div>
+
+                        <div class="generator">
+                            <label class="field field-color"><span>Build from one color</span><input type="color" id="gen-base" value="#fb3640"></label>
+                            <label class="field"><span>Color harmony</span>
+                                <select id="gen-harmony">
+                                    <option value="analogous">Analogous: neighbors, calm</option>
+                                    <option value="complementary">Complementary: opposites, punchy</option>
+                                    <option value="split">Split complementary: lively but balanced</option>
+                                    <option value="triadic">Triadic: playful</option>
+                                    <option value="tetradic">Tetradic: lots of variety</option>
+                                    <option value="mono">Monochrome: one hue</option>
+                                </select>
+                            </label>
+                            <button class="btn" data-action="studio-generate"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Generate</button>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Reaction buttons</legend>
+                        <div class="swatches compact">
+                            <label class="swatch"><input type="color" id="c-like"><span>Like</span></label>
+                            <label class="swatch"><input type="color" id="c-like-ink"><span>Like text</span></label>
+                            <label class="swatch"><input type="color" id="c-dislike"><span>Dislike</span></label>
+                            <label class="swatch"><input type="color" id="c-dislike-ink"><span>Dislike text</span></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Profile ring</legend>
+                        <div class="ring-editor">
+                            <div class="ring ring-preview" id="ring-preview"><span class="ring-fallback" aria-hidden="true">✦</span></div>
+                            <div class="ring-controls">
+                                <div class="field">
+                                    <span>Gradient colors</span>
+                                    <div class="color-row">
+                                        <input type="color" id="ring-c1" aria-label="Ring color 1">
+                                        <input type="color" id="ring-c2" aria-label="Ring color 2">
+                                        <input type="color" id="ring-c3" aria-label="Ring color 3">
+                                    </div>
+                                </div>
+                                <div class="presets ring-presets" id="ring-presets"></div>
+                                <div class="form-grid">
+                                    <label class="field"><span>Direction</span>
+                                        <select id="ring-dir">
+                                            <option value="135deg">Diagonal ↘</option>
+                                            <option value="to right">Horizontal →</option>
+                                            <option value="to bottom">Vertical ↓</option>
+                                            <option value="to top right">Diagonal ↗</option>
+                                            <option value="circle">Radial</option>
+                                        </select>
+                                    </label>
+                                    <label class="field"><span>Thickness <output id="ring-width-out">4px</output></span><input type="range" id="ring-width" min="2" max="12" value="4"></label>
+                                    <label class="field"><span>Glow <output id="ring-glow-out">8px</output></span><input type="range" id="ring-glow" min="0" max="30" value="8"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-foot sticky-foot">
+                        <span class="unsaved" id="studio-unsaved" hidden>Unsaved color changes</span>
+                        <button class="btn btn-ghost" data-action="studio-discard">Discard</button>
+                        <button class="btn btn-primary" data-action="studio-save">Save &amp; sync</button>
+                    </div>
+                </div>
+
+                <!-- Home banner -->
+                <div class="dash-panel" data-tab-panel="banner" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Header panels</legend>
+                        <div class="seg" role="group" aria-label="Where header images come from">
+                            <button data-action="banner-mode" data-mode="auto" aria-pressed="true">Latest posts</button>
+                            <button data-action="banner-mode" data-mode="manual" aria-pressed="false">Pick my own</button>
+                        </div>
+                        <label class="field narrow"><span>Number of panels</span>
+                            <select id="bn-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+                        </label>
+                        <p class="hint" id="bn-auto-hint">Your newest image posts fill the header automatically.</p>
+                        <div class="banner-rows" id="bn-manual" hidden></div>
+                        <p class="hint" id="bn-manual-hint" hidden>Any panel you leave empty uses one of your newest posts.</p>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Scrolling text band</legend>
+                        <label class="check"><input type="checkbox" id="bn-marquee"> <span>Show a scrolling text band under the header</span></label>
+                        <div id="bn-marquee-fields" hidden>
+                            <label class="field"><span>Text, one item per line</span><textarea id="bn-items" rows="4" placeholder="NEW WORK EVERY WEEK&#10;COMMISSIONS OPEN"></textarea></label>
+                            <div class="form-grid">
+                                <label class="field"><span>Speed <output id="bn-speed-out">20s per loop</output></span><input type="range" id="bn-speed" min="5" max="60" value="20"></label>
+                                <label class="field narrow"><span>Separator</span><input type="text" id="bn-sep" maxlength="3" value="✦"></label>
+                                <label class="field field-color"><span>Band color</span><input type="color" id="bn-bg"></label>
+                                <label class="field field-color"><span>Text color</span><input type="color" id="bn-fg"></label>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-foot sticky-foot">
+                        <button class="btn btn-primary" data-action="banner-save">Save &amp; sync</button>
+                    </div>
+                </div>
+
+                <!-- Social links -->
+                <div class="dash-panel" data-tab-panel="links" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Social links</legend>
+                        <p class="hint">These show on your header, About page, Commissions page and footer.</p>
+                        <div class="links-editor" id="links-editor"></div>
+                        <button class="btn" data-action="link-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add link</button>
+                    </fieldset>
+                    <div class="form-foot sticky-foot">
+                        <button class="btn btn-primary" data-action="links-save">Save &amp; sync</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+    <div class="wrap footer-inner">
+        <div class="footer-brand">
+            <span class="footer-name" id="footer-name">NEERG</span>
+            <span class="footer-copy" id="footer-copy">© 2026 NEERG</span>
+        </div>
+        <nav class="footer-nav" aria-label="Footer">
+            <a href="#/">Home</a>
+            <a href="#/gallery">Gallery</a>
+            <a href="#/comics">Comics</a>
+            <a href="#/commissions">Commissions</a>
+            <a href="#/about">About</a>
+        </nav>
+        <div class="social-icons" id="footer-social"></div>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a></p>
+    </div>
+</footer>
+
+<button class="to-top" id="to-top" data-action="to-top" aria-label="Back to top"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+
+<!-- ═══════════ POST VIEWER ═══════════ -->
+<div class="overlay post-overlay" id="post-overlay" role="dialog" aria-modal="true" aria-label="Post" hidden>
+    <button class="overlay-close" data-action="close-post" aria-label="Close post"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    <div class="post-stage" id="post-stage">
+        <div class="stage-media" id="post-media"></div>
+        <button class="stage-nav prev" data-action="post-prev" aria-label="Previous post"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+        <button class="stage-nav next" data-action="post-next" aria-label="Next post"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+        <div class="stage-pager" id="post-pager" hidden></div>
+    </div>
+    <aside class="post-info" id="post-info"></aside>
+</div>
+
+<!-- ═══════════ FULL SIZE MEDIA VIEWER ═══════════ -->
+<div class="overlay viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Media viewer" hidden>
+    <div class="viewer-top">
+        <span class="viewer-count" id="viewer-count"></span>
+        <div class="viewer-top-actions">
+            <button class="btn small on-dark" id="viewer-open-post" data-action="viewer-open-post" hidden>View post</button>
+            <button class="icon-btn on-dark" data-action="close-viewer" aria-label="Close viewer"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+    </div>
+    <div class="viewer-media" id="viewer-media"></div>
+    <button class="stage-nav prev" data-action="viewer-prev" aria-label="Previous"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+    <button class="stage-nav next" data-action="viewer-next" aria-label="Next"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+</div>
+
+<!-- ═══════════ COMIC PAGES ═══════════ -->
+<div class="overlay comic-overlay" id="comic-overlay" role="dialog" aria-modal="true" aria-labelledby="co-title" hidden>
+    <div class="comic-head">
+        <div class="wrap comic-head-inner">
+            <button class="back-btn" data-action="close-comic"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Comics</button>
+            <div class="comic-head-text">
+                <h2 id="co-title">Comic</h2>
+                <p class="comic-meta" id="co-meta"></p>
+                <div class="chips static" id="co-tags"></div>
+            </div>
+            <div class="comic-head-actions" id="co-actions"></div>
+        </div>
+    </div>
+    <div class="wrap">
+        <div class="comic-pages" id="co-grid"></div>
+    </div>
+</div>
+
+<!-- ═══════════ COMIC READER ═══════════ -->
+<div class="overlay reader" id="reader" role="dialog" aria-modal="true" aria-labelledby="rd-title" hidden>
+    <div class="reader-top">
+        <button class="icon-btn on-dark" data-action="close-reader" aria-label="Back to pages"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+        <span class="reader-title" id="rd-title">Comic</span>
+        <span class="reader-page" id="rd-page"></span>
+        <button class="btn small on-dark" data-action="reader-fit" id="rd-fit" aria-pressed="false">Fit width</button>
+    </div>
+    <div class="reader-stage" id="rd-stage">
+        <img id="rd-img" alt="">
+        <button class="reader-tap left" data-action="reader-prev" aria-label="Previous page"></button>
+        <button class="reader-tap right" data-action="reader-next" aria-label="Next page"></button>
+    </div>
+    <div class="reader-bottom">
+        <div class="reader-pages" id="rd-pages"></div>
+    </div>
+</div>
+
+<!-- ═══════════ ADD PAGES TO A COMIC ═══════════ -->
+<div class="overlay modal" id="ap-modal" role="dialog" aria-modal="true" aria-labelledby="ap-heading" hidden>
+    <div class="modal-card">
+        <div class="modal-head">
+            <div>
+                <h2 id="ap-heading">Add pages</h2>
+                <p class="modal-sub"><span id="ap-title"></span> <span id="ap-count"></span></p>
+            </div>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="dropzone small" id="ap-drop" data-input="ap-files" tabindex="0" role="button" aria-label="Choose new pages">
+            <p><strong>Choose new pages</strong> or drop them here</p>
+            <input type="file" id="ap-files" accept="image/*" multiple hidden>
+        </div>
+        <p class="hint">New pages go after the last page. Drag to reorder before uploading.</p>
+        <div class="page-sorter" id="ap-pages"></div>
+        <div class="progress" id="ap-progress" hidden>
+            <div class="progress-row"><span id="ap-progress-text">Uploading</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="ap-progress-bar"></div></div>
+        </div>
+        <div class="form-foot">
+            <button class="btn btn-ghost" data-action="modal-close">Cancel</button>
+            <button class="btn btn-primary" data-action="ap-submit">Upload &amp; add pages</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ CONNECTION REPAIR ═══════════ -->
+<div class="overlay modal" id="repair-modal" role="dialog" aria-modal="true" aria-labelledby="repair-heading" hidden>
+    <div class="modal-card narrow">
+        <div class="modal-head">
+            <h2 id="repair-heading">Reconnect to Neocities</h2>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <p>Neocities turned down your saved key, so changes can't sync. Paste your API key from <a href="https://neocities.org/settings" target="_blank" rel="noopener">Neocities settings</a> to reconnect.</p>
+        <label class="field"><span>Neocities API key</span><input type="password" id="repair-key" autocomplete="off"></label>
+        <div class="form-foot">
+            <button class="btn btn-ghost" data-action="modal-close">Cancel</button>
+            <button class="btn btn-primary" data-action="repair-run">Reconnect &amp; sync</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ CLEANUP ═══════════ -->
+<div class="overlay modal" id="cleanup-modal" role="dialog" aria-modal="true" aria-labelledby="cleanup-heading" hidden>
+    <div class="modal-card">
+        <div class="modal-head">
+            <h2 id="cleanup-heading">Clean up your data</h2>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <h3 class="mini-head">Storage</h3>
+        <div class="bars" id="cleanup-bars"></div>
+        <p class="hint" id="cleanup-total"></p>
+        <h3 class="mini-head">What we found</h3>
+        <div class="issues" id="cleanup-issues"></div>
+        <h3 class="mini-head">Tools</h3>
+        <div class="tool-grid">
+            <button class="btn small" data-action="cleanup" data-fn="trim"><i class="fa-solid fa-scissors" aria-hidden="true"></i> Trim extra spaces</button>
+            <button class="btn small" data-action="cleanup" data-fn="dupes"><i class="fa-solid fa-copy" aria-hidden="true"></i> Remove duplicates</button>
+            <button class="btn small" data-action="cleanup" data-fn="orphans"><i class="fa-solid fa-ghost" aria-hidden="true"></i> Clear orphaned likes</button>
+            <button class="btn small" data-action="cleanup" data-fn="empty"><i class="fa-solid fa-broom" aria-hidden="true"></i> Strip empty fields</button>
+            <button class="btn small" data-action="cleanup" data-fn="compact"><i class="fa-solid fa-compress" aria-hidden="true"></i> Compact data</button>
+            <button class="btn small" data-action="cleanup" data-fn="base64"><i class="fa-solid fa-image" aria-hidden="true"></i> Strip inline images</button>
+            <button class="btn small danger" data-action="cleanup" data-fn="old"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i> Delete old posts</button>
+            <button class="btn small danger" data-action="cleanup" data-fn="nuke"><i class="fa-solid fa-fire" aria-hidden="true"></i> Erase all likes &amp; comments</button>
+        </div>
+        <h3 class="mini-head">Activity</h3>
+        <div class="log" id="cleanup-log"><div class="log-entry dim">Nothing run yet.</div></div>
+        <div class="form-foot">
+            <button class="btn btn-primary btn-block" data-action="cleanup" data-fn="full">Run all safe cleanups &amp; sync</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ IMAGE PICKER ═══════════ -->
+<div class="overlay modal" id="picker-modal" role="dialog" aria-modal="true" aria-labelledby="picker-heading" hidden>
+    <div class="modal-card wide">
+        <div class="modal-head">
+            <h2 id="picker-heading">Choose an image</h2>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="picker-grid" id="picker-grid"></div>
+    </div>
+</div>
+
+<!-- ═══════════ FIRST TIME SETUP ═══════════ -->
+<div class="setup" id="setup" hidden>
+    <div class="setup-card">
+        <h1>Let's get your site running</h1>
+        <p class="setup-lede">This only happens once. Your password and key stay on this device and are turned into a secure token before anything is saved.</p>
+
+        <div class="notice" id="su-restore-box" hidden>
+            <p>This browser has a saved copy of a site. Restore it instead of starting over?</p>
+            <button class="btn" data-action="setup-restore">Restore saved site</button>
+        </div>
+
+        <ol class="setup-steps">
+            <li>
+                <h2>Admin access</h2>
+                <div class="form-grid">
+                    <label class="field"><span>Admin password <em>(8+ characters)</em></span><input type="password" id="su-pass" autocomplete="new-password"></label>
+                    <label class="field"><span>Type it again</span><input type="password" id="su-pass2" autocomplete="new-password"></label>
+                    <label class="field span-2"><span>Neocities API key <em>(Neocities, then Settings, then API)</em></span><input type="password" id="su-key" autocomplete="off"></label>
+                </div>
+            </li>
+            <li>
+                <h2>Your site</h2>
+                <div class="form-grid">
+                    <label class="field"><span>Site name</span><input type="text" id="su-name" value="NEERG"></label>
+                    <label class="field"><span>Tagline</span><input type="text" id="su-tagline" value="Digital Art Archive"></label>
+                    <label class="field"><span>Name for your posts</span><input type="text" id="su-feedname" value="Works"></label>
+                    <label class="field"><span>Copyright line</span><input type="text" id="su-copyright" value="2026 NEERG"></label>
+                    <label class="field span-2"><span>Profile picture link <em>(optional)</em></span><input type="text" id="su-pfp" placeholder="https://..."></label>
+                </div>
+            </li>
+            <li>
+                <h2>Look and visitors</h2>
+                <div class="presets" id="su-presets"></div>
+                <label class="check"><input type="checkbox" id="su-agegate" checked> <span>Ask visitors to confirm they're 18 or older</span></label>
+                <label class="check"><input type="checkbox" id="su-reactions" checked> <span>Show like and dislike buttons</span></label>
+                <label class="check"><input type="checkbox" id="su-comments" checked> <span>Allow comments</span></label>
+            </li>
+        </ol>
+        <button class="btn btn-primary btn-block" data-action="setup-create">Create my site</button>
+    </div>
+</div>
 
 </body>
 </html>
