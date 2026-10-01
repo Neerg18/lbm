@@ -137,7 +137,7 @@ h1, h2, h3 { line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
 .skip-link:focus { top: 12px; }
 
 .wrap { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
-/* Home runs edge to edge, so wide screens fill with work instead of empty margins */
+/* Home, Gallery, Comics and the footer run edge to edge, so wide screens fill with work instead of empty margins */
 .wrap.wide { max-width: none; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -807,7 +807,9 @@ img.is-broken { visibility: hidden; }
 /* ═══════════════════════════════════════════
    GALLERY
    ═══════════════════════════════════════════ */
-.boards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 32px 22px; }
+/* auto-fit: boards stretch across the row rather than leaving empty slots; with only one or two, they keep their normal size */
+.boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, clamp(280px, 16vw, 420px)), 1fr)); gap: 32px 22px; }
+@media (min-width: 641px) { .boards:not(:has(> :nth-child(3))) { grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(280px, 16vw, 420px)), 1fr)); } }
 .board { display: flex; flex-direction: column; gap: 10px; color: var(--text); text-align: left; }
 .board:hover { text-decoration: none; }
 .board-cover {
@@ -837,7 +839,7 @@ img.is-broken { visibility: hidden; }
 }
 .back-btn:hover { color: var(--text); background: var(--surface); }
 
-.masonry { columns: 4 240px; column-gap: 14px; }
+.masonry { columns: clamp(240px, 13vw, 320px); column-gap: 14px; }
 .masonry-item {
     display: block; width: 100%;
     break-inside: avoid; margin-bottom: 14px;
@@ -853,7 +855,9 @@ img.is-broken { visibility: hidden; }
 /* ═══════════════════════════════════════════
    COMICS
    ═══════════════════════════════════════════ */
-.shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 32px 20px; }
+/* Same idea for comics: covers stretch to fill the row, unless there are only a few to show */
+.shelf { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, clamp(180px, 11vw, 260px)), 1fr)); gap: 32px 20px; }
+@media (min-width: 641px) { .shelf:not(:has(> :nth-child(5))) { grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(180px, 11vw, 260px)), 1fr)); } }
 .comic-card { display: flex; flex-direction: column; gap: 10px; color: var(--text); text-align: left; }
 .comic-card:hover { text-decoration: none; }
 .comic-cover {
@@ -883,7 +887,7 @@ img.is-broken { visibility: hidden; }
 .comic-head-text h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.4rem, 3vw, 2rem); }
 .comic-meta { color: var(--text-3); font-size: .9rem; margin: 2px 0 6px; }
 .comic-head-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.comic-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 18px; padding: 28px 0 72px; }
+.comic-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(160px, 9vw, 220px)), 1fr)); gap: 18px; padding: 28px 0 72px; }
 .page-thumb { display: flex; flex-direction: column; gap: 6px; color: var(--text-2); font-size: .85rem; text-align: left; }
 .page-thumb:hover { color: var(--text); text-decoration: none; }
 .page-thumb .frame { aspect-ratio: 3 / 4; border-radius: var(--r-s); overflow: hidden; background: var(--surface); border: 1px solid var(--line); transition: border-color .2s, transform .3s var(--ease-out); }

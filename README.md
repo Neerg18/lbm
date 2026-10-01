@@ -17,6 +17,7 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Reaction Styles:** Thumbs, arrows, or your own custom like/dislike text
 - **Better Sorting:** Sort the feed by newest, oldest, most liked, least liked or most discussed
 - **Featured Carousel:** Show your newest, most liked or pinned posts on Home, or hide it
+- **Wide-Screen Layout:** Home, Gallery and Comics fill big monitors edge to edge, with two or three featured posts side by side and more work per row
 - **One-Click Backup:** Download all four data files from the dashboard
 - **Clean Up Tool:** Storage overview plus tools to trim, de-duplicate and compact your data
 - **Faster Posting:** Paste an image straight into the post editor, or bulk upload many images as separate posts
