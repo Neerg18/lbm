@@ -107,6 +107,8 @@ const HAZARD_WORDS = ['COMMISSIONS CLOSED', 'CLOSED', 'CHECK BACK SOON'];
 const COMM_DEFAULTS = { open: true, title: '', handle: '', contact: '', button: '', tiers: [], terms: '', termsImage: '', tapeWords: [], closedNote: '', paper: '#DFDAD0', ink: '#161616', tape: '#3AA6F2' };
 // Hazard tapes all over the page while closed: [kind (y yellow, k black, s stripes), distance down the page in %, tilt in degrees]
 const HAZARD_LAYOUT = [['y', 5, -6], ['s', 13, 10], ['k', 21, 3], ['y', 30, -9], ['s', 38, 6], ['k', 46, -4], ['y', 55, 8], ['s', 63, -11], ['k', 71, 4], ['y', 79, -6], ['s', 87, 9], ['k', 94, -3]];
+// Comic "POW" burst behind each price: red outline, yellow band, orange glow (viewBox 0 0 220 150)
+const BURST_PATH = 'M37 67 61 62 60 51 75 49 74 33 97 44 108 36 120 41 138 32 141 50 183 42 156 64 178 71 164 79 182 89 154 92 156 102 141 104 135 118 115 107 101 114 90 107 68 114 73 97 56 94 55 81Z';
 const ARROWS_SVG = '<svg class="cm-arrows" viewBox="0 0 44 18" aria-hidden="true"><path d="M2 16 14 4M5 3h10v10" fill="none" stroke="currentColor" stroke-width="3.4"/><path d="M26 16 38 4M29 3h10v10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 
 const PLATFORM_OPTIONS = ['Twitter/X', 'Instagram', 'Bluesky', 'Tumblr', 'YouTube', 'TikTok', 'DeviantArt', 'Pixiv', 'Twitch', 'Ko-fi', 'Patreon', 'Discord', 'Threads', 'Cara', 'Email', 'Other'];
@@ -627,8 +629,15 @@ function tierCardHTML(t, i) {
         + '<div class="cm-frame"><h2 class="cm-name"><span>' + esc(name) + '</span></h2>' + art + '</div>'
         + '<span class="cm-ticks" aria-hidden="true"></span>'
         + (notes ? '<div class="cm-info"><span class="cm-bang" aria-hidden="true">!</span><div class="cm-notes">' + md(notes) + '</div></div>' : '')
-        + (price ? '<p class="cm-price" style="--pc:' + Math.max(price.length, 3) + '"><span class="sr-only">Price: </span><span>' + esc(price) + '</span></p>' : '')
+        + (price ? '<p class="cm-price" style="--pc:' + Math.max(price.length, 3) + '">' + burstSVG('cm-burst-' + i) + '<span class="sr-only">Price: </span><span class="cm-price-text">' + esc(price) + '</span></p>' : '')
         + '</article>';
+}
+
+function burstSVG(id) {
+    return '<svg class="cm-burst" viewBox="0 0 220 150" aria-hidden="true"><defs><radialGradient id="' + id + '" cx="50%" cy="50%" r="55%"><stop offset="0" stop-color="#FFE34A"/><stop offset=".5" stop-color="#FF9B30"/><stop offset="1" stop-color="#EE3F2A"/></radialGradient></defs>'
+        + '<path d="' + BURST_PATH + '" fill="#C3141B" stroke="#C3141B" stroke-width="22" stroke-linejoin="miter" stroke-miterlimit="12"/>'
+        + '<path d="' + BURST_PATH + '" fill="#FFE21C" stroke="#FFE21C" stroke-width="16" stroke-linejoin="miter" stroke-miterlimit="12"/>'
+        + '<path d="' + BURST_PATH + '" fill="url(#' + id + ')" stroke="#D9351E" stroke-width="2"/></svg>';
 }
 
 function hazardHTML(words) {
