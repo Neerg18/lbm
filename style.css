@@ -137,6 +137,8 @@ h1, h2, h3 { line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
 .skip-link:focus { top: 12px; }
 
 .wrap { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
+/* Home runs edge to edge, so wide screens fill with work instead of empty margins */
+.wrap.wide { max-width: none; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -637,6 +639,7 @@ a.status-pill:hover { text-decoration: none; background: color-mix(in srgb, var(
 .featured { margin-bottom: clamp(48px, 7vw, 80px); }
 .carousel-ctrl { display: flex; gap: 6px; }
 .featured-track {
+    --per: 1; /* cards in view at once; logic.js reads this */
     display: flex; gap: 16px;
     overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth;
     scrollbar-width: none;
@@ -644,7 +647,7 @@ a.status-pill:hover { text-decoration: none; background: color-mix(in srgb, var(
 }
 .featured-track::-webkit-scrollbar { display: none; }
 .feat {
-    flex: 0 0 100%;
+    flex: 1 0 calc((100% - (var(--per) - 1) * 16px) / var(--per));
     scroll-snap-align: start;
     display: grid; grid-template-columns: 1.35fr 1fr;
     height: clamp(300px, 34vw, 430px);
@@ -671,6 +674,8 @@ a.status-pill:hover { text-decoration: none; background: color-mix(in srgb, var(
 .featured-dots { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
 .featured-dots button { width: 8px; height: 8px; border-radius: 8px; background: var(--line-strong); transition: width .3s var(--ease-out), background-color .3s; }
 .featured-dots button[aria-current="true"] { width: 26px; background: var(--hl); }
+@media (min-width: 1700px) { .featured-track { --per: 2; } }
+@media (min-width: 2800px) { .featured-track { --per: 3; } }
 
 /* ═══════════════════════════════════════════
    FEED
@@ -692,7 +697,7 @@ a.status-pill:hover { text-decoration: none; background: color-mix(in srgb, var(
 
 .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(240px, 13vw, 320px)), 1fr));
     gap: 32px 20px;
 }
 .tile { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
