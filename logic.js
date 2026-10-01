@@ -101,6 +101,14 @@ const STATUS_PRESETS = [
     { text: 'CLOSED', color: '#888888', label: 'Closed' }
 ];
 
+// Commissions poster (Admin, Commissions). New tiers take these colors in turn.
+const TIER_COLORS = ['#35E04A', '#5B2EE8', '#C04BFF', '#FF6B2C', '#00B8F5', '#FF3D7F'];
+const HAZARD_WORDS = ['COMMISSIONS CLOSED', 'CLOSED', 'CHECK BACK SOON'];
+const COMM_DEFAULTS = { open: true, title: '', handle: '', contact: '', button: '', tiers: [], terms: '', termsImage: '', tapeWords: [], closedNote: '', paper: '#DFDAD0', ink: '#161616', tape: '#3AA6F2' };
+// Hazard tapes over the tiers while closed: [kind (y yellow, k black, s stripes), distance down the board in %, tilt in degrees]
+const HAZARD_LAYOUT = [['y', 16, -5], ['s', 30, 9], ['k', 44, 4], ['y', 60, -7], ['s', 74, -2], ['k', 87, 3]];
+const ARROWS_SVG = '<svg class="cm-arrows" viewBox="0 0 44 18" aria-hidden="true"><path d="M2 16 14 4M5 3h10v10" fill="none" stroke="currentColor" stroke-width="3.4"/><path d="M26 16 38 4M29 3h10v10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+
 const PLATFORM_OPTIONS = ['Twitter/X', 'Instagram', 'Bluesky', 'Tumblr', 'YouTube', 'TikTok', 'DeviantArt', 'Pixiv', 'Twitch', 'Ko-fi', 'Patreon', 'Discord', 'Threads', 'Cara', 'Email', 'Other'];
 const PLATFORMS = {
     'twitter': { icon: 'fa-brands fa-x-twitter', color: '#1d9bf0' },
@@ -477,6 +485,8 @@ function bannerSettings() {
     return Object.assign({ bannerMode: 'auto', bannerImages: ['', '', '', ''], panelCount: 4, text: '', items: [], speed: 20, bgColor: '', textColor: '', separator: '✦', visible: false }, s || {});
 }
 
+function commPage() { return Object.assign({}, COMM_DEFAULTS, currentConfig.commPage || {}); }
+
 function siteName() { return currentConfig.siteName || 'NEERG'; }
 
 function applyVisualConfig() {
@@ -532,15 +542,110 @@ function renderStatus() {
 }
 
 function renderCommissions() {
+    const root = byId('cm'); if (!root) return;
+    const cp = commPage();
+    const closed = cp.open === false;
+    root.classList.toggle('is-closed', closed);
+    root.style.setProperty('--cm-paper', normalizeHex(cp.paper, COMM_DEFAULTS.paper));
+    root.style.setProperty('--cm-ink', normalizeHex(cp.ink, COMM_DEFAULTS.ink));
+    root.style.setProperty('--cm-tape', normalizeHex(cp.tape, COMM_DEFAULTS.tape));
+
+    const title = String(cp.title || '').trim() || 'Commissions';
+    const h = byId('cm-title');
+    h.textContent = title;
+    h.style.setProperty('--chars', Math.max(title.length, 7));
+
     const text = (currentConfig.commissionStatus || '').trim();
-    const st = byId('comm-status');
-    if (st) { st.hidden = !text; byId('comm-status-text').textContent = text; }
-    const info = currentConfig.commissionsInfo || '';
-    const box = byId('comm-info');
-    if (box) box.innerHTML = info ? md(info) : '<h2>Details coming soon</h2><p>Pricing and availability will be posted here. Follow along on the links to the left to hear first.</p>';
-    const req = byId('comm-request');
+    byId('comm-status').hidden = !text;
+    byId('comm-status-text').textContent = text;
     const link = safeUrl(currentConfig.commissionsLink);
-    if (req) { req.hidden = !link; if (link) req.href = link; }
+    const req = byId('comm-request');
+    req.hidden = closed || !link;
+    if (link) req.href = link;
+    req.textContent = String(cp.button || '').trim() || 'Request a commission';
+    byId('comm-closed').hidden = !closed;
+    const note = byId('cm-closed-note');
+    note.hidden = !(closed && cp.closedNote);
+    note.textContent = cp.closedNote || '';
+
+    const handle = String(cp.handle || '').trim() || siteName();
+    byId('cm-band-tl').innerHTML = bandHTML(handle, cp.contact);
+    byId('cm-band-br').innerHTML = bandHTML(handle, cp.contact);
+
+    // Tier cards. With no tiers yet, older free-form commission info (or a placeholder) takes their place.
+    const info = (currentConfig.commissionsInfo || '').trim();
+    const tiers = (cp.tiers || []).filter(t => t && (t.name || t.price || t.image || t.notes));
+    galleryLists.tiers = [];
+    byId('cm-tiers').innerHTML = tiers.length
+        ? tiers.map((t, i) => tierCardHTML(t, i)).join('')
+        : info ? '<div class="cm-note prose">' + md(info) + '</div>'
+        : '<div class="cm-empty"><h2>Details coming soon</h2><p>Prices and examples will be posted here.</p></div>';
+    const extra = byId('comm-info');
+    extra.hidden = !(tiers.length && info);
+    extra.innerHTML = tiers.length && info ? md(info) : '';
+
+    const hz = byId('cm-hazard');
+    hz.hidden = !closed;
+    hz.innerHTML = closed ? hazardHTML(cp.tapeWords) : '';
+    hz.classList.toggle('is-in', closed);
+
+    const terms = String(cp.terms || '').trim();
+    byId('cm-terms').hidden = !terms;
+    byId('cm-terms-text').innerHTML = terms ? md(terms) : '';
+    const pic = safeUrl(cp.termsImage || currentConfig.pfpImage || '');
+    const pi = byId('cm-terms-pic');
+    if (pic) { pi.onerror = () => { pi.hidden = true; }; pi.src = pic; pi.hidden = false; }
+    else { pi.hidden = true; pi.removeAttribute('src'); }
+}
+
+// The blue tape across each corner: your name repeated, with the contact line in the middle
+function bandHTML(handle, contact) {
+    const run = Array.from({ length: 12 }, () => '<span>' + esc(handle) + '<b></b><b></b></span>').join('');
+    const chevs = '<i class="cm-chev"></i><i class="cm-chev"></i><i class="cm-chev"></i>';
+    const c = String(contact || '').trim();
+    return '<span class="cm-band-run l">' + run + '</span>'
+        + '<span class="cm-band-mid">' + chevs + (c ? '<span>' + esc(c) + '</span>' + chevs : '') + '</span>'
+        + '<span class="cm-band-run">' + run + '</span>';
+}
+
+function tierCardHTML(t, i) {
+    const color = normalizeHex(t.color, TIER_COLORS[i % TIER_COLORS.length]);
+    const name = String(t.name || '').trim() || 'Tier ' + (i + 1);
+    const price = String(t.price || '').trim();
+    const img = safeUrl(t.image);
+    const notes = String(t.notes || '').trim();
+    let art;
+    if (img) {
+        galleryLists.tiers.push({ url: img, type: 'image', postId: null });
+        art = '<button type="button" class="cm-art" data-action="open-viewer" data-list="tiers" data-index="' + (galleryLists.tiers.length - 1) + '" aria-label="See the ' + esc(name) + ' example full size">'
+            + '<img src="' + esc(img) + '" alt="" loading="lazy" decoding="async"></button>';
+    } else {
+        art = '<div class="cm-art is-empty" aria-hidden="true"><span>' + esc(name.charAt(0).toUpperCase()) + '</span></div>';
+    }
+    return '<article class="cm-tier' + (img && t.pop ? ' is-pop' : '') + '" style="--tc:' + color + ';--chars:' + Math.max(name.length, 4) + '">'
+        + ARROWS_SVG
+        + '<div class="cm-frame"><h2 class="cm-name"><span>' + esc(name) + '</span></h2>' + art + '</div>'
+        + '<span class="cm-ticks" aria-hidden="true"></span>'
+        + (notes ? '<div class="cm-info"><span class="cm-bang" aria-hidden="true">!</span><div class="cm-notes">' + md(notes) + '</div></div>' : '')
+        + (price ? '<p class="cm-price" style="--pc:' + Math.max(price.length, 3) + '"><span class="sr-only">Price: </span><span>' + esc(price) + '</span></p>' : '')
+        + '</article>';
+}
+
+function hazardHTML(words) {
+    const list = words && words.length ? words : HAZARD_WORDS;
+    let w = 0;
+    return HAZARD_LAYOUT.map(([kind, top, tilt], i) => {
+        const style = ' style="--t:' + top + '%;--r:' + tilt + 'deg;--d:' + i + '"';
+        if (kind === 's') return '<div class="hz s"' + style + '></div>';
+        const word = '<span>' + esc(list[w++ % list.length]) + '</span>';
+        return '<div class="hz ' + kind + '"' + style + '><div class="hz-run">' + word.repeat(18) + '</div></div>';
+    }).join('');
+}
+
+// Slap the tape on again each time someone opens the page
+function replayTapes() {
+    const hz = byId('cm-hazard'); if (!hz || hz.hidden) return;
+    hz.classList.remove('is-in'); void hz.offsetWidth; hz.classList.add('is-in');
 }
 
 function normalizePlatform(p) {
@@ -724,6 +829,7 @@ function showView(view) {
     if (view === 'home') { fitHome(); startFeatured(); } else stopFeatured();
     if (view === 'gallery') renderGallery();
     if (view === 'comics') renderComics();
+    if (view === 'commissions') replayTapes();
     if (view === 'admin') renderAdminView();
 }
 
@@ -1047,7 +1153,7 @@ function masonryHTML(items, listName) {
     }).join('');
 }
 
-let galleryLists = { all: [], board: [] };
+let galleryLists = { all: [], board: [], tiers: [] };
 function renderGallery() {
     const g = ui.gallery;
     $$('[data-action="gallery-mode"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === g.mode)));
@@ -1953,6 +2059,7 @@ function showAdminTab(tab) {
     $$('[data-tab-panel]').forEach(p => { p.hidden = p.dataset.tabPanel !== tab; });
     if (tab === 'posts') renderManagePosts();
     if (tab === 'comics') renderComicsAdmin();
+    if (tab === 'comm') populateCommForm();
     if (tab === 'site') populateSiteForm();
     if (tab === 'look') Studio.open();
     if (tab === 'banner') populateBannerForm();
@@ -2368,14 +2475,11 @@ function populateSiteForm() {
     const chk = (id, v) => { const el = byId(id); if (el) el.checked = !!v; };
     set('s-sitename', c.siteName); set('s-tagline', c.tagline); set('s-feedname', c.leafletsName); set('s-copyright', c.copyright);
     set('s-pfp', c.pfpImage); set('s-bio', c.aboutBio || localStorage.getItem(KEYS.bio) || '');
-    set('s-status-text', c.commissionStatus); set('s-status-color', normalizeHex(c.statusColor, '#FB3640'));
-    set('s-comm-info', c.commissionsInfo); set('s-comm-link', c.commissionsLink);
     chk('s-agegate', c.ageGate !== false); chk('s-blur', c.blurNsfw); chk('s-comments', c.allowComments); chk('s-reactions', c.reactionsEnabled);
     set('s-reaction-style', c.reactionIcon || 'thumb'); set('s-featured', c.featuredMode || 'recent');
     set('s-like-label', c.likeLabel); set('s-dislike-label', c.dislikeLabel);
     set('s-title', c.metaTitle); set('s-desc', c.metaDescription);
     set('s-bgimage', c.bgImage); set('s-css', c.customCss); set('s-newkey', '');
-    byId('status-presets').innerHTML = STATUS_PRESETS.map(p => '<button type="button" class="chip" data-action="status-preset" data-text="' + esc(p.text) + '" data-color="' + p.color + '"><span class="status-dot" style="background:' + p.color + ';animation:none"></span>' + esc(p.label) + '</button>').join('');
 }
 
 async function saveSiteSettings() {
@@ -2384,8 +2488,6 @@ async function saveSiteSettings() {
     c.siteName = val('s-sitename') || 'NEERG';
     c.tagline = val('s-tagline'); c.leafletsName = val('s-feedname') || 'Works'; c.copyright = val('s-copyright');
     c.pfpImage = val('s-pfp'); c.aboutBio = byId('s-bio').value.trim();
-    c.commissionStatus = val('s-status-text'); c.statusColor = byId('s-status-color').value;
-    c.commissionsInfo = byId('s-comm-info').value.trim(); c.commissionsLink = val('s-comm-link');
     c.ageGate = byId('s-agegate').checked; c.blurNsfw = byId('s-blur').checked;
     c.allowComments = byId('s-comments').checked; c.reactionsEnabled = byId('s-reactions').checked;
     c.reactionIcon = byId('s-reaction-style').value; c.featuredMode = byId('s-featured').value;
@@ -2416,6 +2518,146 @@ async function uploadIntoField(input) {
     target.value = paths[0];
     target.dispatchEvent(new Event('input', { bubbles: true }));
     showToast('Uploaded. Save to keep it.');
+}
+
+/* ═════════════════════════════════════════════
+   ADMIN: COMMISSIONS
+   ═════════════════════════════════════════════ */
+
+function populateCommForm() {
+    const c = currentConfig, cp = commPage();
+    const set = (id, v) => { const el = byId(id); if (el) el.value = v == null ? '' : v; };
+    set('s-status-text', c.commissionStatus); set('s-status-color', normalizeHex(c.statusColor, '#FB3640').toLowerCase());
+    set('s-comm-link', c.commissionsLink); set('s-comm-info', c.commissionsInfo);
+    set('cm-f-title', cp.title); set('cm-f-handle', cp.handle); set('cm-f-contact', cp.contact); set('cm-f-button', cp.button);
+    set('cm-f-terms', cp.terms); set('cm-f-termspic', cp.termsImage);
+    set('cm-f-tape', (cp.tapeWords || []).join('\n')); set('cm-f-closednote', cp.closedNote);
+    setCommColors(cp);
+    byId('status-presets').innerHTML = STATUS_PRESETS.map(p => '<button type="button" class="chip" data-action="status-preset" data-text="' + esc(p.text) + '" data-color="' + p.color + '"><span class="status-dot" style="background:' + p.color + ';animation:none"></span>' + esc(p.label) + '</button>').join('');
+    renderTierEditor(cp.tiers || []);
+    syncCommSwitch(cp.open !== false);
+    syncTapeSample();
+}
+function setCommColors(cp) {
+    byId('cm-f-paper').value = normalizeHex(cp.paper, COMM_DEFAULTS.paper).toLowerCase();
+    byId('cm-f-ink').value = normalizeHex(cp.ink, COMM_DEFAULTS.ink).toLowerCase();
+    byId('cm-f-tapecolor').value = normalizeHex(cp.tape, COMM_DEFAULTS.tape).toLowerCase();
+}
+function syncTapeSample() {
+    const first = byId('cm-f-tape').value.split('\n').map(w => w.trim()).find(Boolean);
+    byId('cm-tape-sample').textContent = first || HAZARD_WORDS[0];
+}
+function syncCommSwitch(open) {
+    const b = byId('cm-switch'); if (!b) return;
+    b.dataset.state = open ? 'open' : 'closed';
+    byId('cm-switch-label').textContent = open ? 'Commissions are open' : 'Commissions are closed';
+    byId('cm-switch-sub').textContent = open ? 'Click to close them and tape off your Commissions page.' : 'Hazard tape is up on your Commissions page. Click to open again.';
+}
+
+// The big switch saves straight away. The status badge follows it, unless it says something custom.
+function toggleCommissions() {
+    const open = commPage().open === false;
+    const OPEN = STATUS_PRESETS[0], CLOSED = STATUS_PRESETS.find(p => p.label === 'Closed');
+    const textEl = byId('s-status-text'), colorEl = byId('s-status-color');
+    const now = textEl.value.trim().toUpperCase();
+    if (!open && (!now || now === OPEN.text)) { textEl.value = CLOSED.text; colorEl.value = CLOSED.color.toLowerCase(); }
+    if (open && now === CLOSED.text) { textEl.value = OPEN.text; colorEl.value = OPEN.color.toLowerCase(); }
+    currentConfig.commissionStatus = textEl.value.trim();
+    currentConfig.statusColor = colorEl.value;
+    currentConfig.commPage = Object.assign(commPage(), { open });
+    syncCommSwitch(open);
+    renderStatus(); renderCommissions();
+    saveSystem();
+}
+
+function tierRowHTML(t, i, n) {
+    const color = normalizeHex(t.color, TIER_COLORS[i % TIER_COLORS.length]).toLowerCase();
+    const id = 'tier-img-' + i;
+    return '<div class="tier-row" style="--tc:' + color + '">'
+        + '<div class="tier-thumb" aria-hidden="true"></div>'
+        + '<div class="tier-fields form-grid">'
+        + '<label class="field"><span>Name</span><input type="text" name="name" value="' + esc(t.name || '') + '" placeholder="SKETCH" maxlength="16"></label>'
+        + '<div class="tier-pair"><label class="field"><span>Price</span><input type="text" name="price" value="' + esc(t.price || '') + '" placeholder="$60 or CUSTOM" maxlength="12"></label>'
+        + '<label class="field field-color"><span>Color</span><input type="color" name="color" value="' + color + '"></label></div>'
+        + '<div class="field span-2"><span>Example art</span><div class="inline-form">'
+        + '<input type="text" name="image" id="' + id + '" value="' + esc(t.image || '') + '" placeholder="img/sketch.png or https://..." aria-label="Example art link">'
+        + '<button type="button" class="btn small" data-action="pick-image" data-target="' + id + '">From posts</button>'
+        + '<label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="' + id + '" hidden></label>'
+        + '</div></div>'
+        + '<label class="check span-2"><input type="checkbox" name="pop"' + (t.pop ? ' checked' : '') + '> <span>Let the art pop out of its frame <em>(for art with a see-through background)</em></span></label>'
+        + '<label class="field span-2"><span>Details <em>(one per line; **bold** works)</em></span><textarea name="notes" rows="4" placeholder="Flat colors, one character.&#10;**Extra characters:** +$20 each.">' + esc(t.notes || '') + '</textarea></label>'
+        + '</div>'
+        + '<div class="tier-actions">'
+        + '<button type="button" class="q-btn" data-action="tier-move" data-dir="-1" aria-label="Move tier up"' + (i === 0 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>'
+        + '<button type="button" class="q-btn" data-action="tier-move" data-dir="1" aria-label="Move tier down"' + (i === n - 1 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>'
+        + '<button type="button" class="q-btn del" data-action="tier-remove" aria-label="Remove tier"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>'
+        + '</div></div>';
+}
+function renderTierEditor(tiers) {
+    const box = byId('cm-tier-list');
+    box.innerHTML = tiers.length ? tiers.map((t, i) => tierRowHTML(t, i, tiers.length)).join('') : '<p class="hint">No tiers yet. Add one for each kind of commission you offer.</p>';
+    $$('.tier-row', box).forEach(refreshTierThumb);
+}
+function readTierRows() {
+    return $$('#cm-tier-list .tier-row').map(r => {
+        const v = name => $('[name="' + name + '"]', r).value.trim();
+        return { name: v('name'), price: v('price'), color: v('color'), image: v('image'), pop: $('[name="pop"]', r).checked, notes: v('notes') };
+    });
+}
+// Keeps the little preview beside each tier in step with its art, color and name
+function refreshTierThumb(row) {
+    const img = safeUrl($('[name="image"]', row).value.trim());
+    const name = $('[name="name"]', row).value.trim();
+    row.style.setProperty('--tc', $('[name="color"]', row).value);
+    $('.tier-thumb', row).innerHTML = img ? '<img src="' + esc(img) + '" alt="">' : '<span>' + esc(name.charAt(0).toUpperCase() || '?') + '</span>';
+}
+function addTier() {
+    const tiers = readTierRows();
+    tiers.push({ name: '', price: '', color: TIER_COLORS[tiers.length % TIER_COLORS.length], image: '', pop: false, notes: '' });
+    renderTierEditor(tiers);
+    const rows = $$('#cm-tier-list .tier-row');
+    $('[name="name"]', rows[rows.length - 1]).focus();
+}
+function moveTier(btn) {
+    const rows = $$('#cm-tier-list .tier-row');
+    const i = rows.indexOf(btn.closest('.tier-row')), j = i + Number(btn.dataset.dir);
+    const tiers = readTierRows();
+    if (i < 0 || j < 0 || j >= tiers.length) return;
+    [tiers[i], tiers[j]] = [tiers[j], tiers[i]];
+    renderTierEditor(tiers);
+    const moved = $$('#cm-tier-list .tier-row')[j];
+    const again = $('[data-action="tier-move"][data-dir="' + btn.dataset.dir + '"]', moved);
+    (again && !again.disabled ? again : $('[name="name"]', moved)).focus();
+}
+function removeTier(btn) {
+    const rows = $$('#cm-tier-list .tier-row');
+    const i = rows.indexOf(btn.closest('.tier-row'));
+    const tiers = readTierRows();
+    const t = tiers[i]; if (!t) return;
+    if ((t.name || t.price || t.image || t.notes) && !confirm('Remove the ' + (t.name || 'untitled') + ' tier? It leaves your page when you save.')) return;
+    tiers.splice(i, 1);
+    renderTierEditor(tiers);
+}
+
+function saveCommSettings() {
+    const c = currentConfig;
+    const val = id => (byId(id).value || '').trim();
+    let link = val('s-comm-link');
+    if (/^[^\s@/:]+@[^\s@/]+\.[a-z]{2,}$/i.test(link)) link = 'mailto:' + link;
+    c.commissionStatus = val('s-status-text'); c.statusColor = byId('s-status-color').value;
+    c.commissionsLink = link; c.commissionsInfo = byId('s-comm-info').value.trim();
+    const tiers = readTierRows().filter(t => t.name || t.price || t.image || t.notes);
+    c.commPage = Object.assign(commPage(), {
+        title: val('cm-f-title'), handle: val('cm-f-handle'), contact: val('cm-f-contact'), button: val('cm-f-button'),
+        tiers, terms: byId('cm-f-terms').value.trim(), termsImage: val('cm-f-termspic'),
+        tapeWords: byId('cm-f-tape').value.split('\n').map(w => w.trim()).filter(Boolean),
+        closedNote: val('cm-f-closednote'),
+        paper: byId('cm-f-paper').value, ink: byId('cm-f-ink').value, tape: byId('cm-f-tapecolor').value
+    });
+    byId('s-comm-link').value = link;
+    renderTierEditor(tiers);
+    renderStatus(); renderCommissions();
+    saveSystem();
 }
 
 /* ═════════════════════════════════════════════
@@ -3038,7 +3280,14 @@ const actions = {
     'ap-submit': () => submitAddPages(),
     'sorter-remove': el => { const q = el.dataset.sorter === 'nc-pages' ? comicPagesQueue : addPagesQueue; q.splice(Number(el.dataset.index), 1); if (el.dataset.sorter === 'nc-pages') renderNewComicPages(); else renderAddPages(); },
     'site-save': () => saveSiteSettings(),
+    'goto-admin-tab': (el, e) => { e.preventDefault(); showAdminTab(el.dataset.tab); window.scrollTo(0, 0); },
     'status-preset': el => { byId('s-status-text').value = el.dataset.text; byId('s-status-color').value = el.dataset.color.toLowerCase(); },
+    'comm-toggle': () => toggleCommissions(),
+    'comm-save': () => saveCommSettings(),
+    'comm-colors-reset': () => setCommColors(COMM_DEFAULTS),
+    'tier-add': () => addTier(),
+    'tier-move': el => moveTier(el),
+    'tier-remove': el => removeTier(el),
     'studio-mode': el => Studio.switchMode(el.dataset.mode),
     'studio-preset': el => Studio.applyPreset(Number(el.dataset.index)),
     'studio-generate': () => Studio.generate(),
@@ -3163,6 +3412,8 @@ function bindEvents() {
         else if (t.id === 'bn-speed') byId('bn-speed-out').textContent = t.value + 's per loop';
         else if (/^bn-img-\d$/.test(t.id)) { const prev = t.parentElement.querySelector('.prev'); if (prev) prev.style.backgroundImage = 'url("' + safeUrl(t.value).replace(/"/g, '%22') + '")'; }
         else if (t.id === 's-status-color') document.documentElement.style.setProperty('--status', t.value);
+        else if (t.id === 'cm-f-tape') syncTapeSample();
+        else if (/^(image|color|name)$/.test(t.name) && t.closest('.tier-row')) refreshTierThumb(t.closest('.tier-row'));
     });
     document.addEventListener('change', e => {
         const t = e.target;

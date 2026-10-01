@@ -35,11 +35,11 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 
-    <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
     <script defer src="logic.js"></script>
 </head>
 <body>
@@ -242,18 +242,39 @@
 
     <!-- ═══════════ COMMISSIONS ═══════════ -->
     <section class="view" data-view="commissions" id="view-commissions" hidden>
-        <div class="wrap">
-            <div class="page-head"><h1>Commissions</h1></div>
-            <div class="comm">
-                <aside class="comm-card">
-                    <span class="status-pill is-large" id="comm-status">
+        <!-- A poster: paper, taped corners, big title, one card per tier. Everything is filled in from Admin, Commissions. -->
+        <div class="cm" id="cm">
+            <div class="cm-corner tl" aria-hidden="true"><div class="cm-band" id="cm-band-tl"></div></div>
+            <div class="cm-corner br" aria-hidden="true"><div class="cm-band" id="cm-band-br"></div></div>
+
+            <div class="cm-inner">
+                <h1 class="cm-title" id="cm-title">Commissions</h1>
+                <div class="cm-bar">
+                    <span class="cm-status" id="comm-status" hidden>
                         <span class="status-dot" aria-hidden="true"></span>
                         <span id="comm-status-text"></span>
                     </span>
-                    <a class="btn btn-primary" id="comm-request" href="#" target="_blank" rel="noopener" hidden>Request a commission</a>
-                    <div class="comm-contact" id="comm-contact"></div>
-                </aside>
-                <div class="prose" id="comm-info"></div>
+                    <a class="cm-request" id="comm-request" href="#" target="_blank" rel="noopener" hidden>Request a commission</a>
+                    <span class="cm-request is-closed" id="comm-closed" hidden>Commissions closed</span>
+                </div>
+                <p class="cm-closed-note" id="cm-closed-note" hidden></p>
+
+                <div class="cm-board" id="cm-board">
+                    <div class="cm-tiers" id="cm-tiers"></div>
+                    <div class="cm-hazard" id="cm-hazard" aria-hidden="true" hidden></div>
+                </div>
+
+                <section class="cm-terms" id="cm-terms" aria-labelledby="cm-terms-title" hidden>
+                    <div class="cm-terms-x" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                    <img class="cm-terms-pic" id="cm-terms-pic" alt="" hidden>
+                    <div class="cm-terms-body">
+                        <h2 class="cm-terms-head" id="cm-terms-title"><span class="cm-chevs" aria-hidden="true"><i></i><i></i></span>Terms</h2>
+                        <div class="cm-terms-text" id="cm-terms-text"></div>
+                    </div>
+                </section>
+
+                <div class="cm-note prose" id="comm-info" hidden></div>
+                <div class="comm-contact" id="comm-contact"></div>
             </div>
         </div>
     </section>
@@ -312,6 +333,7 @@
                     <button role="tab" data-action="admin-tab" data-tab="post" aria-selected="true">New post</button>
                     <button role="tab" data-action="admin-tab" data-tab="posts" aria-selected="false">Posts</button>
                     <button role="tab" data-action="admin-tab" data-tab="comics" aria-selected="false">Comics</button>
+                    <button role="tab" data-action="admin-tab" data-tab="comm" aria-selected="false">Commissions</button>
                     <button role="tab" data-action="admin-tab" data-tab="site" aria-selected="false">Site info</button>
                     <button role="tab" data-action="admin-tab" data-tab="look" aria-selected="false">Colors &amp; style</button>
                     <button role="tab" data-action="admin-tab" data-tab="banner" aria-selected="false">Home banner</button>
@@ -412,6 +434,83 @@
                     <div class="manage-list" id="mc-list"></div>
                 </div>
 
+                <!-- Commissions -->
+                <div class="dash-panel" data-tab-panel="comm" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Open or closed</legend>
+                        <button type="button" class="cm-switch" id="cm-switch" data-action="comm-toggle" aria-pressed="false">
+                            <span class="cm-switch-tapes" aria-hidden="true"><i></i><i></i><i></i></span>
+                            <span class="cm-switch-text">
+                                <strong id="cm-switch-label">Commissions are open</strong>
+                                <span id="cm-switch-sub">Click to close them and tape off your Commissions page.</span>
+                            </span>
+                        </button>
+                        <p class="hint">This button saves and syncs straight away. Your status badge flips between Open and Closed with it, unless you've written your own.</p>
+                        <div class="field">
+                            <span>Status badge</span>
+                            <div class="chips" id="status-presets"></div>
+                        </div>
+                        <div class="form-grid">
+                            <label class="field"><span>Status text</span><input type="text" id="s-status-text" placeholder="AVAILABLE FOR COMMISSIONS"></label>
+                            <label class="field field-color"><span>Status color</span><input type="color" id="s-status-color"></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Page text</legend>
+                        <div class="form-grid">
+                            <label class="field"><span>Big title</span><input type="text" id="cm-f-title" placeholder="COMMISSIONS" maxlength="24"></label>
+                            <label class="field"><span>Name on the blue tape</span><input type="text" id="cm-f-handle" placeholder="Your site name"></label>
+                            <label class="field span-2"><span>Contact line on the blue tape</span><input type="text" id="cm-f-contact" placeholder="DM or you@email.com"></label>
+                            <label class="field"><span>Request link <em>(a form, or mailto:you@site.com)</em></span><input type="text" id="s-comm-link" placeholder="https://..."></label>
+                            <label class="field"><span>Request button text</span><input type="text" id="cm-f-button" placeholder="Request a commission"></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Tiers</legend>
+                        <p class="hint">Each tier is a card with example art, its name running down the side, your notes and a price badge. Art with a see-through background (a PNG) can pop out of its frame like a sticker.</p>
+                        <div class="tier-list" id="cm-tier-list"></div>
+                        <button type="button" class="btn" data-action="tier-add" style="align-self:flex-start"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add tier</button>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Terms</legend>
+                        <label class="field"><span>Terms <em>(one per line; Markdown works)</em></span><textarea id="cm-f-terms" rows="6" placeholder="Payment upfront via PayPal or Ko-fi.&#10;No refunds once work has started."></textarea></label>
+                        <div class="field">
+                            <span>Picture beside the terms <em>(leave empty to use your profile picture)</em></span>
+                            <div class="inline-form">
+                                <input type="text" id="cm-f-termspic" placeholder="img/me.png or https://..." aria-label="Picture beside the terms">
+                                <button type="button" class="btn small" data-action="pick-image" data-target="cm-f-termspic">From posts</button>
+                                <label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="cm-f-termspic" hidden></label>
+                            </div>
+                        </div>
+                        <label class="field"><span>Extra details <em>(optional, shown under the terms; Markdown works)</em></span><textarea id="s-comm-info" rows="5"></textarea></label>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>When closed</legend>
+                        <div class="hz-sample" aria-hidden="true"><span id="cm-tape-sample">COMMISSIONS CLOSED</span></div>
+                        <label class="field"><span>Words on the hazard tape <em>(one per line)</em></span><textarea id="cm-f-tape" rows="3" placeholder="COMMISSIONS CLOSED&#10;CLOSED&#10;CHECK BACK SOON"></textarea></label>
+                        <label class="field"><span>Closed message <em>(optional, shown under the title)</em></span><input type="text" id="cm-f-closednote" placeholder="Back soon! Follow me to hear when slots open."></label>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Poster colors</legend>
+                        <div class="swatches compact">
+                            <label class="swatch"><input type="color" id="cm-f-paper"><span>Paper</span></label>
+                            <label class="swatch"><input type="color" id="cm-f-ink"><span>Ink</span></label>
+                            <label class="swatch"><input type="color" id="cm-f-tapecolor"><span>Corner tape</span></label>
+                        </div>
+                        <button type="button" class="btn small" data-action="comm-colors-reset" style="align-self:flex-start">Reset poster colors</button>
+                    </fieldset>
+
+                    <div class="form-foot sticky-foot">
+                        <a class="btn btn-ghost" href="#/commissions">View page</a>
+                        <button class="btn btn-primary" data-action="comm-save">Save &amp; sync</button>
+                    </div>
+                </div>
+
                 <!-- Site info -->
                 <div class="dash-panel" data-tab-panel="site" role="tabpanel" hidden>
                     <fieldset class="group">
@@ -436,19 +535,7 @@
                         <label class="field"><span>Bio <em>(Markdown works)</em></span><textarea id="s-bio" rows="5" placeholder="Who you are, what you make, what you're into."></textarea></label>
                     </fieldset>
 
-                    <fieldset class="group">
-                        <legend>Commissions</legend>
-                        <div class="field">
-                            <span>Status</span>
-                            <div class="chips" id="status-presets"></div>
-                        </div>
-                        <div class="form-grid">
-                            <label class="field"><span>Status text</span><input type="text" id="s-status-text" placeholder="AVAILABLE FOR COMMISSIONS"></label>
-                            <label class="field field-color"><span>Status color</span><input type="color" id="s-status-color"></label>
-                        </div>
-                        <label class="field"><span>Commission info <em>(prices, what you draw, terms; Markdown works)</em></span><textarea id="s-comm-info" rows="8"></textarea></label>
-                        <label class="field"><span>Request link <em>(optional form or email, like mailto:you@site.com)</em></span><input type="text" id="s-comm-link" placeholder="https://..."></label>
-                    </fieldset>
+                    <p class="hint">Commission prices, status and terms now live in their own <a href="#/admin" data-action="goto-admin-tab" data-tab="comm">Commissions</a> tab.</p>
 
                     <fieldset class="group">
                         <legend>Visitors</legend>

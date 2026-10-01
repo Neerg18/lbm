@@ -18,6 +18,7 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Better Sorting:** Sort the feed by newest, oldest, most liked, least liked or most discussed
 - **Featured Carousel:** Show your newest, most liked or pinned posts on Home, or hide it
 - **Wide-Screen Layout:** Home, Gallery and Comics fill big monitors edge to edge, with two or three featured posts side by side and more work per row
+- **Commissions Poster:** A zine-style Commissions page with a tier card for each kind of commission (example art, price badge, notes) and a terms box, plus a one-click switch that tapes the whole page off with hazard tape when you're closed
 - **One-Click Backup:** Download all four data files from the dashboard
 - **Clean Up Tool:** Storage overview plus tools to trim, de-duplicate and compact your data
 - **Faster Posting:** Paste an image straight into the post editor, or bulk upload many images as separate posts
@@ -70,7 +71,8 @@ All visual customization is done through the **Admin** dashboard. No code editin
 | **New post** | Write captions (Markdown works), add tags, pin posts, upload images/video/audio |
 | **Posts** | Find, edit, pin and delete existing posts |
 | **Comics** | Create comics, reorder pages by dragging, add new pages later |
-| **Site info** | Site name, tagline, profile picture, bio, commission status and info, age check, comments, reactions, search engine description |
+| **Commissions** | The open/closed switch, status badge, tiers (example art, price, notes, color), terms, request link, hazard-tape words and poster colors |
+| **Site info** | Site name, tagline, profile picture, bio, age check, comments, reactions, search engine description |
 | **Colors & style** | Dark and light palettes, presets, color generator, reaction button colors, profile ring |
 | **Home banner** | Header images (latest posts or your own picks) and the scrolling text band |
 | **Social links** | Links shown on the header, About page, Commissions page and footer |
