@@ -38,7 +38,9 @@ const KEYS = {
     social: 'neerg_social_links',
     bio: 'neerg_about_bio',
     recoveryDismissed: 'neerg_recovery_dismissed',
-    comicProgress: 'neerg_comic_progress'
+    comicProgress: 'neerg_comic_progress',
+    shrinkLeftovers: 'neerg_shrink_leftovers',
+    shrinkSkipped: 'neerg_shrink_skipped'
 };
 
 const AGE_OK_DAYS = 30;
@@ -156,7 +158,7 @@ let currentConfig = {
     socialLinks: [], bannerSettings: null, aboutBio: '',
     commissionStatus: 'AVAILABLE FOR COMMISSIONS', statusColor: '#FB3640',
     commissionsInfo: '', commissionsLink: '',
-    ageGate: true, featuredMode: 'recent', blurNsfw: false,
+    ageGate: true, featuredMode: 'recent', blurNsfw: false, webpUploads: true,
     colors: { ...DEFAULT_DARK },
     lightColors: null,
     pfpRingStyle: null
@@ -1966,12 +1968,48 @@ function compressImage(file, maxWidth = 800, quality = 0.65, forceJPEG = true) {
     });
 }
 
+/* WebP: PNG and JPG art re-encoded in the browser, usually a fraction of the size at a quality that looks the same */
+const WEBP_QUALITY = 0.9;
+const SHRINKABLE_EXT = /\.(png|jpe?g|bmp)(?=([?#].*)?$)/i;
+function canShrink(type, name) { return /^image\/(png|jpeg|bmp)$/.test(type || '') || SHRINKABLE_EXT.test(name || ''); }
+// Animated PNGs carry an acTL chunk before their first IDAT; a canvas would flatten them to one frame
+function isAnimatedPng(buf) {
+    const b = new Uint8Array(buf), dv = new DataView(buf);
+    if (b.length < 16 || b[1] !== 0x50 || b[2] !== 0x4E || b[3] !== 0x47) return false;
+    for (let i = 8; i + 8 <= b.length;) {
+        const type = String.fromCharCode(b[i + 4], b[i + 5], b[i + 6], b[i + 7]);
+        if (type === 'acTL') return true;
+        if (type === 'IDAT') return false;
+        i += 12 + dv.getUint32(i);
+    }
+    return false;
+}
+// Returns a smaller WebP blob, or null when converting wouldn't help (animated, already small, or the browser can't make WebP)
+async function toWebp(blob, name) {
+    if (!canShrink(blob.type, name)) return null;
+    try {
+        if (isAnimatedPng(await blob.arrayBuffer())) return null;
+        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+        const c = document.createElement('canvas');
+        c.width = bmp.width; c.height = bmp.height;
+        c.getContext('2d').drawImage(bmp, 0, 0);
+        if (bmp.close) bmp.close();
+        const out = await new Promise(res => c.toBlob(res, 'image/webp', WEBP_QUALITY));
+        return out && out.type === 'image/webp' && out.size < blob.size * 0.95 ? out : null;
+    } catch (e) { return null; }
+}
+function webpName(name) { return String(name || 'image').replace(/\.[^./]*$/, '') + '.webp'; }
+
 /* Uploads a list of files one by one. onStep(i, total, file) reports progress. Returns paths, or null on failure. */
 async function uploadFiles(files, folder, onStep) {
     const out = [];
     for (let i = 0; i < files.length; i++) {
-        const f = files[i];
+        let f = files[i];
         if (onStep) onStep(i, files.length, f);
+        if (!isLocalMode() && currentConfig.webpUploads !== false && canShrink(f.type, f.name)) {
+            const w = await toWebp(f, f.name);
+            if (w) f = new File([w], webpName(f.name), { type: 'image/webp' });
+        }
         if (isLocalMode()) {
             const b64 = await compressImage(f, folder.includes('comics') ? 1000 : 1200, 0.7, false);
             if (!b64) { showToast('Couldn\'t read ' + f.name, 'error'); return null; }
@@ -2490,6 +2528,7 @@ function populateSiteForm() {
     set('s-like-label', c.likeLabel); set('s-dislike-label', c.dislikeLabel);
     set('s-title', c.metaTitle); set('s-desc', c.metaDescription);
     set('s-bgimage', c.bgImage); set('s-css', c.customCss); set('s-newkey', '');
+    chk('s-webp', c.webpUploads !== false);
 }
 
 async function saveSiteSettings() {
@@ -2504,6 +2543,7 @@ async function saveSiteSettings() {
     c.likeLabel = byId('s-like-label').value; c.dislikeLabel = byId('s-dislike-label').value;
     c.metaTitle = val('s-title'); c.metaDescription = val('s-desc');
     c.bgImage = val('s-bgimage'); c.customCss = byId('s-css').value;
+    c.webpUploads = byId('s-webp').checked;
     if (c.aboutBio) try { localStorage.setItem(KEYS.bio, c.aboutBio); } catch (e) {}
     const newKey = val('s-newkey');
     if (newKey.length > 5) {
@@ -2915,6 +2955,7 @@ function openCleanupPanel() {
     byId('cleanup-log').innerHTML = '<div class="log-entry dim">Nothing run yet.</div>';
     $$('#cleanup-modal .tool-grid .btn').forEach(b => b.classList.remove('is-done', 'is-running'));
     refreshCleanupStats();
+    renderShrink();
     Modals.open(byId('cleanup-modal'));
 }
 function refreshCleanupStats() {
@@ -3013,6 +3054,119 @@ async function runCleanup(fn, btn) {
     if (changed.comics) await saveComics();
     if (changed.interactions) await saveInteractionsOverwrite();
     if (Object.values(changed).some(Boolean)) cleanupLog('Synced changes', 'success');
+}
+
+/* ═════════════════════════════════════════════
+   SHRINK IMAGES (PNG and JPG to WebP)
+   The bridge can upload but not delete, so the originals stay on
+   Neocities; we keep a list of them for the owner to remove.
+   ═════════════════════════════════════════════ */
+
+const Shrink = { running: false, stop: false };
+
+// The path of an image stored on this site ("img/a.png"), or '' for outside links and inline data
+function siteImagePath(u) {
+    const s = String(u || '').trim();
+    if (!s || /^data:/i.test(s)) return '';
+    try { const url = new URL(s, location.href); return url.origin === location.origin ? decodeURIComponent(url.pathname).replace(/^\//, '') : ''; }
+    catch (e) { return ''; }
+}
+// Every PNG/JPG reference on the site, exactly as stored (minus ones an earlier run found it couldn't shrink)
+function shrinkableRefs(includeSkipped) {
+    const refs = new Set(), skipped = includeSkipped ? [] : readJSON(KEYS.shrinkSkipped, []) || [];
+    const add = u => { if (typeof u === 'string' && SHRINKABLE_EXT.test(siteImagePath(u)) && !skipped.includes(u)) refs.add(u); };
+    postsCache.forEach(p => mediaList(p).forEach(add));
+    comicsCache.forEach(c => { (c.pages || []).forEach(add); add(c.cover); });
+    const c = currentConfig;
+    [c.pfpImage, c.bgImage, c.bannerImage].forEach(add);
+    (bannerSettings().bannerImages || []).forEach(add);
+    const cp = commPage();
+    (cp.tiers || []).forEach(t => add(t.image));
+    add(cp.termsImage);
+    return [...refs];
+}
+function swapImageRefs(map) {
+    const sw = u => (typeof u === 'string' && map[u]) || u;
+    const olds = Object.keys(map);
+    postsCache.forEach(p => {
+        if (Array.isArray(p.media)) p.media = p.media.map(sw); else if (p.media) p.media = sw(p.media);
+        if (p.content) olds.forEach(o => { if (p.content.includes(o)) p.content = p.content.split(o).join(map[o]); });
+    });
+    comicsCache.forEach(cm => { if (cm.pages) cm.pages = cm.pages.map(sw); if (cm.cover) cm.cover = sw(cm.cover); });
+    const c = currentConfig;
+    ['pfpImage', 'bgImage', 'bannerImage'].forEach(k => { if (c[k]) c[k] = sw(c[k]); });
+    const b = bannerSettings();
+    if ((b.bannerImages || []).some(u => map[u])) { c.bannerSettings = Object.assign({}, b, { bannerImages: b.bannerImages.map(sw) }); writeJSON(KEYS.banner, c.bannerSettings); }
+    if (c.commPage) c.commPage = Object.assign({}, c.commPage, { tiers: (c.commPage.tiers || []).map(t => Object.assign({}, t, { image: sw(t.image) })), termsImage: sw(c.commPage.termsImage) });
+}
+async function siteHasFile(u) {
+    try { const r = await fetch(new URL(u, location.href), { method: 'HEAD', cache: 'no-store' }); return r.ok; } catch (e) { return false; }
+}
+
+function renderShrink() {
+    const refs = shrinkableRefs();
+    const kept = shrinkableRefs(true).length - refs.length;
+    byId('shrink-info').textContent = refs.length
+        ? 'Found ' + plural(refs.length, 'PNG or JPG image') + ' on your site. This makes smaller WebP copies, switches your posts, comics and pages over to them, and lists the old files for you to delete.'
+        : 'Nothing left to shrink.' + (kept ? ' ' + plural(kept, 'image') + ' stayed as ' + (kept === 1 ? 'it was' : 'they were') + ' because ' + (kept === 1 ? 'it is' : 'they are') + ' animated or already small.' : ' Your images are already WebP, GIF or video.');
+    byId('shrink-start').disabled = !refs.length || Shrink.running;
+    const left = readJSON(KEYS.shrinkLeftovers, []) || [];
+    byId('shrink-left').hidden = !left.length;
+    byId('shrink-left-count').textContent = plural(left.length, 'old file') + ' still on Neocities.';
+    byId('shrink-list').value = left.join('\n');
+}
+
+async function runShrink() {
+    if (Shrink.running) return;
+    if (isLocalMode()) { showToast('Connect your site to Neocities first, so the copies can be uploaded.', 'error'); return; }
+    const refs = shrinkableRefs();
+    if (!refs.length) return;
+    if (!confirm('Make smaller WebP copies of ' + plural(refs.length, 'image') + ' and switch your site over to them?\n\nYour originals stay on Neocities until you delete them, so nothing is lost if something goes wrong. Keep this tab open until it finishes.')) return;
+    Shrink.running = true; Shrink.stop = false;
+    const bar = byId('shrink-bar'), txt = byId('shrink-text'), count = byId('shrink-count');
+    byId('shrink-progress').hidden = false; byId('shrink-stop').hidden = false; byId('shrink-start').disabled = true;
+    cleanupLog('Shrinking ' + plural(refs.length, 'image'), 'info');
+    const map = {}, done = [], cant = [];
+    let before = 0, after = 0, skipped = 0, failed = 0;
+    for (let i = 0; i < refs.length && !Shrink.stop; i++) {
+        const old = refs[i], name = siteImagePath(old);
+        txt.textContent = 'Shrinking ' + name.split('/').pop();
+        count.textContent = (i + 1) + ' of ' + refs.length;
+        bar.style.width = (i / refs.length * 100) + '%';
+        try {
+            const res = await fetch(new URL(old, location.href), { cache: 'no-store' });
+            if (!res.ok) { skipped++; cleanupLog('Skipped ' + name + ' (not found on your site)', 'info'); continue; }
+            const blob = await res.blob();
+            const webp = await toWebp(blob, name);
+            if (!webp) { skipped++; cant.push(old); continue; }
+            let next = old.replace(SHRINKABLE_EXT, '.webp');
+            if (await siteHasFile(next)) next = old.replace(SHRINKABLE_EXT, '-' + Date.now().toString(36) + '.webp');
+            const path = siteImagePath(next);
+            await promisifiedUpload(new File([webp], path.split('/').pop(), { type: 'image/webp' }), path);
+            map[old] = next; done.push(name);
+            before += blob.size; after += webp.size;
+        } catch (e) {
+            failed++;
+            cleanupLog('Couldn\'t shrink ' + name + '. ' + e, 'error');
+            if (!done.length && failed >= 3) { cleanupLog('Stopped: the first few uploads failed. Check your connection, then try again.', 'error'); break; }
+        }
+    }
+    bar.style.width = '100%';
+    if (done.length) {
+        txt.textContent = 'Saving your posts';
+        swapImageRefs(map);
+        applyVisualConfig(); renderHome(); renderComics();
+        await savePosts(); await saveComics(); await saveSystem();
+        const left = readJSON(KEYS.shrinkLeftovers, []) || [];
+        writeJSON(KEYS.shrinkLeftovers, left.concat(done.filter(n => !left.includes(n))));
+        cleanupLog('Shrank ' + plural(done.length, 'image') + ' from ' + formatBytes(before) + ' to ' + formatBytes(after) + ' (' + Math.round((1 - after / before) * 100) + '% smaller)', 'success');
+    }
+    if (skipped) cleanupLog('Left ' + plural(skipped, 'image') + ' as ' + (skipped === 1 ? 'it was' : 'they were') + ' (animated, already small, or your browser can\'t make WebP)', 'info');
+    if (cant.length && document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp')) writeJSON(KEYS.shrinkSkipped, (readJSON(KEYS.shrinkSkipped, []) || []).concat(cant));
+    if (Shrink.stop) cleanupLog('Stopped early. Run it again any time to finish the rest.', 'info');
+    Shrink.running = false;
+    byId('shrink-progress').hidden = true; byId('shrink-stop').hidden = true;
+    renderShrink(); refreshCleanupStats();
 }
 
 /* ═════════════════════════════════════════════
@@ -3315,6 +3469,11 @@ const actions = {
     'link-remove': el => el.closest('.link-row').remove(),
     'links-save': () => saveSocialLinks(),
     'cleanup': el => runCleanup(el.dataset.fn, el),
+    'shrink-start': () => runShrink(),
+    'shrink-stop': el => { Shrink.stop = true; el.disabled = true; el.textContent = 'Stopping'; setTimeout(() => { el.disabled = false; el.textContent = 'Stop after this one'; }, 1500); },
+    'shrink-copy': () => { const t = byId('shrink-list').value; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('List copied'), () => { byId('shrink-list').select(); showToast('Press Ctrl+C to copy the selected list'); }); },
+    'shrink-download': () => downloadFile(byId('shrink-list').value + '\n', 'old-images-to-delete.txt'),
+    'shrink-forget': () => { if (!confirm('Clear the list? Only do this once the old files are deleted from Neocities.')) return; writeJSON(KEYS.shrinkLeftovers, []); renderShrink(); },
     'setup-create': () => generateSystem(),
     'setup-restore': () => restoreFromBackup(),
     'setup-preset': el => { setupPreset = Number(el.dataset.index); $$('#su-presets .preset').forEach((b, i) => b.setAttribute('aria-pressed', String(i === setupPreset))); }

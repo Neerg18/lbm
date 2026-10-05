@@ -581,6 +581,7 @@
                                 <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="s-bgimage" hidden></label>
                             </div>
                         </div>
+                        <label class="check"><input type="checkbox" id="s-webp"> <span>Save uploaded PNG and JPG images as smaller WebP files <em>(saves Neocities space; animated images are left alone)</em></span></label>
                         <label class="field"><span>Custom CSS</span><textarea id="s-css" rows="5" class="code" spellcheck="false"></textarea></label>
                         <label class="field"><span>New Neocities API key <em>(only if you regenerated it)</em></span><input type="password" id="s-newkey" autocomplete="off" placeholder="Leave empty to keep your current key"></label>
                     </fieldset>
@@ -871,6 +872,27 @@
             <button class="btn small" data-action="cleanup" data-fn="base64"><i class="fa-solid fa-image" aria-hidden="true"></i> Strip inline images</button>
             <button class="btn small danger" data-action="cleanup" data-fn="old"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i> Delete old posts</button>
             <button class="btn small danger" data-action="cleanup" data-fn="nuke"><i class="fa-solid fa-fire" aria-hidden="true"></i> Erase all likes &amp; comments</button>
+        </div>
+        <h3 class="mini-head">Shrink images</h3>
+        <div class="shrink">
+            <p class="hint" id="shrink-info">Makes smaller WebP copies of the PNG and JPG images on your site and switches your posts over to them.</p>
+            <div class="progress" id="shrink-progress" hidden>
+                <div class="progress-row"><span id="shrink-text">Shrinking</span><span id="shrink-count"></span></div>
+                <div class="progress-bar"><div class="progress-fill" id="shrink-bar"></div></div>
+            </div>
+            <div class="row-actions">
+                <button class="btn small" data-action="shrink-start" id="shrink-start"><i class="fa-solid fa-feather" aria-hidden="true"></i> Shrink images to WebP</button>
+                <button class="btn small btn-ghost" data-action="shrink-stop" id="shrink-stop" hidden>Stop after this one</button>
+            </div>
+            <div class="shrink-left" id="shrink-left" hidden>
+                <p><strong id="shrink-left-count"></strong> Your posts no longer use these, so delete them in your <a href="https://neocities.org/dashboard" target="_blank" rel="noopener">Neocities dashboard</a> to free up the space.</p>
+                <textarea id="shrink-list" class="code" rows="5" readonly aria-label="Old image files to delete"></textarea>
+                <div class="row-actions">
+                    <button class="btn small" data-action="shrink-copy"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy list</button>
+                    <button class="btn small" data-action="shrink-download"><i class="fa-solid fa-download" aria-hidden="true"></i> Download list</button>
+                    <button class="btn small btn-ghost" data-action="shrink-forget">I've deleted them</button>
+                </div>
+            </div>
         </div>
         <h3 class="mini-head">Activity</h3>
         <div class="log" id="cleanup-log"><div class="log-entry dim">Nothing run yet.</div></div>

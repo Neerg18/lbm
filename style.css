@@ -277,6 +277,10 @@ input[type="range"] { width: 100%; accent-color: var(--hl); }
 
 .hint { font-size: .86rem; color: var(--text-3); }
 
+.shrink { display: flex; flex-direction: column; gap: 12px; }
+.shrink-left { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px dashed var(--line-strong); border-radius: var(--r-m); }
+.shrink-left p { font-size: .9rem; color: var(--text-2); }
+.shrink-left textarea { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; }
 .progress { padding: 12px 14px; border-radius: var(--r-s); background: var(--surface); border: 1px solid var(--line); }
 .progress-row { display: flex; justify-content: space-between; font-size: .85rem; color: var(--text-2); margin-bottom: 8px; }
 .progress-bar { height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; }
