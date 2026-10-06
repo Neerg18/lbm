@@ -17,8 +17,9 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Reaction Styles:** Thumbs, arrows, or your own custom like/dislike text
 - **Better Sorting:** Sort the feed by newest, oldest, most liked, least liked or most discussed
 - **Featured Carousel:** Show your newest, most liked or pinned posts on Home, or hide it
-- **Paper Home & About:** Below your banner, Home and About sit on a cream paper sheet with bold outlined cards. Recent work shows as postage stamps, Featured gets a details card and a commissions card, and About adds live counts, your links and your latest work
+- **Paper Home & About:** Below your banner, Home and About sit on a paper sheet with bold outlined cards: cream in light mode, night blue with cream outlines in dark mode. Recent work shows as postage stamps, Featured gets a details card and a commissions card, and About adds live counts, your links and your latest work
 - **Recommended Comic:** A ticket at the bottom of Home (side by side on computers, upright on phones) points visitors to a comic, picking up where they left off. It's the newest comic unless you choose one in **Admin → Site info**
+- **Both Themes Everywhere:** Home, About, Gallery and Comics all switch with the light/dark button
 - **Zine Gallery:** The Gallery is a collage of colored paper cards, one per board with "All media" first, and each board opens into taped-on polaroids
 - **Zine Comics:** The Comics page matches the Gallery: a paper card for each comic with its cover stuck on, a reading progress bar, a "Continue" shortcut back to where you left off, and each comic's page list has a header in that comic's color
 - **Wide-Screen Layout:** Home, Gallery and Comics fill big monitors edge to edge, with more work per row
