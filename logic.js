@@ -1238,20 +1238,41 @@ function renderGallery() {
    ═════════════════════════════════════════════ */
 
 function comicCover(c) { return safeUrl(c.cover || (c.pages && c.pages[0]) || ''); }
+// Each comic keeps the same paper color on the shelf and on its page list
+function comicColor(id) {
+    const i = comicsCache.slice().sort((a, b) => b.id - a.id).findIndex(c => c.id === id);
+    return ZINE_COLORS[Math.max(i, 0) % ZINE_COLORS.length];
+}
 function renderComics() {
     const grid = byId('comics-grid'); if (!grid) return;
     const list = comicsCache.slice().sort((a, b) => b.id - a.id);
-    byId('comics-count').textContent = list.length ? plural(list.length, 'comic') : '';
+    const progress = comicProgress();
+    // Intro card: counts, and a shortcut back into the newest comic left half-read
+    byId('zc-name').textContent = siteName();
+    byId('comics-count').textContent = list.length;
+    byId('zc-pages').textContent = list.reduce((n, c) => n + (c.pages || []).length, 0);
+    const midway = list.find(c => { const p = progress[c.id]; return p != null && p > 0 && p < (c.pages || []).length - 1; });
+    const cont = byId('zc-continue');
+    cont.hidden = !midway;
+    byId('zc-reading').textContent = midway ? (midway.title || 'Untitled') + ', p. ' + (progress[midway.id] + 1) : 'Not started';
+    if (midway) { cont.href = '#/comics/' + midway.id + '/' + (progress[midway.id] + 1); cont.textContent = 'Continue ' + (midway.title || 'reading') + ' →'; }
     if (!list.length) { grid.innerHTML = '<div class="empty"><h3>No comics yet</h3><p>Comics will appear here once they\'re posted.</p></div>'; return; }
-    const progress = readJSON(KEYS.comicProgress, {}) || {};
-    grid.innerHTML = list.map(c => {
+    grid.innerHTML = list.map((c, i) => {
         const pages = (c.pages || []).length;
         const cover = comicCover(c);
-        const read = progress[c.id] != null ? ', you\'re on page ' + (progress[c.id] + 1) : '';
-        return '<a class="comic-card" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '">'
-            + '<span class="comic-cover">' + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="ring-fallback">✦</span>') + '</span>'
-            + '<span class="comic-title">' + esc(c.title || 'Untitled') + '</span>'
-            + '<span class="comic-sub">' + plural(pages, 'page') + esc(read) + '</span>'
+        const p = progress[c.id];
+        const started = p != null && pages > 1;
+        // Pages 2-4 fanned out; always shown on the top card, and on any card left with a wide row to itself
+        const strip = (c.pages || []).slice(1, 4).map(u => '<span class="zg-sticker"><img src="' + esc(safeUrl(u)) + '" alt="" loading="lazy" decoding="async"></span>').join('');
+        return '<a class="zg-card zg-paper zc-card' + (i === 0 ? ' is-wide' : '') + '" style="--zc:' + ZINE_COLORS[i % ZINE_COLORS.length] + '" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '">'
+            + '<span class="zc-cover">' + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="zc-cover-empty" aria-hidden="true">' + esc((c.title || '?').charAt(0).toUpperCase()) + '</span>') + '</span>'
+            + '<span class="zg-card-text">'
+            + '<span class="zg-card-title">' + esc(c.title || 'Untitled') + '</span>'
+            + '<span class="zg-card-meta"><span><strong>' + plural(pages, 'page') + '</strong>Comic ' + String(list.length - i).padStart(2, '0') + '</span><span><strong>Posted</strong>' + esc(formatDate(c)) + '</span></span>'
+            + (started ? '<span class="zc-progress"><span class="zc-bar"><i style="width:' + Math.round((p + 1) / pages * 100) + '%"></i></span>' + (p >= pages - 1 ? 'Finished' : 'On page ' + (p + 1) + ' of ' + pages) + '</span>' : '')
+            + '<span class="zg-open">' + (started && p < pages - 1 ? 'Keep reading' : 'Read it') + ' <span aria-hidden="true">→</span></span>'
+            + '</span>'
+            + (strip ? '<span class="zg-stickers n' + Math.min(3, pages - 1) + '" aria-hidden="true">' + strip + '</span>' : '')
             + '</a>';
     }).join('');
 }
@@ -1652,15 +1673,18 @@ function openComicGallery(id, opts = {}) {
 
     const pages = comic.pages;
     const prog = comicProgress()[comic.id];
+    overlay.style.setProperty('--zc', comicColor(comic.id));
     byId('co-title').textContent = comic.title || 'Untitled';
-    byId('co-meta').textContent = plural(pages.length, 'page') + (comic.date ? ', posted ' + comic.date : '');
+    byId('co-meta').textContent = plural(pages.length, 'page') + ', posted ' + formatDate(comic);
     const tags = (comic.tags || []);
     byId('co-tags').innerHTML = tags.map(t => '<span class="chip">' + esc(t) + '</span>').join('');
     byId('co-tags').hidden = !tags.length;
     byId('co-actions').innerHTML = (prog != null && prog > 0 && prog < pages.length
         ? '<button class="btn" data-action="read-comic" data-id="' + comic.id + '" data-page="0">From the start</button><button class="btn btn-primary" data-action="read-comic" data-id="' + comic.id + '" data-page="' + prog + '">Continue on page ' + (prog + 1) + '</button>'
         : '<button class="btn btn-primary" data-action="read-comic" data-id="' + comic.id + '" data-page="0"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Start reading</button>');
-    byId('co-grid').innerHTML = pages.map((url, i) => '<button class="page-thumb' + (prog === i ? ' is-last' : '') + '" data-action="read-comic" data-id="' + comic.id + '" data-page="' + i + '"><span class="frame"><img src="' + esc(url) + '" alt="" loading="lazy" decoding="async"></span>Page ' + (i + 1) + (prog === i ? ', last read' : '') + '</button>').join('');
+    byId('co-grid').innerHTML = pages.map((url, i) => '<button class="page-thumb zg-pola' + (prog === i ? ' is-last' : '') + '" style="--r:' + ZINE_TILTS[i % ZINE_TILTS.length] + 'deg;--tape:' + ZINE_TAPES[i % ZINE_TAPES.length] + '" data-action="read-comic" data-id="' + comic.id + '" data-page="' + i + '" aria-label="Read from page ' + (i + 1) + (prog === i ? ', where you left off' : '') + '">'
+        + '<span class="zg-tape" aria-hidden="true"></span><span class="zg-pola-img"><img src="' + esc(safeUrl(url)) + '" alt="" loading="lazy" decoding="async"></span>'
+        + '<span class="zg-pola-cap">Page ' + (i + 1) + '</span>' + (prog === i ? '<span class="zc-here" aria-hidden="true">You\'re here</span>' : '') + '</button>').join('');
     overlay.scrollTop = 0;
     if (!Modals.isOpen(overlay)) Modals.open(overlay, { onRequestClose: () => closeComicGallery(), focus: '.back-btn' });
 }

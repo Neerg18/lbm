@@ -924,45 +924,80 @@ button.zg-card:hover .zg-sticker:nth-child(2) { transform: rotate(7deg) translat
 /* ═══════════════════════════════════════════
    COMICS
    ═══════════════════════════════════════════ */
-/* Same idea for comics: covers stretch to fill the row, unless there are only a few to show */
-.shelf { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, clamp(180px, 11vw, 260px)), 1fr)); gap: 32px 20px; }
-@media (min-width: 641px) { .shelf:not(:has(> :nth-child(5))) { grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(180px, 11vw, 260px)), 1fr)); } }
-.comic-card { display: flex; flex-direction: column; gap: 10px; color: var(--text); text-align: left; }
-.comic-card:hover { text-decoration: none; }
-.comic-cover {
-    position: relative; aspect-ratio: 2 / 3;
-    border-radius: var(--r-s) var(--r-m) var(--r-m) var(--r-s);
-    overflow: hidden;
-    background: var(--surface);
-    box-shadow: inset 6px 0 0 color-mix(in srgb, #000 22%, transparent), 0 14px 30px -18px rgba(0,0,0,.7);
-    transition: transform .35s var(--ease-out), box-shadow .35s var(--ease-out);
+/* Comics shelf: the Gallery's zine cards, each with its cover stuck on like a book */
+.view[data-view="comics"] { padding: 0; }
+.zc-intro .zg-id-body { flex-basis: 100%; }
+.zc-continue { align-self: flex-start; padding: 12px 22px; border-radius: 999px; background: var(--zg-ink); color: var(--zg-cream); font-weight: 800; }
+.zc-continue:hover { background: #000; color: var(--zg-cream); text-decoration: none; }
+.zc-pow {
+    flex: 1 1 300px; display: grid; place-items: center; min-height: 300px; padding: 28px 28px 56px;
+    border-radius: 6px; background-color: #F2C230;
+    background-image: radial-gradient(#E8413B 22%, transparent 24%); background-size: 14px 14px;
 }
-.comic-cover img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.comic-cover .ring-fallback { position: absolute; inset: 0; border: 0; border-radius: 0; font-size: 2.6rem; color: var(--text-3); }
-.comic-card:hover .comic-cover { transform: translateY(-4px) rotate(-1deg); box-shadow: inset 6px 0 0 color-mix(in srgb, #000 22%, transparent), 0 22px 40px -18px rgba(0,0,0,.8); }
-.comic-title { font-weight: 700; line-height: 1.3; }
-.comic-sub { font-size: .86rem; color: var(--text-3); margin-top: -6px; }
+.zc-bubble {
+    position: relative; margin: 0; padding: .2em .55em .28em;
+    border: 4px solid var(--zg-ink); border-radius: 50%; background: var(--zg-white); color: var(--zg-ink);
+    font-size: clamp(3.2rem, 5vw, 5.6rem); font-weight: 800; font-style: italic; letter-spacing: -.04em; line-height: 1;
+    transform: rotate(-4deg); box-shadow: 6px 6px 0 var(--zg-ink);
+}
+.zc-bubble::before, .zc-bubble::after { content: ""; position: absolute; top: 100%; width: 0; height: 0; transform: skewX(-24deg); }
+.zc-bubble::before { left: 26%; margin-top: 1px; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 42px solid var(--zg-ink); }
+.zc-bubble::after { left: calc(26% + 9px); margin-top: -4px; border-left: 11px solid transparent; border-right: 11px solid transparent; border-top: 30px solid var(--zg-white); }
+a.zg-card:hover { text-decoration: none; transform: translateY(-4px) rotate(-.4deg); box-shadow: 0 18px 30px -18px rgba(0,0,0,.8); }
+.zc-card { container: zc-card / inline-size; flex-direction: row; align-items: flex-start; gap: clamp(20px, 2.4vw, 32px); }
+.zc-card.is-wide { align-items: center; }
+.zc-card .zg-card-text { flex: 1 1 240px; }
+.zc-card:not(.is-wide) .zg-card-title { font-size: clamp(2.6rem, 4vw, 4.6rem); }
+.zc-cover {
+    position: relative; flex: none; width: clamp(120px, 32%, 260px); aspect-ratio: 2 / 3; overflow: hidden;
+    border: 8px solid var(--zg-white); border-radius: 4px 8px 8px 4px; background: var(--zg-white);
+    box-shadow: inset 6px 0 0 rgba(0,0,0,.18), 0 16px 26px -14px rgba(0,0,0,.6);
+    transform: rotate(-3deg); transition: transform .3s var(--ease-out);
+}
+.zc-card.is-wide .zc-cover { width: clamp(170px, 22%, 340px); }
+.zc-cover img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.zc-cover-empty { display: grid; place-items: center; height: 100%; font-size: 4rem; font-weight: 800; font-style: italic; opacity: .3; }
+a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
+.zc-card.is-wide .zg-stickers { flex: 1 1 340px; height: 300px; }
+.zc-card:not(.is-wide) .zg-stickers { display: none; }
+@container zc-card (min-width: 800px) {
+    .zc-card:not(.is-wide) .zg-stickers { display: block; flex: 1 1 260px; align-self: center; height: 280px; }
+}
+.zc-progress { display: flex; flex-direction: column; gap: 6px; max-width: 320px; font-size: .95rem; font-weight: 700; }
+.zc-bar { height: 10px; overflow: hidden; border: 2px solid var(--zg-ink); border-radius: 999px; background: rgba(255,255,255,.45); }
+.zc-bar i { display: block; height: 100%; background: var(--zg-ink); }
 
-/* Comic page gallery overlay */
-.comic-overlay { background: var(--bg); overflow-y: auto; display: block; }
+/* Comic page list: the comic's paper color up top, polaroid pages below */
+.comic-overlay {
+    --zg-ink: #2B2B2B; --zg-cream: #EFE8DA; --zg-white: #FFFDF6;
+    display: block; overflow-y: auto;
+    background-color: #262626; background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.5px); background-size: 8px 8px;
+}
 .comic-head {
+    --text: var(--zg-ink); --text-2: var(--zg-ink); --text-3: rgba(43,43,43,.78); --line: rgba(43,43,43,.45); --line-strong: var(--zg-ink);
     position: sticky; top: 0; z-index: 2;
-    background: var(--glass);
-    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
-    border-bottom: 1px solid var(--line);
     padding: 16px 0;
+    border-bottom: 3px solid var(--zg-ink);
+    background-color: var(--zc, #F2C230); color: var(--zg-ink);
+    background-image: radial-gradient(rgba(0,0,0,.07) 1px, transparent 1.5px), radial-gradient(rgba(255,255,255,.22) 1px, transparent 1.5px);
+    background-size: 6px 6px, 9px 9px; background-position: 0 0, 3px 4px;
 }
 .comic-head-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 20px; }
-.comic-head-text h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.4rem, 3vw, 2rem); }
-.comic-meta { color: var(--text-3); font-size: .9rem; margin: 2px 0 6px; }
+.comic-head-text h2 { font-size: clamp(1.8rem, 4vw, 3.4rem); font-weight: 800; letter-spacing: -.03em; line-height: .95; }
+.comic-meta { margin: 6px 0; font-size: .95rem; font-weight: 600; color: var(--text-3); }
 .comic-head-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.comic-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(160px, 9vw, 220px)), 1fr)); gap: 18px; padding: 28px 0 72px; }
-.page-thumb { display: flex; flex-direction: column; gap: 6px; color: var(--text-2); font-size: .85rem; text-align: left; }
-.page-thumb:hover { color: var(--text); text-decoration: none; }
-.page-thumb .frame { aspect-ratio: 3 / 4; border-radius: var(--r-s); overflow: hidden; background: var(--surface); border: 1px solid var(--line); transition: border-color .2s, transform .3s var(--ease-out); }
-.page-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.page-thumb:hover .frame { border-color: var(--hl); transform: translateY(-3px); }
-.page-thumb.is-last .frame { border-color: var(--hl); }
+.comic-head .back-btn { border: 2px solid var(--zg-ink); color: var(--zg-ink); font-weight: 800; }
+.comic-head .back-btn:hover { background: var(--zg-ink); color: var(--zc, #F2C230); }
+.comic-head .btn { border: 2px solid var(--zg-ink); border-radius: 999px; background: transparent; color: var(--zg-ink); font-weight: 800; }
+.comic-head .btn:hover { background: rgba(255,255,255,.35); }
+.comic-head .btn-primary { background: var(--zg-ink); color: var(--zc, #F2C230); }
+.comic-head .btn-primary:hover { background: #000; }
+.comic-head .chip { border-color: var(--zg-ink); color: var(--zg-ink); }
+/* A grid, not columns, so pages read left to right in order */
+.comic-pages.zg-polas { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(170px, 11vw, 240px), 1fr)); columns: auto; gap: 30px 24px; align-items: start; padding: 44px 0 72px; }
+.comic-pages .zg-pola { margin: 0; }
+.comic-pages .zg-pola-img img { aspect-ratio: 3 / 4; object-fit: cover; object-position: top; }
+.zc-here { position: absolute; right: -10px; top: 16px; z-index: 2; padding: 6px 12px; border-radius: 999px; background: var(--zg-ink); color: var(--zc, #F2C230); font-size: .8rem; font-weight: 800; transform: rotate(8deg); }
 
 /* Reader */
 .reader { background: #000; color: #fff; display: flex; flex-direction: column; }
@@ -1817,7 +1852,10 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
     .tile-meta { font-size: .78rem; }
     .tile-meta time { flex-basis: 100%; }
     .react { height: 28px; padding: 0 9px; }
-    .shelf { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 14px; }
+    .zc-card { flex-direction: column; align-items: stretch; }
+    .zc-card .zc-cover, .zc-card.is-wide .zc-cover { width: 58%; align-self: center; }
+    .zc-pow { min-height: 200px; }
+    .comic-pages.zg-polas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
     .about { grid-template-columns: 1fr; justify-items: center; text-align: center; }
     .about .prose { text-align: left; }
     .link-list { justify-content: center; }

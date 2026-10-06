@@ -251,12 +251,29 @@
 
     <!-- ═══════════ COMICS ═══════════ -->
     <section class="view" data-view="comics" id="view-comics" hidden>
-        <div class="wrap wide">
-            <div class="page-head">
-                <h1>Comics</h1>
-                <span class="section-count" id="comics-count"></span>
+        <!-- Zine collage, like the Gallery: an intro card, a speech-bubble title, then one paper card per comic -->
+        <div class="zg">
+            <div class="wrap wide zg-inner">
+                <div class="zg-top">
+                    <section class="zg-id zg-paper zc-intro" aria-label="About the comics">
+                        <svg class="zg-flower zc-star" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 4l11 26 28-6-17 23 21 19-28 3 1 28-16-23-16 23 1-28-28-3 21-19-17-23 28 6z" fill="#E8752A" stroke="#2B2B2B" stroke-width="3" stroke-linejoin="round"/><circle cx="43" cy="47" r="3" fill="#2B2B2B"/><circle cx="57" cy="47" r="3" fill="#2B2B2B"/><path d="M42 56q8 7 16 0" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round"/></svg>
+                        <div class="zg-id-body">
+                            <p class="zg-name" id="zc-name">NEERG</p>
+                            <p class="zg-desc">Every comic, newest first. Open one to see its pages, or jump back in where you left off.</p>
+                            <dl class="zg-stats">
+                                <div><dt>Comics</dt><dd id="comics-count">0</dd></div>
+                                <div><dt>Pages</dt><dd id="zc-pages">0</dd></div>
+                                <div><dt>Reading</dt><dd id="zc-reading">Not started</dd></div>
+                            </dl>
+                            <a class="zc-continue" id="zc-continue" href="#/comics" hidden></a>
+                        </div>
+                    </section>
+                    <div class="zc-pow">
+                        <h1 class="zc-bubble">Comics</h1>
+                    </div>
+                </div>
+                <div class="zg-boards" id="comics-grid"></div>
             </div>
-            <div class="shelf" id="comics-grid"></div>
         </div>
     </section>
 
@@ -795,7 +812,7 @@
 <div class="overlay comic-overlay" id="comic-overlay" role="dialog" aria-modal="true" aria-labelledby="co-title" hidden>
     <div class="comic-head">
         <div class="wrap wide comic-head-inner">
-            <button class="back-btn" data-action="close-comic"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Comics</button>
+            <button class="back-btn" data-action="close-comic"><span aria-hidden="true">←</span> Comics</button>
             <div class="comic-head-text">
                 <h2 id="co-title">Comic</h2>
                 <p class="comic-meta" id="co-meta"></p>
@@ -805,7 +822,7 @@
         </div>
     </div>
     <div class="wrap wide">
-        <div class="comic-pages" id="co-grid"></div>
+        <div class="comic-pages zg-polas" id="co-grid"></div>
     </div>
 </div>
 
