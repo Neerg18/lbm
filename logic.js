@@ -1153,50 +1153,84 @@ function allMediaItems() {
     return items;
 }
 
-function masonryHTML(items, listName) {
+// Zine gallery: paper colors the board cards take in turn, and each polaroid's tilt and tape
+const ZINE_COLORS = ['#F2C230', '#E8752A', '#7DB46C', '#E88AAE', '#6FB1E0', '#C9A7F5'];
+const ZINE_TILTS = [-1.5, 1.2, -0.8, 1.8, 1, -1.6, 0.8, -1.2];
+const ZINE_TAPES = ['rgba(242,194,48,.75)', 'rgba(125,180,108,.75)', 'rgba(232,117,42,.7)', 'rgba(58,166,242,.6)', 'rgba(201,167,245,.75)'];
+const ALL_BOARD = '__all';
+
+function polaHTML(items, listName) {
     if (!items.length) return '<div class="empty"><h3>No images here yet</h3></div>';
     return items.map((m, i) => {
         const veil = currentConfig.blurNsfw && m.nsfw && !ui.revealed.has(m.postId);
         let inner;
         if (m.type === 'video') inner = '<video src="' + esc(m.url) + '" muted loop playsinline preload="metadata" data-hoverplay></video><span class="badge"><i class="fa-solid fa-play" aria-hidden="true"></i></span>';
-        else if (m.type === 'audio') inner = '<div class="tile-audio" style="position:relative;aspect-ratio:1"><i class="fa-solid fa-music" aria-hidden="true"></i></div>';
+        else if (m.type === 'audio') inner = '<span class="tile-audio" style="position:relative;aspect-ratio:1"><i class="fa-solid fa-music" aria-hidden="true"></i></span>';
         else inner = '<img src="' + esc(m.url) + '" alt="" loading="lazy" decoding="async" class="is-loading">';
-        return '<button class="masonry-item' + (veil ? ' is-veiled' : '') + '" data-action="open-viewer" data-list="' + listName + '" data-index="' + i + '" aria-label="View full size">' + inner + (veil ? '<span class="veil"><i class="fa-regular fa-eye-slash" aria-hidden="true"></i>Sensitive</span>' : '') + '</button>';
+        const n = items.length - i;
+        return '<button class="zg-pola' + (veil ? ' is-veiled' : '') + '" style="--r:' + ZINE_TILTS[i % ZINE_TILTS.length] + 'deg;--tape:' + ZINE_TAPES[i % ZINE_TAPES.length] + '" data-action="open-viewer" data-list="' + listName + '" data-index="' + i + '" aria-label="View piece ' + n + ' full size">'
+            + '<span class="zg-tape" aria-hidden="true"></span>'
+            + '<span class="zg-pola-img">' + inner + (veil ? '<span class="veil"><i class="fa-regular fa-eye-slash" aria-hidden="true"></i>Sensitive</span>' : '') + '</span>'
+            + '<span class="zg-pola-cap">No. ' + n + '</span></button>';
     }).join('');
+}
+
+// "All media" is a board of its own, ahead of the tag boards
+function galleryBoards(tagBoards) {
+    const all = allMediaItems();
+    return all.length ? [{ key: ALL_BOARD, name: 'All media', items: all }].concat(tagBoards) : tagBoards;
+}
+
+function zineCardHTML(b, i) {
+    const blur = currentConfig.blurNsfw;
+    const pics = b.items.filter(m => m.type === 'image').slice(0, 3);
+    const newest = postsCache.find(p => p.id === (b.items[0] || {}).postId);
+    const stickers = pics.map(m => '<span class="zg-sticker' + (blur && m.nsfw ? ' is-veiled' : '') + '"><img src="' + esc(m.url) + '" alt="" loading="lazy" decoding="async"></span>').join('');
+    return '<button class="zg-card zg-paper' + (i === 0 ? ' is-wide' : '') + '" style="--zc:' + ZINE_COLORS[i % ZINE_COLORS.length] + '" data-action="open-board" data-key="' + esc(b.key) + '">'
+        + '<span class="zg-card-text">'
+        + '<span class="zg-card-title">' + esc(b.name) + '</span>'
+        + '<span class="zg-card-meta"><span><strong>' + plural(b.items.length, 'piece') + '</strong>' + (b.key === ALL_BOARD ? 'Everything, every board' : 'Board ' + String(i).padStart(2, '0')) + '</span>'
+        + (newest ? '<span><strong>Latest</strong>' + esc(formatDate(newest)) + '</span>' : '') + '</span>'
+        + '<span class="zg-open">Open board <span aria-hidden="true">→</span></span>'
+        + '</span>'
+        + '<span class="zg-stickers n' + pics.length + '" aria-hidden="true">' + stickers + (blur && pics.some(m => m.nsfw) ? '<span class="zg-reveal">Sensitive</span>' : '') + '</span>'
+        + '</button>';
+}
+
+function renderGalleryId(tagBoards) {
+    byId('zg-name').textContent = siteName();
+    const tag = (currentConfig.tagline || '').trim();
+    const t = byId('zg-tag'); t.textContent = tag; t.hidden = !tag;
+    byId('zg-boards').textContent = tagBoards.length;
+    byId('zg-pieces').textContent = postsCache.filter(p => mediaList(p).length).length;
+    byId('zg-media').textContent = allMediaItems().some(m => m.type === 'video') ? 'Images & video' : 'Images';
+    const pfp = safeUrl(currentConfig.pfpImage), img = byId('zg-pfp'), fb = byId('zg-pfp-fallback');
+    fb.textContent = siteName().trim().charAt(0).toUpperCase() || '✦';
+    if (pfp) { img.onerror = () => { img.hidden = true; fb.hidden = false; }; img.src = pfp; img.hidden = false; fb.hidden = true; }
+    else { img.hidden = true; img.removeAttribute('src'); fb.hidden = false; }
 }
 
 let galleryLists = { all: [], board: [], tiers: [] };
 function renderGallery() {
     const g = ui.gallery;
-    $$('[data-action="gallery-mode"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === g.mode)));
-    const boardsEl = byId('gallery-boards'), boardEl = byId('gallery-board'), allEl = byId('gallery-all');
-    boardsEl.hidden = !(g.mode === 'boards' && !g.board);
-    boardEl.hidden = !(g.mode === 'boards' && g.board);
-    allEl.hidden = g.mode !== 'all';
-    if (g.mode === 'all') {
-        galleryLists.all = allMediaItems();
-        allEl.innerHTML = masonryHTML(galleryLists.all, 'all');
+    const tagBoards = boardsData();
+    const boards = galleryBoards(tagBoards);
+    renderGalleryId(tagBoards);
+    const boardsEl = byId('gallery-boards'), boardEl = byId('gallery-board');
+    const open = g.board ? boards.find(x => x.key === g.board) : null;
+    if (!open) g.board = null;
+    boardsEl.hidden = !!open;
+    boardEl.hidden = !open;
+    if (open) {
+        byId('board-head').style.setProperty('--zc', ZINE_COLORS[boards.indexOf(open) % ZINE_COLORS.length]);
+        byId('board-title').textContent = open.name;
+        byId('board-count').textContent = plural(open.items.length, 'piece');
+        galleryLists.board = open.items;
+        byId('board-grid').innerHTML = polaHTML(open.items, 'board');
         return;
     }
-    const boards = boardsData();
-    if (g.board) {
-        const b = boards.find(x => x.key === g.board);
-        if (!b) { g.board = null; return renderGallery(); }
-        byId('board-title').textContent = b.name;
-        byId('board-count').textContent = plural(b.items.length, 'piece');
-        galleryLists.board = b.items;
-        byId('board-grid').innerHTML = masonryHTML(b.items, 'board');
-        return;
-    }
-    if (!boards.length) { boardsEl.innerHTML = '<div class="empty"><h3>No boards yet</h3><p>Boards are made from post tags. Tag your posts and they\'ll group here.</p></div>'; return; }
-    boardsEl.innerHTML = boards.map(b => {
-        const covers = b.items.filter(m => m.type === 'image' && !(currentConfig.blurNsfw && m.nsfw)).slice(0, 3);
-        const imgs = covers.map(m => '<img src="' + esc(m.url) + '" alt="" loading="lazy" decoding="async">').join('');
-        return '<button class="board" data-action="open-board" data-key="' + esc(b.key) + '">'
-            + '<span class="board-cover n' + covers.length + '">' + (imgs || '<i class="fa-regular fa-images" aria-hidden="true"></i>') + '</span>'
-            + '<span><span class="board-name">' + esc(b.name) + '</span><br><span class="board-count">' + plural(b.items.length, 'piece') + '</span></span>'
-            + '</button>';
-    }).join('');
+    boardsEl.innerHTML = boards.length ? boards.map(zineCardHTML).join('')
+        : '<div class="empty"><h3>No boards yet</h3><p>Boards are made from post tags. Tag your posts and they\'ll group here.</p></div>';
 }
 
 /* ═════════════════════════════════════════════
@@ -3385,7 +3419,6 @@ const actions = {
     'featured-next': () => featuredGo(ui.featured.i + 1),
     'featured-go': el => featuredGo(Number(el.dataset.index)),
 
-    'gallery-mode': el => { ui.gallery.mode = el.dataset.mode; ui.gallery.board = null; renderGallery(); },
     'open-board': el => { ui.gallery.board = el.dataset.key; renderGallery(); window.scrollTo(0, 0); },
     'close-board': () => { ui.gallery.board = null; renderGallery(); },
     'open-viewer': el => {

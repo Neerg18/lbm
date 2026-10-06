@@ -208,24 +208,44 @@
 
     <!-- ═══════════ GALLERY ═══════════ -->
     <section class="view" data-view="gallery" id="view-gallery" hidden>
-        <div class="wrap wide">
-            <div class="page-head">
-                <h1 id="gallery-title">Gallery</h1>
-                <div class="seg" role="group" aria-label="Gallery view">
-                    <button data-action="gallery-mode" data-mode="boards" aria-pressed="true">Boards</button>
-                    <button data-action="gallery-mode" data-mode="all" aria-pressed="false">All media</button>
+        <!-- Zine collage: an ID card up top, then one colored paper card per board ("All media" first) -->
+        <div class="zg">
+            <div class="wrap wide zg-inner">
+                <div class="zg-top">
+                    <section class="zg-id zg-paper" aria-label="About this gallery">
+                        <svg class="zg-flower" viewBox="0 0 100 100" aria-hidden="true"><g fill="#F2B530" stroke="#2B2B2B" stroke-width="3"><circle cx="50" cy="20" r="17"/><circle cx="78" cy="38" r="17"/><circle cx="70" cy="72" r="17"/><circle cx="30" cy="72" r="17"/><circle cx="22" cy="38" r="17"/></g><circle cx="50" cy="50" r="19" fill="#FFE27A" stroke="#2B2B2B" stroke-width="3"/><circle cx="44" cy="47" r="2.6" fill="#2B2B2B"/><circle cx="56" cy="47" r="2.6" fill="#2B2B2B"/><path d="M42 55q8 7 16 0" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round"/></svg>
+                        <div class="zg-pic">
+                            <img id="zg-pfp" alt="" hidden>
+                            <span class="zg-pic-fallback" id="zg-pfp-fallback" aria-hidden="true">N</span>
+                            <span class="zg-pic-tag" id="zg-tag"></span>
+                        </div>
+                        <div class="zg-id-body">
+                            <div class="zg-name-row">
+                                <p class="zg-name" id="zg-name">NEERG</p>
+                                <svg class="zg-smiley" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="#C9A7F5" stroke="#2B2B2B" stroke-width="2.5"/><circle cx="17" cy="20" r="2.5" fill="#2B2B2B"/><circle cx="31" cy="20" r="2.5" fill="#2B2B2B"/><path d="M15 29q9 9 18 0" fill="none" stroke="#2B2B2B" stroke-width="2.5" stroke-linecap="round"/></svg>
+                            </div>
+                            <p class="zg-desc">Every piece lives here, sorted into boards by tag, newest first.</p>
+                            <dl class="zg-stats">
+                                <div><dt>Boards</dt><dd id="zg-boards">0</dd></div>
+                                <div><dt>Pieces</dt><dd id="zg-pieces">0</dd></div>
+                                <div><dt>Media</dt><dd id="zg-media">Images</dd></div>
+                            </dl>
+                        </div>
+                    </section>
+                    <div class="zg-hello"><h1 class="zg-rainbow" id="gallery-title">Gal&shy;lery</h1></div>
+                </div>
+
+                <div class="zg-boards" id="gallery-boards"></div>
+
+                <div id="gallery-board" hidden>
+                    <section class="zg-card zg-paper zg-board-head" id="board-head">
+                        <button class="zg-back" data-action="close-board"><span aria-hidden="true">←</span> All boards</button>
+                        <h2 class="zg-card-title" id="board-title"></h2>
+                        <p class="zg-board-count" id="board-count"></p>
+                    </section>
+                    <div class="zg-polas" id="board-grid"></div>
                 </div>
             </div>
-            <div class="boards" id="gallery-boards"></div>
-            <div id="gallery-board" hidden>
-                <button class="back-btn" data-action="close-board"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> All boards</button>
-                <div class="board-head">
-                    <h2 id="board-title"></h2>
-                    <span class="section-count" id="board-count"></span>
-                </div>
-                <div class="masonry" id="board-grid"></div>
-            </div>
-            <div class="masonry" id="gallery-all" hidden></div>
         </div>
     </section>
 

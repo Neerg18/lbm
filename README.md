@@ -17,6 +17,7 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Reaction Styles:** Thumbs, arrows, or your own custom like/dislike text
 - **Better Sorting:** Sort the feed by newest, oldest, most liked, least liked or most discussed
 - **Featured Carousel:** Show your newest, most liked or pinned posts on Home, or hide it
+- **Zine Gallery:** The Gallery is a collage of colored paper cards, one per board with "All media" first, and each board opens into taped-on polaroids
 - **Wide-Screen Layout:** Home, Gallery and Comics fill big monitors edge to edge, with two or three featured posts side by side and more work per row
 - **Commissions Poster:** A zine-style Commissions page with a tier card for each kind of commission (example art, price badge, notes) and a terms box, plus a one-click switch that tapes the whole page off with hazard tape when you're closed
 - **One-Click Backup:** Download all four data files from the dashboard
