@@ -173,7 +173,7 @@ const ui = {
     viewer: { list: [], i: 0 },
     comic: { id: null, pushed: false },
     reader: { id: null, page: 0 },
-    featured: { i: 0, timer: null, stops: 0, list: [] },
+    featured: { i: 0, timer: null, stops: 0 },
     lastCommentAt: 0
 };
 
@@ -542,7 +542,7 @@ function renderStatus() {
     const text = (currentConfig.commissionStatus || '').trim();
     const pill = byId('hero-status');
     if (pill) { pill.hidden = !text; byId('hero-status-text').textContent = text; }
-    ['feat-comm', 'about-comm'].forEach(id => { const card = byId(id); if (card) card.hidden = !text; });
+    const card = byId('about-comm'); if (card) card.hidden = !text;
     $$('.feat-comm-text').forEach(n => { n.textContent = text; });
     document.documentElement.style.setProperty('--status', normalizeHex(currentConfig.statusColor, paletteFor(getMode()).accent));
 }
@@ -1026,43 +1026,31 @@ function featuredPosts() {
 
 // Bright paper colors for tag chips on the Home sheet
 const NB_CHIP_COLORS = ['#FF8CC6', '#00C2CB', '#FFD23F', '#FF9A3C', '#C9A7F5', '#8EE3B0'];
-function newestPostId() { return postsCache.reduce((m, p) => Math.max(m, p.id), 0); }
 
 function renderFeatured() {
     const sec = byId('featured'), track = byId('featured-track');
-    const list = ui.featured.list = featuredPosts();
+    const list = featuredPosts();
     if (!list.length) { sec.hidden = true; stopFeatured(); return; }
     sec.hidden = false;
     track.innerHTML = list.map((p, i) => {
-        const cap = excerpt(p.content, 80);
-        const tag = postTags(p)[0];
-        return '<a class="feat" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '" data-index="' + i + '" aria-label="Open featured post: ' + esc(cap || 'Untitled piece') + '">'
-            + '<span class="feat-media"><img src="' + esc(firstImage(p)) + '" alt="" loading="lazy" decoding="async"></span>'
-            + (tag ? '<span class="nb-sticker" aria-hidden="true">#' + esc(tag) + '</span>' : '')
-            + '</a>';
+        const cap = excerpt(p.content, 160);
+        const ints = getInteractions(p.id);
+        return '<a class="feat" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '" data-index="' + i + '">'
+            + '<div class="feat-media"><img src="' + esc(firstImage(p)) + '" alt="" loading="lazy" decoding="async"></div>'
+            + '<div class="feat-body">'
+            + '<p class="feat-title' + (cap ? '' : ' is-muted') + '">' + (cap ? esc(cap) : 'Untitled piece') + '</p>'
+            + '<div class="feat-meta"><time>' + esc(formatDate(p)) + '</time>'
+            + (currentConfig.reactionsEnabled ? '<span><i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>' + (ints.likes || 0) + '</span>' : '')
+            + (currentConfig.allowComments ? '<span><i class="fa-regular fa-comment" aria-hidden="true"></i>' + commentCount(p.id) + '</span>' : '')
+            + (postTags(p)[0] ? '<span>#' + esc(postTags(p)[0]) + '</span>' : '')
+            + '</div>'
+            + '<span class="btn feat-cta">View post</span>'
+            + '</div></a>';
     }).join('');
     ui.featured.i = 0;
     renderFeaturedDots();
     track.scrollLeft = 0;
-    renderFeatInfo();
     startFeatured();
-}
-
-// The yellow card beside the board describes whichever piece is showing
-function renderFeatInfo() {
-    const box = byId('feat-info'); if (!box) return;
-    const list = ui.featured.list || [];
-    const p = list[ui.featured.i];
-    const burst = byId('feat-new');
-    if (!p) { box.innerHTML = ''; if (burst) burst.hidden = true; return; }
-    const cap = excerpt(p.content, 90);
-    const tags = postTags(p);
-    box.innerHTML = '<span class="nb-label">Now showing · ' + (ui.featured.i + 1) + ' of ' + list.length + '</span>'
-        + '<h3 class="nb-feat-title">' + (cap ? esc(cap) : 'Untitled piece') + '</h3>'
-        + '<dl class="nb-table"><div><dt>Posted</dt><dd>' + esc(formatDate(p)) + '</dd></div>'
-        + '<div><dt>Tags</dt><dd>' + (tags.length ? tags.slice(0, 3).map(t => '#' + esc(t)).join(' ') : 'None') + '</dd></div></dl>'
-        + '<a class="nb-btn is-ink" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '">View post <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>';
-    if (burst) burst.hidden = p.id !== newestPostId();
 }
 
 // Places the carousel can rest: one per card, fewer when wide screens show several cards side by side
@@ -1074,7 +1062,7 @@ function featuredStops() {
 function renderFeaturedDots() {
     const stops = ui.featured.stops = featuredStops();
     ui.featured.i = Math.min(ui.featured.i, stops - 1);
-    byId('featured-dots').innerHTML = stops > 1 ? Array.from({ length: stops }, (_, i) => '<button data-action="featured-go" data-index="' + i + '" aria-label="Show featured post ' + (i + 1) + '"' + (i === ui.featured.i ? ' aria-current="true"' : '') + '>' + (i + 1) + '</button>').join('') : '';
+    byId('featured-dots').innerHTML = stops > 1 ? Array.from({ length: stops }, (_, i) => '<button data-action="featured-go" data-index="' + i + '" aria-label="Show featured post ' + (i + 1) + '"' + (i === ui.featured.i ? ' aria-current="true"' : '') + '></button>').join('') : '';
     $$('#featured .carousel-ctrl').forEach(c => { c.hidden = stops < 2; });
 }
 
@@ -1083,20 +1071,8 @@ function featuredGo(i) {
     const cards = $$('.feat', track); if (!cards.length) return;
     const stops = featuredStops();
     ui.featured.i = (i + stops) % stops;
-    track.scrollTo({ left: cards[ui.featured.i].offsetLeft - cards[0].offsetLeft, behavior: reduceMotion() ? 'auto' : 'smooth' });
+    track.scrollTo({ left: cards[ui.featured.i].offsetLeft - track.offsetLeft, behavior: reduceMotion() ? 'auto' : 'smooth' });
     syncFeaturedDots();
-    renderFeatInfo();
-}
-// Swiping the board by hand keeps the numbers and the details card in step
-function syncFeaturedFromScroll() {
-    const track = byId('featured-track'); if (!track) return;
-    const cards = $$('.feat', track); if (cards.length < 2) return;
-    const step = cards[1].offsetLeft - cards[0].offsetLeft || track.clientWidth;
-    const i = clamp(Math.round(track.scrollLeft / step), 0, cards.length - 1);
-    if (i === ui.featured.i) return;
-    ui.featured.i = i;
-    syncFeaturedDots();
-    renderFeatInfo();
 }
 function syncFeaturedDots() { $$('#featured-dots button').forEach((d, n) => d.setAttribute('aria-current', String(n === ui.featured.i))); }
 function startFeatured() {
@@ -1217,7 +1193,8 @@ function renderRecComic() {
     const cover = comicCover(c);
     const thumbs = (n > 1 ? pages.slice(1, 4) : pages.slice(0, 1)).map(safeUrl).filter(Boolean);
     const run = (words, times) => Array(times).fill(words).join(' ✦ ');
-    box.innerHTML = '<div class="nb-stub">'
+    box.innerHTML = '<span class="nb-oval" aria-hidden="true">Read this!</span>'
+        + '<div class="nb-stub">'
         + '<span class="nb-stub-side" aria-hidden="true"><span>' + esc(run('Recommended read ✦ ' + siteName() + ' comics', 4)) + '</span></span>'
         + '<div class="nb-stub-main"><span class="nb-stub-top" aria-hidden="true">' + esc(run(siteName() + ' comics ✦ Recommended read', 3)) + '</span>'
         + '<a class="nb-stub-cover" href="#/comics/' + c.id + '" aria-label="See every page of ' + esc(title) + '">'
@@ -1225,7 +1202,7 @@ function renderRecComic() {
         + NB_SPARK + '</a></div></div>'
         + '<div class="nb-tk-body"><span class="nb-notch top" aria-hidden="true"><i></i></span><span class="nb-notch bottom" aria-hidden="true"><i></i></span>'
         + '<div class="nb-tk-main">'
-        + '<div class="nb-tk-top"><span class="nb-label">Recommended comic</span><i class="fa-solid fa-crosshairs" aria-hidden="true"></i></div>'
+        + '<div class="nb-tk-top"><h2 class="nb-tk-kicker" id="rec-title">Recommended comic</h2><i class="fa-solid fa-crosshairs" aria-hidden="true"></i></div>'
         + '<h3 class="nb-tk-title">' + esc(title) + '</h3>'
         + '<div class="nb-tk-chips"><span>' + esc(siteName()) + '</span>' + (c.tags || []).slice(0, 3).map(t => '<span>' + esc(t) + '</span>').join('') + '</div>'
         + '<div class="nb-tk-mid"><dl class="nb-tk-info"><dt>Pages</dt><dd>' + plural(n, 'page') + '</dd><dt>Posted</dt><dd>' + esc(formatDate(c)) + '</dd>'
@@ -3734,7 +3711,12 @@ function bindEvents() {
 
     // Featured carousel follows manual swipes
     const ft = byId('featured-track');
-    ft.addEventListener('scroll', debounce(syncFeaturedFromScroll, 80), { passive: true });
+    ft.addEventListener('scroll', debounce(() => {
+        const cards = $$('.feat', ft); if (!cards.length) return;
+        const step = cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : ft.clientWidth;
+        ui.featured.i = clamp(Math.round(ft.scrollLeft / step), 0, featuredStops() - 1);
+        syncFeaturedDots();
+    }, 80), { passive: true });
 
     // Images fade in once loaded
     document.addEventListener('load', e => { if (e.target.tagName === 'IMG') e.target.classList.remove('is-loading'); }, true);

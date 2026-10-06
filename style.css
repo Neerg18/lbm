@@ -650,7 +650,6 @@ a.status-pill:hover { text-decoration: none; background: color-mix(in srgb, var(
     --line: rgba(11,15,26,.22); --line-strong: var(--nb-ink);
     --surface: var(--nb-card); --raise: #FFF4DC; --post-bg: #E6DECF; --bg: var(--nb-paper);
     position: relative; z-index: 1;
-    margin-top: calc(-1 * clamp(32px, 5vw, 56px) - 30px);
     padding: clamp(64px, 7vw, 100px) 0 clamp(72px, 8vw, 120px);
     border-radius: 32px 32px 0 0;
     background-color: var(--nb-paper);
@@ -659,18 +658,18 @@ a.status-pill:hover { text-decoration: none; background: color-mix(in srgb, var(
     color: var(--nb-ink);
 }
 .marquee { position: relative; z-index: 2; }
-.marquee[hidden] + .nb-sheet { margin-top: 0; }
+.marquee:not([hidden]) + .nb-sheet,
+.marquee:not([hidden]) + .home-feat:has(> .featured[hidden]) + .nb-sheet { margin-top: calc(-1 * clamp(32px, 5vw, 56px) - 30px); }
 .view[data-view="home"], .view[data-view="about"] { padding-bottom: 0; overflow-x: clip; }
 .nb-sheet a:hover { text-decoration: none; }
 .nb-sheet :focus-visible { outline: 3px solid var(--hl); outline-offset: 3px; }
-.nb-inner { display: flex; flex-direction: column; gap: clamp(72px, 8vw, 112px); counter-reset: nb; }
+.nb-inner { display: flex; flex-direction: column; gap: clamp(72px, 8vw, 112px); }
 
-/* Section heads: a numbered ink tag over a giant title */
+/* Section heads: a giant title, with an ink tag above it where a section has one */
 .nb-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px 24px; margin-bottom: clamp(22px, 2.6vw, 32px); }
 .nb-head-title { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
 .nb-head h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(2rem, 8vw, 7.5rem); line-height: .85; letter-spacing: -.02em; text-transform: uppercase; overflow-wrap: anywhere; }
-.nb-num, .nb-tag { padding: 4px 12px; border-radius: 8px; background: var(--nb-ink); color: var(--nb-yellow); font-family: 'Anton', Impact, sans-serif; font-size: 1.1rem; letter-spacing: .08em; line-height: 1.2; text-transform: uppercase; }
-.nb-num::before { counter-increment: nb; content: counter(nb, decimal-leading-zero); }
+.nb-tag { padding: 4px 12px; border-radius: 8px; background: var(--nb-ink); color: var(--nb-yellow); font-family: 'Anton', Impact, sans-serif; font-size: 1.1rem; letter-spacing: .08em; line-height: 1.2; text-transform: uppercase; }
 .nb-label { font-family: 'Anton', Impact, sans-serif; font-weight: 400; font-size: 1rem; letter-spacing: .16em; text-transform: uppercase; }
 
 /* Cards, buttons and small parts shared by Home and About */
@@ -701,52 +700,49 @@ a.nb-comm:hover { color: var(--hl-ink); }
 .nb-dot { flex: none; width: 16px; height: 16px; margin-top: .2em; border-radius: 50%; border: 3px solid var(--nb-ink); background: var(--status); }
 .nb-comm-note { font-size: 1.05rem; line-height: 1.5; }
 
-/* Featured: the art sits on a pink board, with its details and the commissions card beside it */
-.nb-badge { width: clamp(84px, 9vw, 132px); height: auto; margin-right: auto; align-self: center; transform: rotate(-8deg); }
-.carousel-ctrl { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.featured-dots { display: flex; flex-wrap: wrap; gap: 10px; }
-.nb-sq, .featured-dots button {
-    display: grid; place-items: center;
-    width: 48px; height: 48px;
-    border: 3px solid var(--nb-ink); border-radius: 10px;
-    background: var(--nb-card); color: var(--nb-ink);
-    font-family: 'Anton', Impact, sans-serif; font-size: 1.25rem;
-    box-shadow: 4px 4px 0 var(--nb-ink);
-    transition: transform .15s var(--ease), box-shadow .15s var(--ease), background-color .2s;
-}
-.nb-sq:hover, .featured-dots button:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--nb-ink); }
-.featured-dots button[aria-current="true"] { background: var(--nb-teal); }
-.nb-feat { position: relative; display: flex; flex-wrap: wrap; gap: 26px; align-items: stretch; }
+/* ═══════════════════════════════════════════
+   FEATURED CAROUSEL
+   ═══════════════════════════════════════════ */
+.featured { margin-bottom: clamp(48px, 7vw, 80px); }
+.carousel-ctrl { display: flex; gap: 6px; }
 .featured-track {
-    flex: 2 1 560px; min-width: 0;
-    display: flex; gap: 44px;
-    padding: 22px;
-    overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 22px; scroll-behavior: smooth;
+    --per: 1; /* cards in view at once; logic.js reads this */
+    display: flex; gap: 16px;
+    overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth;
     scrollbar-width: none;
-    border: 3px solid var(--nb-ink); border-radius: 26px;
-    background: var(--nb-pink);
-    box-shadow: var(--nb-shadow);
+    border-radius: var(--r-l);
 }
 .featured-track::-webkit-scrollbar { display: none; }
 .feat {
-    position: relative; display: block;
-    flex: 0 0 100%; scroll-snap-align: start;
-    height: clamp(260px, 32vw, 540px);
-    border: 3px solid var(--nb-ink); border-radius: 16px;
+    flex: 1 0 calc((100% - (var(--per) - 1) * 16px) / var(--per));
+    scroll-snap-align: start;
+    display: grid; grid-template-columns: 1.35fr 1fr;
+    height: clamp(300px, 34vw, 430px);
+    border-radius: var(--r-l);
     overflow: hidden;
-    background: var(--post-bg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    text-decoration: none;
 }
 .feat:hover { text-decoration: none; }
-.feat-media { position: absolute; inset: 0; }
-.feat-media img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; transition: transform .8s var(--ease-out); }
+.feat-media { position: relative; overflow: hidden; background: var(--post-bg); min-height: 0; }
+.feat-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; transition: transform .8s var(--ease-out); }
 .feat:hover .feat-media img { transform: scale(1.03); }
-.nb-sticker { position: absolute; right: 18px; bottom: 18px; z-index: 2; max-width: calc(100% - 36px); padding: 6px 16px; border: 3px solid var(--nb-ink); border-radius: 999px; background: var(--nb-card); color: var(--nb-ink); font-family: 'Anton', Impact, sans-serif; font-size: 1.15rem; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: rotate(5deg); box-shadow: 4px 4px 0 var(--nb-ink); }
-.nb-new { position: absolute; left: -24px; top: -28px; z-index: 3; width: clamp(80px, 8vw, 118px); transform: rotate(-12deg); pointer-events: none; }
-.nb-new svg { display: block; width: 100%; height: auto; }
-.nb-feat-side { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 26px; }
-.nb-feat-info { flex: 1 1 auto; display: flex; flex-direction: column; gap: 18px; background: var(--nb-yellow); }
-.nb-feat-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.8rem, 2.8vw, 2.8rem); line-height: 1; text-transform: uppercase; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.nb-feat-info .nb-btn { margin-top: auto; }
+.feat-body { display: flex; flex-direction: column; justify-content: flex-end; gap: 14px; padding: clamp(22px, 3vw, 40px); }
+.feat-title {
+    font-size: clamp(1.25rem, 2.2vw, 1.75rem); font-weight: 700; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.feat-title.is-muted { color: var(--text-3); font-weight: 500; }
+.feat-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; color: var(--text-3); font-size: .9rem; }
+.feat-meta i { margin-right: 4px; }
+.feat-cta { align-self: flex-start; margin-top: 6px; }
+.featured-dots { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
+.featured-dots button { width: 8px; height: 8px; border-radius: 8px; background: var(--line-strong); transition: width .3s var(--ease-out), background-color .3s; }
+.featured-dots button[aria-current="true"] { width: 26px; background: var(--hl); }
+@media (min-width: 1700px) { .featured-track { --per: 2; } }
+@media (min-width: 2800px) { .featured-track { --per: 3; } }
 
 /* ═══════════════════════════════════════════
    FEED
@@ -1499,9 +1495,9 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 /* ═══════════════════════════════════════════
    RECOMMENDED COMIC TICKET
    ═══════════════════════════════════════════ */
-.nb-rec .nb-head { justify-content: flex-start; }
-.nb-oval { margin-bottom: 14px; padding: 14px 28px; border: 3px solid var(--nb-ink); border-radius: 50%; background: var(--nb-card); color: #3A55E8; font-family: 'Anton', Impact, sans-serif; font-size: clamp(1.3rem, 2vw, 1.9rem); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; transform: rotate(-7deg); box-shadow: 5px 5px 0 var(--nb-ink); }
-.nb-ticket { position: relative; display: flex; flex-wrap: wrap; border: 3px solid var(--nb-ink); border-radius: 26px; background: var(--nb-card); box-shadow: 9px 9px 0 var(--nb-ink); }
+.nb-rec { padding-top: 14px; }
+.nb-oval { position: absolute; right: clamp(16px, 3vw, 40px); top: -30px; z-index: 3; padding: 14px 28px; border: 3px solid var(--nb-ink); border-radius: 50%; background: var(--nb-card); color: #3A55E8; font-family: 'Anton', Impact, sans-serif; font-size: clamp(1.3rem, 2vw, 1.9rem); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; transform: rotate(-7deg); box-shadow: 5px 5px 0 var(--nb-ink); }
+.nb-ticket { position: relative; display: flex; border: 3px solid var(--nb-ink); border-radius: 26px; background: var(--nb-card); box-shadow: 9px 9px 0 var(--nb-ink); }
 .nb-stub { flex: 0 1 400px; min-width: 0; box-sizing: border-box; padding: 20px 26px 26px 14px; display: flex; gap: 14px; }
 .nb-stub-side, .nb-stub-top { font-family: 'Anton', Impact, sans-serif; font-size: .8rem; letter-spacing: .22em; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
 /* The sideways words sit in an absolutely placed box so their length never stretches the ticket */
@@ -1524,6 +1520,7 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .nb-tk-main { flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 28px clamp(20px, 3vw, 40px) 30px; }
 .nb-tk-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .nb-tk-top i { font-size: 2rem; color: var(--accent); }
+.nb-tk-kicker { font-family: 'Anton', Impact, sans-serif; font-weight: 400; font-size: clamp(1.3rem, 2vw, 1.8rem); line-height: 1.1; letter-spacing: .16em; text-transform: uppercase; }
 .nb-tk-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.2rem, 5vw, 4.5rem); line-height: .9; letter-spacing: -.02em; text-transform: uppercase; overflow-wrap: anywhere; }
 .nb-tk-chips { display: flex; flex-wrap: wrap; gap: 10px; }
 .nb-tk-chips span { padding: 4px 14px; border: 2px solid var(--nb-ink); border-radius: 999px; font-weight: 800; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
@@ -2011,6 +2008,9 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
     .is-over-hero .brand { opacity: 1; pointer-events: auto; }
     .is-over-hero .brand-pfp { display: none; }
 
+    .feat { grid-template-columns: 1fr; }
+    .feat-media { aspect-ratio: 16 / 10; }
+
     .comm { grid-template-columns: 1fr; }
     .comm-card { position: static; }
 
@@ -2032,11 +2032,24 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
     .link-row input:last-of-type { grid-column: 1 / -1; }
 }
 
+/* Phones and small tablets: the ticket stands upright, stub on top and the tear line across */
 @media (max-width: 760px) {
-    .nb-notch { display: none; }
-    .nb-tk-body { border-left: 0; border-top: 3px dashed var(--nb-ink); }
+    .nb-ticket { flex-direction: column; }
+    .nb-stub { flex: none; padding: 18px 18px 24px; }
+    .nb-stub-side { display: none; }
+    .nb-stub-cover { padding: 24px; }
+    .nb-stub-cover img, .nb-stub-empty { width: min(62%, 220px); }
+    .nb-tk-body { flex: none; border-left: 0; border-top: 3px dashed var(--nb-ink); }
+    .nb-notch.top, .nb-notch.bottom { top: -19.5px; bottom: auto; width: 21px; height: 36px; }
+    .nb-notch.top { left: -3px; }
+    .nb-notch.bottom { left: auto; right: -3px; }
+    .nb-notch.top i { top: 0; left: -18px; }
+    .nb-notch.bottom i { top: 0; bottom: auto; left: auto; right: -18px; }
+    .nb-tk-main { padding: 24px 20px 26px; }
+    .nb-tk-pages { margin: 0 auto; }
+    .nb-tk-actions .nb-btn { flex: 1 1 100%; justify-content: center; min-height: 58px; font-size: 1.2rem; }
     .nb-tk-foot { border-radius: 0 0 23px 23px; }
-    .nb-stub { flex-basis: 100%; }
+    .nb-oval { top: -24px; right: 14px; padding: 10px 20px; font-size: 1.2rem; }
 }
 
 @media (max-width: 640px) {
@@ -2055,16 +2068,10 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
     .stamp { --r: 5px; }
     .stamp-cap b { font-size: 1.15rem; }
     .stamp-tag { font-size: .65rem; letter-spacing: .08em; }
-    .nb-sq, .featured-dots button { width: 40px; height: 40px; font-size: 1.05rem; }
-    .carousel-ctrl, .featured-dots { gap: 6px; }
-    .featured-track { padding: 14px; gap: 28px; scroll-padding: 0 14px; border-radius: 20px; }
-    .feat { height: clamp(220px, 62vw, 320px); }
-    .nb-new { left: -10px; top: -22px; width: 72px; }
     .nb-count { font-size: 1.05rem; }
     .nb-count b { font-size: 1.9rem; }
     .select-label { display: none; }
     .nb-sheet .select select { min-width: 0; width: 120px; }
-    .nb-oval { padding: 10px 20px; }
     .nb-burst { right: -10px; top: -34px; width: 110px; height: 110px; }
     .nb-burst span { max-width: 70px; font-size: .78rem; }
     .nb-statement { padding-right: 64px; }
