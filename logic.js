@@ -158,7 +158,7 @@ let currentConfig = {
     socialLinks: [], bannerSettings: null, aboutBio: '',
     commissionStatus: 'AVAILABLE FOR COMMISSIONS', statusColor: '#FB3640',
     commissionsInfo: '', commissionsLink: '',
-    ageGate: true, featuredMode: 'recent', blurNsfw: false, webpUploads: true,
+    ageGate: true, featuredMode: 'recent', recommendedComic: '', blurNsfw: false, webpUploads: true,
     colors: { ...DEFAULT_DARK },
     lightColors: null,
     pfpRingStyle: null
@@ -173,7 +173,7 @@ const ui = {
     viewer: { list: [], i: 0 },
     comic: { id: null, pushed: false },
     reader: { id: null, page: 0 },
-    featured: { i: 0, timer: null, stops: 0 },
+    featured: { i: 0, timer: null, stops: 0, list: [] },
     lastCommentAt: 0
 };
 
@@ -542,6 +542,8 @@ function renderStatus() {
     const text = (currentConfig.commissionStatus || '').trim();
     const pill = byId('hero-status');
     if (pill) { pill.hidden = !text; byId('hero-status-text').textContent = text; }
+    ['feat-comm', 'about-comm'].forEach(id => { const card = byId(id); if (card) card.hidden = !text; });
+    $$('.feat-comm-text').forEach(n => { n.textContent = text; });
     document.documentElement.style.setProperty('--status', normalizeHex(currentConfig.statusColor, paletteFor(getMode()).accent));
 }
 
@@ -684,6 +686,7 @@ function renderSocialLinks() {
         return '<a class="link-pill" href="' + esc(safeUrl(l.url)) + '" target="_blank" rel="noopener me"' + (brand ? ' style="--brand:' + brand + '"' : '') + '><i class="' + PLATFORMS[key].icon + '" aria-hidden="true"></i>' + esc(l.label || l.platform) + '</a>';
     }).join('');
     const about = byId('about-links'); if (about) about.innerHTML = pills;
+    const find = byId('about-find'); if (find) find.hidden = !links.length;
     const contact = byId('comm-contact');
     if (contact) contact.innerHTML = links.length ? '<p>Questions? Reach out on</p><div class="link-list" style="margin-top:0">' + pills + '</div>' : '';
 }
@@ -693,6 +696,7 @@ function renderMarquee() {
     const box = byId('marquee'), track = byId('marquee-track');
     if (!box || !track) return;
     const items = (s.items && s.items.length ? s.items : String(s.text || '').split('\n')).map(t => String(t).trim()).filter(Boolean);
+    renderAboutBand(s, items);
     if (!s.visible || !items.length) { box.hidden = true; return; }
     box.hidden = false;
     if (s.bgColor) box.style.setProperty('--band', s.bgColor); else box.style.removeProperty('--band');
@@ -702,6 +706,44 @@ function renderMarquee() {
     let run = '';
     for (let i = 0; i < 4; i++) run += items.map(t => '<span data-sep="' + esc(sep) + '">' + esc(t.toUpperCase()) + '</span>').join('');
     track.innerHTML = run + run;
+}
+
+// About gets the same band: the tagline plus the Home band's words, and the first of those as a sticker
+function renderAboutBand(s, items) {
+    const shown = s.visible ? items : [];
+    const burst = byId('about-burst');
+    if (burst) {
+        const first = shown[0] && shown[0].length <= 24 ? shown[0] : '';
+        burst.hidden = !first;
+        byId('about-burst-text').textContent = first;
+    }
+    const band = byId('about-band'), track = byId('about-band-track');
+    if (!band || !track) return;
+    const words = [currentConfig.tagline || '', ...shown].map(t => String(t).trim()).filter(Boolean);
+    band.hidden = !words.length;
+    if (!words.length) { track.innerHTML = ''; return; }
+    if (s.bgColor) band.style.setProperty('--band', s.bgColor); else band.style.removeProperty('--band');
+    if (s.textColor) band.style.setProperty('--band-ink', s.textColor); else band.style.removeProperty('--band-ink');
+    band.style.setProperty('--speed', (Number(s.speed) || 20) + 's');
+    const sep = s.separator || '✦';
+    let run = '';
+    for (let i = 0; i < 4; i++) run += words.map(t => '<span data-sep="' + esc(sep) + '">' + esc(t.toUpperCase()) + '</span>').join('');
+    track.innerHTML = run + run;
+}
+
+// About: live counts and the newest pieces as stamps
+function renderAbout() {
+    const set = (id, v) => { const n = byId(id); if (n) n.textContent = v; };
+    set('about-n-posts', postsCache.length);
+    set('about-n-boards', new Set(postsCache.flatMap(p => postTags(p).map(t => t.toLowerCase()))).size);
+    set('about-n-comics', comicsCache.length);
+    const sec = byId('about-latest'), grid = byId('about-latest-grid');
+    if (!sec || !grid) return;
+    const nos = postNumbers();
+    const latest = postsCache.filter(p => firstImage(p) && !(currentConfig.blurNsfw && isNsfw(p))).sort((a, b) => b.id - a.id).slice(0, 6);
+    sec.hidden = !latest.length;
+    grid.innerHTML = latest.map(p => '<a class="nb-stamp" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '" aria-label="Open post No.' + nos.get(p.id) + '">'
+        + '<span class="stamp"><span class="stamp-pic"><img src="' + esc(firstImage(p)) + '" alt="" loading="lazy" decoding="async"></span>' + stampCapHTML(p, nos.get(p.id)) + '</span></a>').join('');
 }
 
 /* ═════════════════════════════════════════════
@@ -838,7 +880,7 @@ function showView(view) {
     updateScrollState();
 
     if (leaving === 'admin' && Studio.dirty) applyTheme();
-    if (view === 'home') { fitHome(); startFeatured(); } else stopFeatured();
+    if (view === 'home') { renderRecComic(); fitHome(); startFeatured(); } else stopFeatured();
     if (view === 'gallery') renderGallery();
     if (view === 'comics') renderComics();
     if (view === 'commissions') replayTapes();
@@ -982,30 +1024,45 @@ function featuredPosts() {
     return list.slice(0, 5);
 }
 
+// Bright paper colors for tag chips on the Home sheet
+const NB_CHIP_COLORS = ['#FF8CC6', '#00C2CB', '#FFD23F', '#FF9A3C', '#C9A7F5', '#8EE3B0'];
+function newestPostId() { return postsCache.reduce((m, p) => Math.max(m, p.id), 0); }
+
 function renderFeatured() {
     const sec = byId('featured'), track = byId('featured-track');
-    const list = featuredPosts();
+    const list = ui.featured.list = featuredPosts();
     if (!list.length) { sec.hidden = true; stopFeatured(); return; }
     sec.hidden = false;
     track.innerHTML = list.map((p, i) => {
-        const cap = excerpt(p.content, 160);
-        const ints = getInteractions(p.id);
-        return '<a class="feat" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '" data-index="' + i + '">'
-            + '<div class="feat-media"><img src="' + esc(firstImage(p)) + '" alt="" loading="lazy" decoding="async"></div>'
-            + '<div class="feat-body">'
-            + '<p class="feat-title' + (cap ? '' : ' is-muted') + '">' + (cap ? esc(cap) : 'Untitled piece') + '</p>'
-            + '<div class="feat-meta"><time>' + esc(formatDate(p)) + '</time>'
-            + (currentConfig.reactionsEnabled ? '<span><i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>' + (ints.likes || 0) + '</span>' : '')
-            + (currentConfig.allowComments ? '<span><i class="fa-regular fa-comment" aria-hidden="true"></i>' + commentCount(p.id) + '</span>' : '')
-            + (postTags(p)[0] ? '<span>#' + esc(postTags(p)[0]) + '</span>' : '')
-            + '</div>'
-            + '<span class="btn feat-cta">View post</span>'
-            + '</div></a>';
+        const cap = excerpt(p.content, 80);
+        const tag = postTags(p)[0];
+        return '<a class="feat" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '" data-index="' + i + '" aria-label="Open featured post: ' + esc(cap || 'Untitled piece') + '">'
+            + '<span class="feat-media"><img src="' + esc(firstImage(p)) + '" alt="" loading="lazy" decoding="async"></span>'
+            + (tag ? '<span class="nb-sticker" aria-hidden="true">#' + esc(tag) + '</span>' : '')
+            + '</a>';
     }).join('');
     ui.featured.i = 0;
     renderFeaturedDots();
     track.scrollLeft = 0;
+    renderFeatInfo();
     startFeatured();
+}
+
+// The yellow card beside the board describes whichever piece is showing
+function renderFeatInfo() {
+    const box = byId('feat-info'); if (!box) return;
+    const list = ui.featured.list || [];
+    const p = list[ui.featured.i];
+    const burst = byId('feat-new');
+    if (!p) { box.innerHTML = ''; if (burst) burst.hidden = true; return; }
+    const cap = excerpt(p.content, 90);
+    const tags = postTags(p);
+    box.innerHTML = '<span class="nb-label">Now showing · ' + (ui.featured.i + 1) + ' of ' + list.length + '</span>'
+        + '<h3 class="nb-feat-title">' + (cap ? esc(cap) : 'Untitled piece') + '</h3>'
+        + '<dl class="nb-table"><div><dt>Posted</dt><dd>' + esc(formatDate(p)) + '</dd></div>'
+        + '<div><dt>Tags</dt><dd>' + (tags.length ? tags.slice(0, 3).map(t => '#' + esc(t)).join(' ') : 'None') + '</dd></div></dl>'
+        + '<a class="nb-btn is-ink" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '">View post <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>';
+    if (burst) burst.hidden = p.id !== newestPostId();
 }
 
 // Places the carousel can rest: one per card, fewer when wide screens show several cards side by side
@@ -1017,7 +1074,7 @@ function featuredStops() {
 function renderFeaturedDots() {
     const stops = ui.featured.stops = featuredStops();
     ui.featured.i = Math.min(ui.featured.i, stops - 1);
-    byId('featured-dots').innerHTML = stops > 1 ? Array.from({ length: stops }, (_, i) => '<button data-action="featured-go" data-index="' + i + '" aria-label="Show featured post ' + (i + 1) + '"' + (i === ui.featured.i ? ' aria-current="true"' : '') + '></button>').join('') : '';
+    byId('featured-dots').innerHTML = stops > 1 ? Array.from({ length: stops }, (_, i) => '<button data-action="featured-go" data-index="' + i + '" aria-label="Show featured post ' + (i + 1) + '"' + (i === ui.featured.i ? ' aria-current="true"' : '') + '>' + (i + 1) + '</button>').join('') : '';
     $$('#featured .carousel-ctrl').forEach(c => { c.hidden = stops < 2; });
 }
 
@@ -1026,8 +1083,20 @@ function featuredGo(i) {
     const cards = $$('.feat', track); if (!cards.length) return;
     const stops = featuredStops();
     ui.featured.i = (i + stops) % stops;
-    track.scrollTo({ left: cards[ui.featured.i].offsetLeft - track.offsetLeft, behavior: reduceMotion() ? 'auto' : 'smooth' });
+    track.scrollTo({ left: cards[ui.featured.i].offsetLeft - cards[0].offsetLeft, behavior: reduceMotion() ? 'auto' : 'smooth' });
     syncFeaturedDots();
+    renderFeatInfo();
+}
+// Swiping the board by hand keeps the numbers and the details card in step
+function syncFeaturedFromScroll() {
+    const track = byId('featured-track'); if (!track) return;
+    const cards = $$('.feat', track); if (cards.length < 2) return;
+    const step = cards[1].offsetLeft - cards[0].offsetLeft || track.clientWidth;
+    const i = clamp(Math.round(track.scrollLeft / step), 0, cards.length - 1);
+    if (i === ui.featured.i) return;
+    ui.featured.i = i;
+    syncFeaturedDots();
+    renderFeatInfo();
 }
 function syncFeaturedDots() { $$('#featured-dots button').forEach((d, n) => d.setAttribute('aria-current', String(n === ui.featured.i))); }
 function startFeatured() {
@@ -1054,10 +1123,18 @@ function renderTagChips() {
     if (ui.feed.tag !== 'all' && !counts.has(ui.feed.tag)) ui.feed.tag = 'all';
     box.hidden = !tags.length;
     box.innerHTML = '<button class="chip" data-action="filter-tag" data-tag="all" aria-pressed="' + (ui.feed.tag === 'all') + '">All <span class="n">' + postsCache.length + '</span></button>'
-        + tags.map(([k, v]) => '<button class="chip" data-action="filter-tag" data-tag="' + esc(k) + '" aria-pressed="' + (ui.feed.tag === k) + '">' + esc(v.name) + ' <span class="n">' + v.n + '</span></button>').join('');
+        + tags.map(([k, v], i) => '<button class="chip" style="--cc:' + NB_CHIP_COLORS[i % NB_CHIP_COLORS.length] + '" data-action="filter-tag" data-tag="' + esc(k) + '" aria-pressed="' + (ui.feed.tag === k) + '">' + esc(v.name) + ' <span class="n">' + v.n + '</span></button>').join('');
 }
 
-function tileHTML(post) {
+// Post numbers for the stamps: the oldest post is No.1
+function postNumbers() { return new Map(postsCache.slice().sort((a, b) => a.id - b.id).map((p, i) => [p.id, i + 1])); }
+function stampTag(post) { const t = postTags(post); return t.find(x => x.toLowerCase() !== 'nsfw') || t[0] || ''; }
+function stampCapHTML(post, no) {
+    const tag = stampTag(post);
+    return '<span class="stamp-cap"><b>No.' + no + '</b>' + (tag ? '<span class="stamp-tag">' + esc(tag) + '</span>' : '') + '</span>';
+}
+
+function tileHTML(post, no) {
     const media = mediaList(post);
     const first = media[0] || '';
     const type = first ? getMediaType(first) : 'none';
@@ -1078,7 +1155,7 @@ function tileHTML(post) {
     const veil = veiled ? '<button class="veil" data-action="reveal" data-id="' + post.id + '"><i class="fa-regular fa-eye-slash" aria-hidden="true"></i>Sensitive<small>Tap to show</small></button>' : '';
     const del = isAdminLoggedIn ? '<button class="tile-del" data-action="delete-post" data-id="' + post.id + '" aria-label="Delete post" title="Delete post"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>' : '';
     return '<article class="tile' + (veiled ? ' is-veiled' : '') + '" data-id="' + post.id + '">'
-        + '<div class="tile-frame"><a class="tile-media' + (type === 'none' ? ' is-text' : '') + '" href="#/post/' + post.id + '" data-action="open-post" data-id="' + post.id + '"' + (type === 'none' ? '' : ' aria-label="Open post from ' + esc(date) + '"') + '>' + visual + '<span class="tile-badges">' + badges + '</span></a>' + veil + '</div>'
+        + '<div class="tile-frame stamp"><div class="stamp-pic"><a class="tile-media' + (type === 'none' ? ' is-text' : '') + '" href="#/post/' + post.id + '" data-action="open-post" data-id="' + post.id + '"' + (type === 'none' ? '' : ' aria-label="Open post from ' + esc(date) + '"') + '>' + visual + '<span class="tile-badges">' + badges + '</span></a>' + veil + '</div>' + stampCapHTML(post, no) + '</div>'
         + (type !== 'none' && cap ? '<p class="tile-cap">' + esc(cap) + '</p>' : '')
         + '<div class="tile-meta"><time>' + esc(date) + '</time><span class="reacts">' + reactsHTML(post) + '</span>' + del + '</div>'
         + '</article>';
@@ -1092,13 +1169,17 @@ function renderFeed() {
     const shown = all.slice(0, Math.ceil(ui.feed.limit / cols) * cols);
     const count = byId('feed-count');
     const filtering = ui.feed.tag !== 'all' || ui.feed.q.trim();
-    if (count) count.textContent = filtering ? plural(all.length, 'match', 'matches') : plural(postsCache.length, 'post');
+    if (count) {
+        const n = filtering ? all.length : postsCache.length;
+        count.innerHTML = '<b>' + n + '</b>' + (filtering ? (n === 1 ? 'match' : 'matches') : (n === 1 ? 'post' : 'posts'));
+    }
     if (!postsCache.length) {
         grid.innerHTML = '<div class="empty"><h3>Nothing posted yet</h3><p>New work will show up here.</p>' + (isAdminLoggedIn ? '<a class="btn btn-primary" href="#/admin">Make your first post</a>' : '') + '</div>';
     } else if (!all.length) {
         grid.innerHTML = '<div class="empty"><h3>No posts match that</h3><p>Try a different word or tag.</p><button class="btn" data-action="clear-filters">Show all posts</button></div>';
     } else {
-        grid.innerHTML = shown.map(tileHTML).join('');
+        const nos = postNumbers();
+        grid.innerHTML = shown.map(p => tileHTML(p, nos.get(p.id))).join('');
     }
     const more = byId('feed-more');
     if (more) {
@@ -1114,7 +1195,49 @@ function feedColumns() {
     return getComputedStyle(grid).gridTemplateColumns.split(' ').length;
 }
 
-function renderHome() { renderHero(); renderFeatured(); renderTagChips(); renderFeed(); }
+function renderHome() { renderHero(); renderFeatured(); renderTagChips(); renderFeed(); renderRecComic(); renderAbout(); }
+
+// The comic picked in Admin (Site info), or the newest one; 'off' hides the ticket
+function recommendedComic() {
+    const pick = currentConfig.recommendedComic;
+    if (pick === 'off') return null;
+    const list = comicsCache.filter(c => (c.pages || []).length).sort((a, b) => b.id - a.id);
+    return list.find(c => String(c.id) === String(pick)) || list[0] || null;
+}
+const NB_SPARK = '<svg class="nb-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1C13 8 16 11 23 12C16 13 13 16 12 23C11 16 8 13 1 12C8 11 11 8 12 1Z" style="fill:var(--hl)" stroke="#0B0F1A" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+function renderRecComic() {
+    const sec = byId('rec-comic'), box = byId('rec-ticket'); if (!sec || !box) return;
+    const c = recommendedComic();
+    sec.hidden = !c;
+    if (!c) { box.innerHTML = ''; return; }
+    const pages = c.pages, n = pages.length;
+    const title = c.title || 'Untitled';
+    const p = comicProgress()[c.id];
+    const midway = p != null && p > 0 && p < n - 1;
+    const cover = comicCover(c);
+    const thumbs = (n > 1 ? pages.slice(1, 4) : pages.slice(0, 1)).map(safeUrl).filter(Boolean);
+    const run = (words, times) => Array(times).fill(words).join(' ✦ ');
+    box.innerHTML = '<div class="nb-stub">'
+        + '<span class="nb-stub-side" aria-hidden="true"><span>' + esc(run('Recommended read ✦ ' + siteName() + ' comics', 4)) + '</span></span>'
+        + '<div class="nb-stub-main"><span class="nb-stub-top" aria-hidden="true">' + esc(run(siteName() + ' comics ✦ Recommended read', 3)) + '</span>'
+        + '<a class="nb-stub-cover" href="#/comics/' + c.id + '" aria-label="See every page of ' + esc(title) + '">'
+        + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="nb-stub-empty" aria-hidden="true">' + esc(title.charAt(0).toUpperCase()) + '</span>')
+        + NB_SPARK + '</a></div></div>'
+        + '<div class="nb-tk-body"><span class="nb-notch top" aria-hidden="true"><i></i></span><span class="nb-notch bottom" aria-hidden="true"><i></i></span>'
+        + '<div class="nb-tk-main">'
+        + '<div class="nb-tk-top"><span class="nb-label">Recommended comic</span><i class="fa-solid fa-crosshairs" aria-hidden="true"></i></div>'
+        + '<h3 class="nb-tk-title">' + esc(title) + '</h3>'
+        + '<div class="nb-tk-chips"><span>' + esc(siteName()) + '</span>' + (c.tags || []).slice(0, 3).map(t => '<span>' + esc(t) + '</span>').join('') + '</div>'
+        + '<div class="nb-tk-mid"><dl class="nb-tk-info"><dt>Pages</dt><dd>' + plural(n, 'page') + '</dd><dt>Posted</dt><dd>' + esc(formatDate(c)) + '</dd>'
+        + '<dt>Start</dt><dd>' + (midway ? 'Page ' + (p + 1) + ', where you left off' : 'Page 1') + '</dd></dl>'
+        + (thumbs.length ? '<div class="nb-tk-pages" aria-hidden="true">' + thumbs.map(u => '<img src="' + esc(u) + '" alt="" loading="lazy" decoding="async">').join('') + '</div>' : '')
+        + '</div>'
+        + '<div class="nb-tk-actions"><a class="nb-btn is-ink" href="#/comics/' + c.id + '/' + (midway ? p + 1 : 1) + '">' + (midway ? 'Keep reading' : 'Start reading') + ' <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>'
+        + '<a class="nb-btn" href="#/comics">All comics</a></div>'
+        + '</div>'
+        + '<div class="nb-tk-foot" aria-hidden="true">' + esc(run(siteName() + ' ✦ Recommended comic ✦ ' + (midway ? 'Pick up on page ' + (p + 1) : 'Start from page 1'), 3)) + '</div>'
+        + '</div>';
+}
 
 // After a resize, or on coming back to Home, refit the carousel and feed to the new width
 function fitHome() {
@@ -1244,6 +1367,7 @@ function comicColor(id) {
     return ZINE_COLORS[Math.max(i, 0) % ZINE_COLORS.length];
 }
 function renderComics() {
+    renderRecComic(); renderAbout();
     const grid = byId('comics-grid'); if (!grid) return;
     const list = comicsCache.slice().sort((a, b) => b.id - a.id);
     const progress = comicProgress();
@@ -2580,6 +2704,12 @@ function populateSiteForm() {
     set('s-pfp', c.pfpImage); set('s-bio', c.aboutBio || localStorage.getItem(KEYS.bio) || '');
     chk('s-agegate', c.ageGate !== false); chk('s-blur', c.blurNsfw); chk('s-comments', c.allowComments); chk('s-reactions', c.reactionsEnabled);
     set('s-reaction-style', c.reactionIcon || 'thumb'); set('s-featured', c.featuredMode || 'recent');
+    const rec = byId('s-rec-comic');
+    if (rec) {
+        const list = comicsCache.slice().sort((a, b) => b.id - a.id);
+        rec.innerHTML = '<option value="">Newest comic</option>' + list.map(cm => '<option value="' + cm.id + '">' + esc(cm.title || 'Untitled') + '</option>').join('') + '<option value="off">Don\'t show one</option>';
+        rec.value = list.some(cm => String(cm.id) === String(c.recommendedComic)) || c.recommendedComic === 'off' ? String(c.recommendedComic) : '';
+    }
     set('s-like-label', c.likeLabel); set('s-dislike-label', c.dislikeLabel);
     set('s-title', c.metaTitle); set('s-desc', c.metaDescription);
     set('s-bgimage', c.bgImage); set('s-css', c.customCss); set('s-newkey', '');
@@ -2595,6 +2725,7 @@ async function saveSiteSettings() {
     c.ageGate = byId('s-agegate').checked; c.blurNsfw = byId('s-blur').checked;
     c.allowComments = byId('s-comments').checked; c.reactionsEnabled = byId('s-reactions').checked;
     c.reactionIcon = byId('s-reaction-style').value; c.featuredMode = byId('s-featured').value;
+    if (byId('s-rec-comic')) c.recommendedComic = byId('s-rec-comic').value;
     c.likeLabel = byId('s-like-label').value; c.dislikeLabel = byId('s-dislike-label').value;
     c.metaTitle = val('s-title'); c.metaDescription = val('s-desc');
     c.bgImage = val('s-bgimage'); c.customCss = byId('s-css').value;
@@ -3603,12 +3734,7 @@ function bindEvents() {
 
     // Featured carousel follows manual swipes
     const ft = byId('featured-track');
-    ft.addEventListener('scroll', debounce(() => {
-        const cards = $$('.feat', ft); if (!cards.length) return;
-        const step = cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : ft.clientWidth;
-        ui.featured.i = clamp(Math.round(ft.scrollLeft / step), 0, featuredStops() - 1);
-        syncFeaturedDots();
-    }, 80), { passive: true });
+    ft.addEventListener('scroll', debounce(syncFeaturedFromScroll, 80), { passive: true });
 
     // Images fade in once loaded
     document.addEventListener('load', e => { if (e.target.tagName === 'IMG') e.target.classList.remove('is-loading'); }, true);
@@ -3616,7 +3742,7 @@ function bindEvents() {
         if (e.target.tagName !== 'IMG') return;
         e.target.classList.remove('is-loading');
         const tile = e.target.closest('.masonry-item'); if (tile) { tile.hidden = true; return; }
-        if (e.target.closest('.tile-media, .feat-media, .hero-panel, .board-cover, .comic-cover, .page-thumb, .m-thumb')) e.target.classList.add('is-broken');
+        if (e.target.closest('.tile-media, .feat-media, .hero-panel, .board-cover, .comic-cover, .page-thumb, .m-thumb, .stamp-pic, .nb-stub-cover, .nb-tk-pages')) e.target.classList.add('is-broken');
     }, true);
 
     // Hover to play video previews

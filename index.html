@@ -156,23 +156,43 @@
             <div class="marquee-track" id="marquee-track"></div>
         </div>
 
-        <div class="wrap wide">
+        <!-- Below the band: a paper sheet with heavy-outlined cards, stamp tiles and a comic ticket -->
+        <div class="nb-sheet">
+        <div class="wrap wide nb-inner">
             <section class="featured" id="featured" hidden aria-labelledby="featured-title">
-                <div class="section-head">
-                    <h2 id="featured-title">Featured</h2>
-                    <div class="carousel-ctrl">
-                        <button class="icon-btn small" data-action="featured-prev" aria-label="Previous featured post"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
-                        <button class="icon-btn small" data-action="featured-next" aria-label="Next featured post"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                <div class="nb-head">
+                    <div class="nb-head-title">
+                        <span class="nb-num" aria-hidden="true"></span>
+                        <h2 id="featured-title">Featured</h2>
+                    </div>
+                    <svg class="nb-badge" viewBox="0 0 140 140" aria-hidden="true"><defs><path id="nb-ring-path" d="M70,70 m-52,0 a52,52 0 1,1 104,0 a52,52 0 1,1 -104,0"/></defs><circle cx="70" cy="70" r="67" fill="#00C2CB" stroke="#0B0F1A" stroke-width="3"/><text font-family="Anton, Impact, sans-serif" font-size="14" letter-spacing="2.5" fill="#0B0F1A"><textPath href="#nb-ring-path">NEW WORK ✦ NEW WORK ✦ NEW WORK ✦</textPath></text><g fill="#FF8CC6" stroke="#0B0F1A" stroke-width="2.5"><circle cx="70" cy="52" r="11"/><circle cx="85.6" cy="61" r="11"/><circle cx="85.6" cy="79" r="11"/><circle cx="70" cy="88" r="11"/><circle cx="54.4" cy="79" r="11"/><circle cx="54.4" cy="61" r="11"/></g><circle cx="70" cy="70" r="13" fill="#FFD23F" stroke="#0B0F1A" stroke-width="2.5"/><circle cx="65.5" cy="67.5" r="1.8" fill="#0B0F1A"/><circle cx="74.5" cy="67.5" r="1.8" fill="#0B0F1A"/><path d="M64 73q6 5 12 0" fill="none" stroke="#0B0F1A" stroke-width="2.2" stroke-linecap="round"/></svg>
+                    <div class="carousel-ctrl" role="group" aria-label="Featured posts">
+                        <button class="nb-sq" data-action="featured-prev" aria-label="Previous featured post"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                        <div class="featured-dots" id="featured-dots"></div>
+                        <button class="nb-sq" data-action="featured-next" aria-label="Next featured post"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
                     </div>
                 </div>
-                <div class="featured-track" id="featured-track"></div>
-                <div class="featured-dots" id="featured-dots"></div>
+                <div class="nb-feat">
+                    <span class="nb-new" id="feat-new" hidden aria-hidden="true"><svg viewBox="0 0 120 120"><polygon points="60.0,2.0 69.8,17.1 85.2,7.7 87.4,25.6 105.3,23.8 99.6,40.9 116.5,47.1 104.0,60.0 116.5,72.9 99.6,79.1 105.3,96.2 87.4,94.4 85.2,112.3 69.8,102.9 60.0,118.0 50.2,102.9 34.8,112.3 32.6,94.4 14.7,96.2 20.4,79.1 3.5,72.9 16.0,60.0 3.5,47.1 20.4,40.9 14.7,23.8 32.6,25.6 34.8,7.7 50.2,17.1" fill="#FFD23F" stroke="#0B0F1A" stroke-width="3" stroke-linejoin="round"/><text x="60" y="70" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="28" fill="#0B0F1A">NEW!</text></svg></span>
+                    <div class="featured-track" id="featured-track"></div>
+                    <div class="nb-feat-side">
+                        <article class="nb-card nb-feat-info" id="feat-info"></article>
+                        <a class="nb-card nb-comm" id="feat-comm" href="#/commissions" hidden>
+                            <span class="nb-label">Commissions</span>
+                            <span class="nb-comm-status"><span class="nb-dot" aria-hidden="true"></span><span class="feat-comm-text"></span></span>
+                            <span class="nb-pill">See prices <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                        </a>
+                    </div>
+                </div>
             </section>
 
             <section class="feed" aria-labelledby="feed-title">
-                <div class="section-head">
-                    <h2 id="feed-title">Recent works</h2>
-                    <span class="section-count" id="feed-count"></span>
+                <div class="nb-head">
+                    <div class="nb-head-title">
+                        <span class="nb-num" aria-hidden="true"></span>
+                        <h2 id="feed-title">Recent works</h2>
+                    </div>
+                    <span class="nb-count" id="feed-count"></span>
                 </div>
                 <div class="feed-tools" id="feed-tools">
                     <label class="search">
@@ -180,7 +200,7 @@
                         <input type="search" id="feed-search" placeholder="Search posts and tags" aria-label="Search posts and tags" autocomplete="off">
                     </label>
                     <label class="select">
-                        <span class="sr-only">Sort posts</span>
+                        <span class="select-label">Sort</span>
                         <select id="feed-sort">
                             <option value="newest">Newest</option>
                             <option value="oldest">Oldest</option>
@@ -203,6 +223,18 @@
                     <button class="btn" id="feed-more" data-action="feed-more" hidden>Show more</button>
                 </div>
             </section>
+
+            <section class="nb-rec" id="rec-comic" hidden aria-labelledby="rec-title">
+                <div class="nb-head">
+                    <div class="nb-head-title">
+                        <span class="nb-num" aria-hidden="true"></span>
+                        <h2 id="rec-title">Recommended comic</h2>
+                    </div>
+                    <span class="nb-oval" aria-hidden="true">Read this!</span>
+                </div>
+                <article class="nb-ticket" id="rec-ticket"></article>
+            </section>
+        </div>
         </div>
     </section>
 
@@ -326,10 +358,53 @@
                 </div>
                 <div class="about-body">
                     <h1 class="about-name" id="about-name">NEERG</h1>
-                    <p class="about-tagline" id="about-tagline"></p>
-                    <div class="prose" id="about-bio"></div>
-                    <div class="link-list" id="about-links"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Same band as Home, carrying the tagline and the Home band's words -->
+        <div class="marquee" id="about-band" hidden aria-hidden="true">
+            <div class="marquee-track" id="about-band-track"></div>
+        </div>
+
+        <div class="nb-sheet">
+            <div class="wrap wide nb-inner nb-about">
+                <div class="nb-row">
+                    <section class="nb-card nb-bio" aria-label="About">
+                        <span class="nb-tag">About me</span>
+                        <h2 class="nb-statement" id="about-tagline"></h2>
+                        <div class="prose" id="about-bio"></div>
+                        <span class="nb-burst" id="about-burst" hidden aria-hidden="true"><svg viewBox="0 0 120 120"><polygon points="60.0,2.0 69.8,17.1 85.2,7.7 87.4,25.6 105.3,23.8 99.6,40.9 116.5,47.1 104.0,60.0 116.5,72.9 99.6,79.1 105.3,96.2 87.4,94.4 85.2,112.3 69.8,102.9 60.0,118.0 50.2,102.9 34.8,112.3 32.6,94.4 14.7,96.2 20.4,79.1 3.5,72.9 16.0,60.0 3.5,47.1 20.4,40.9 14.7,23.8 32.6,25.6 34.8,7.7 50.2,17.1" stroke="#0B0F1A" stroke-width="3" stroke-linejoin="round"/></svg><span id="about-burst-text"></span></span>
+                    </section>
+                    <a class="nb-card nb-comm" id="about-comm" href="#/commissions" hidden>
+                        <span class="nb-label">Commissions</span>
+                        <span class="nb-comm-status"><span class="nb-dot" aria-hidden="true"></span><span class="feat-comm-text"></span></span>
+                        <span class="nb-comm-note">Prices, examples and how to order.</span>
+                        <span class="nb-pill">See prices <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                    </a>
+                </div>
+                <div class="nb-row">
+                    <section class="nb-card nb-nums" aria-labelledby="nums-title">
+                        <h2 class="nb-label" id="nums-title">By the numbers</h2>
+                        <dl class="nb-table">
+                            <div><dt>Posts</dt><dd id="about-n-posts">0</dd></div>
+                            <div><dt>Boards</dt><dd id="about-n-boards">0</dd></div>
+                            <div><dt>Comics</dt><dd id="about-n-comics">0</dd></div>
+                        </dl>
+                    </section>
+                    <section class="nb-card nb-links" id="about-find" hidden aria-labelledby="find-title">
+                        <span class="nb-label">Find me</span>
+                        <h2 class="nb-links-title" id="find-title">Online</h2>
+                        <div class="link-list" id="about-links"></div>
+                    </section>
+                </div>
+                <section class="nb-latest" id="about-latest" hidden aria-labelledby="latest-title">
+                    <div class="nb-head">
+                        <div class="nb-head-title"><h2 id="latest-title">Latest work</h2></div>
+                        <a class="nb-btn is-ink" href="#/gallery">See the gallery <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    </div>
+                    <div class="nb-stamps" id="about-latest-grid"></div>
+                </section>
             </div>
         </div>
     </section>
@@ -594,6 +669,12 @@
                                     <option value="popular">Most liked</option>
                                     <option value="pinned">Pinned posts only</option>
                                     <option value="off">Hide featured</option>
+                                </select>
+                            </label>
+                            <label class="field"><span>Recommended comic on Home</span>
+                                <select id="s-rec-comic">
+                                    <option value="">Newest comic</option>
+                                    <option value="off">Don't show one</option>
                                 </select>
                             </label>
                             <label class="field"><span>Like text <em>(custom text style)</em></span><input type="text" id="s-like-label"></label>
