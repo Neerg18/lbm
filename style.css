@@ -967,12 +967,8 @@ a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
 .zc-bar { height: 10px; overflow: hidden; border: 2px solid var(--zg-ink); border-radius: 999px; background: rgba(255,255,255,.45); }
 .zc-bar i { display: block; height: 100%; background: var(--zg-ink); }
 
-/* Comic page list: the comic's paper color up top, polaroid pages below */
-.comic-overlay {
-    --zg-ink: #2B2B2B; --zg-cream: #EFE8DA; --zg-white: #FFFDF6;
-    display: block; overflow-y: auto;
-    background-color: #262626; background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.5px); background-size: 8px 8px;
-}
+/* Comic page list: the comic's paper color up top, plain page thumbnails below */
+.comic-overlay { --zg-ink: #2B2B2B; display: block; overflow-y: auto; background: var(--bg); }
 .comic-head {
     --text: var(--zg-ink); --text-2: var(--zg-ink); --text-3: rgba(43,43,43,.78); --line: rgba(43,43,43,.45); --line-strong: var(--zg-ink);
     position: sticky; top: 0; z-index: 2;
@@ -994,10 +990,13 @@ a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
 .comic-head .btn-primary:hover { background: #000; }
 .comic-head .chip { border-color: var(--zg-ink); color: var(--zg-ink); }
 /* A grid, not columns, so pages read left to right in order */
-.comic-pages.zg-polas { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(170px, 11vw, 240px), 1fr)); columns: auto; gap: 30px 24px; align-items: start; padding: 44px 0 72px; }
-.comic-pages .zg-pola { margin: 0; }
-.comic-pages .zg-pola-img img { aspect-ratio: 3 / 4; object-fit: cover; object-position: top; }
-.zc-here { position: absolute; right: -10px; top: 16px; z-index: 2; padding: 6px 12px; border-radius: 999px; background: var(--zg-ink); color: var(--zc, #F2C230); font-size: .8rem; font-weight: 800; transform: rotate(8deg); }
+.comic-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(160px, 9vw, 220px)), 1fr)); gap: 18px; padding: 28px 0 72px; }
+.page-thumb { display: flex; flex-direction: column; gap: 6px; color: var(--text-2); font-size: .85rem; text-align: left; }
+.page-thumb:hover { color: var(--text); text-decoration: none; }
+.page-thumb .frame { aspect-ratio: 3 / 4; border-radius: var(--r-s); overflow: hidden; background: var(--surface); border: 1px solid var(--line); transition: border-color .2s, transform .3s var(--ease-out); }
+.page-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.page-thumb:hover .frame { border-color: var(--hl); transform: translateY(-3px); }
+.page-thumb.is-last .frame { border-color: var(--hl); }
 
 /* Reader */
 .reader { background: #000; color: #fff; display: flex; flex-direction: column; }
@@ -1855,7 +1854,6 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
     .zc-card { flex-direction: column; align-items: stretch; }
     .zc-card .zc-cover, .zc-card.is-wide .zc-cover { width: 58%; align-self: center; }
     .zc-pow { min-height: 200px; }
-    .comic-pages.zg-polas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
     .about { grid-template-columns: 1fr; justify-items: center; text-align: center; }
     .about .prose { text-align: left; }
     .link-list { justify-content: center; }

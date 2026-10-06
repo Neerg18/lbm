@@ -1248,7 +1248,6 @@ function renderComics() {
     const list = comicsCache.slice().sort((a, b) => b.id - a.id);
     const progress = comicProgress();
     // Intro card: counts, and a shortcut back into the newest comic left half-read
-    byId('zc-name').textContent = siteName();
     byId('comics-count').textContent = list.length;
     byId('zc-pages').textContent = list.reduce((n, c) => n + (c.pages || []).length, 0);
     const midway = list.find(c => { const p = progress[c.id]; return p != null && p > 0 && p < (c.pages || []).length - 1; });
@@ -1682,9 +1681,7 @@ function openComicGallery(id, opts = {}) {
     byId('co-actions').innerHTML = (prog != null && prog > 0 && prog < pages.length
         ? '<button class="btn" data-action="read-comic" data-id="' + comic.id + '" data-page="0">From the start</button><button class="btn btn-primary" data-action="read-comic" data-id="' + comic.id + '" data-page="' + prog + '">Continue on page ' + (prog + 1) + '</button>'
         : '<button class="btn btn-primary" data-action="read-comic" data-id="' + comic.id + '" data-page="0"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Start reading</button>');
-    byId('co-grid').innerHTML = pages.map((url, i) => '<button class="page-thumb zg-pola' + (prog === i ? ' is-last' : '') + '" style="--r:' + ZINE_TILTS[i % ZINE_TILTS.length] + 'deg;--tape:' + ZINE_TAPES[i % ZINE_TAPES.length] + '" data-action="read-comic" data-id="' + comic.id + '" data-page="' + i + '" aria-label="Read from page ' + (i + 1) + (prog === i ? ', where you left off' : '') + '">'
-        + '<span class="zg-tape" aria-hidden="true"></span><span class="zg-pola-img"><img src="' + esc(safeUrl(url)) + '" alt="" loading="lazy" decoding="async"></span>'
-        + '<span class="zg-pola-cap">Page ' + (i + 1) + '</span>' + (prog === i ? '<span class="zc-here" aria-hidden="true">You\'re here</span>' : '') + '</button>').join('');
+    byId('co-grid').innerHTML = pages.map((url, i) => '<button class="page-thumb' + (prog === i ? ' is-last' : '') + '" data-action="read-comic" data-id="' + comic.id + '" data-page="' + i + '"><span class="frame"><img src="' + esc(url) + '" alt="" loading="lazy" decoding="async"></span>Page ' + (i + 1) + (prog === i ? ', last read' : '') + '</button>').join('');
     overlay.scrollTop = 0;
     if (!Modals.isOpen(overlay)) Modals.open(overlay, { onRequestClose: () => closeComicGallery(), focus: '.back-btn' });
 }
