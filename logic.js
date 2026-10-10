@@ -575,6 +575,84 @@ function bindTooltips() {
 }
 
 /* ═════════════════════════════════════════════
+   GLASS GLARE (gallery boards, comic cards, commission tiers)
+   A shine sweeps across a card when the pointer comes on and again as it goes off,
+   in the direction it moved. Idea from React Bits' Glare Hover (reactbits.dev)
+   ═════════════════════════════════════════════ */
+
+const GLARE_ANGLE = -45, GLARE_SIZE = .3, GLARE_MS = 650;
+const glares = new WeakMap();
+
+// Cards opt in with data-glare; a commission tier shines on its picture frame
+function glareSurface(host) { return $('.cm-frame', host) || host; }
+function glareFor(host) {
+    let g = glares.get(host);
+    if (g) return g;
+    const surface = glareSurface(host);
+    const layer = document.createElement('span');
+    layer.className = 'glare'; layer.setAttribute('aria-hidden', 'true');
+    layer.innerHTML = '<span class="glare-band"></span><span class="glare-rim"><span class="glare-band"></span></span>';
+    surface.appendChild(layer);
+    g = { surface, bands: $$('.glare-band', layer), pos: -1e4, reach: 0, ux: 0, uy: 0, run: null, raf: 0 };
+    glares.set(host, g);
+    return g;
+}
+function glareMeasure(g) {
+    const w = g.surface.clientWidth, h = g.surface.clientHeight, rad = GLARE_ANGLE * Math.PI / 180;
+    const diag = Math.hypot(w, h), band = Math.max(8, diag * GLARE_SIZE);
+    g.ux = Math.sin(rad); g.uy = -Math.cos(rad);
+    g.reach = (Math.abs(w * g.ux) + Math.abs(h * g.uy)) / 2 + band / 2 + 2;
+    g.bands.forEach(b => { b.style.width = band + 'px'; b.style.height = (diag + band) + 'px'; });
+    if (!g.run) g.pos = g.pos > 0 ? g.reach : -g.reach;
+    glareDraw(g);
+}
+function glareDraw(g) {
+    const t = 'translate(-50%, -50%) rotate(' + (GLARE_ANGLE - 90) + 'deg) translateX(' + g.pos.toFixed(1) + 'px)';
+    g.bands.forEach(b => { b.style.transform = t; });
+}
+// Positive when the point is on the side the shine travels toward
+function glareSide(g, e) {
+    const r = g.surface.getBoundingClientRect();
+    return (e.clientX - r.left - r.width / 2) * g.ux + (e.clientY - r.top - r.height / 2) * g.uy;
+}
+function glareSweep(g, sign) {
+    if (reduceMotion() || !g.reach) return;
+    const to = sign * g.reach;
+    const from = g.run || Math.abs(g.pos) < g.reach ? g.pos : -to;
+    if (from === to) return;
+    g.run = { from, to, start: performance.now(), ms: Math.max(120, GLARE_MS * Math.abs(to - from) / (2 * g.reach)) };
+    cancelAnimationFrame(g.raf);
+    const step = now => {
+        const run = g.run; if (!run) return;
+        const t = Math.min(1, (now - run.start) / run.ms);
+        g.pos = run.from + (run.to - run.from) * (1 - Math.cos(Math.PI * t)) / 2;
+        glareDraw(g);
+        if (t < 1) g.raf = requestAnimationFrame(step); else g.run = null;
+    };
+    g.raf = requestAnimationFrame(step);
+}
+function bindGlare() {
+    const hostOf = n => n && n.closest ? n.closest('[data-glare]') : null;
+    document.addEventListener('pointerover', e => {
+        const host = hostOf(e.target);
+        if (!host || e.pointerType === 'touch' || hostOf(e.relatedTarget) === host) return;
+        const g = glareFor(host); glareMeasure(g);
+        glareSweep(g, glareSide(g, e) > 0 ? -1 : 1);
+    });
+    document.addEventListener('pointerout', e => {
+        const host = hostOf(e.target);
+        if (!host || e.pointerType === 'touch' || hostOf(e.relatedTarget) === host || !glares.has(host)) return;
+        const g = glares.get(host);
+        glareSweep(g, glareSide(g, e) > 0 ? 1 : -1);
+    });
+    document.addEventListener('focusin', e => {
+        const host = hostOf(e.target);
+        if (!host || !e.target.matches(':focus-visible')) return;
+        const g = glareFor(host); glareMeasure(g); glareSweep(g, 1);
+    });
+}
+
+/* ═════════════════════════════════════════════
    THEME
    ═════════════════════════════════════════════ */
 
@@ -666,7 +744,6 @@ function applyVisualConfig() {
     const md_ = $('meta[name="description"]'); if (md_ && cfg.metaDescription) md_.setAttribute('content', cfg.metaDescription);
 
     ['brand-name', 'hero-name', 'about-name', 'footer-name'].forEach(id => { const n = byId(id); if (n) n.textContent = name; });
-    const mm = byId('mobile-menu-name'); if (mm) mm.textContent = name;
     ['hero-fallback', 'about-fallback'].forEach(id => { const n = byId(id); if (n) n.textContent = name.trim().charAt(0).toUpperCase() || '✦'; });
     ['hero-tagline', 'about-tagline'].forEach(id => { const n = byId(id); if (n) { n.textContent = cfg.tagline || ''; n.hidden = !cfg.tagline; } });
     const fc = byId('footer-copy'); if (fc) fc.textContent = cfg.copyright ? '© ' + cfg.copyright : '';
@@ -794,7 +871,7 @@ function tierCardHTML(t, i) {
     } else {
         art = '<div class="cm-art is-empty" aria-hidden="true"><span>' + esc(name.charAt(0).toUpperCase()) + '</span></div>';
     }
-    return '<article class="cm-tier' + (img && t.pop ? ' is-pop' : '') + '" style="--tc:' + color + ';--chars:' + Math.max(name.length, 4) + '">'
+    return '<article class="cm-tier' + (img && t.pop ? ' is-pop' : '') + '" style="--tc:' + color + ';--chars:' + Math.max(name.length, 4) + '" data-glare>'
         + ARROWS_SVG
         + '<div class="cm-frame"><h2 class="cm-name"><span>' + esc(name) + '</span></h2>' + art + '</div>'
         + '<span class="cm-ticks" aria-hidden="true"></span>'
@@ -1063,20 +1140,26 @@ function updateNavPill() {
     pill.style.transform = 'translateX(' + active.offsetLeft + 'px)';
 }
 
+// Staggered menu (idea from React Bits): the top bar sits above it, so the Menu button turns into Close in place
+let menuCloseTimer = 0;
 function openMobileMenu() {
-    const m = byId('mobile-menu');
+    const m = byId('mobile-menu'), btn = byId('menu-btn');
+    clearTimeout(menuCloseTimer);
     m.classList.add('is-open'); m.setAttribute('aria-hidden', 'false');
-    byId('menu-btn').setAttribute('aria-expanded', 'true');
-    document.documentElement.classList.add('is-locked');
-    setTimeout(() => { const c = $('[data-action="close-menu"]', m); if (c) c.focus(); }, 60);
+    btn.setAttribute('aria-expanded', 'true'); btn.setAttribute('aria-label', 'Close menu');
+    document.documentElement.classList.add('is-locked', 'is-menu-open');
 }
 function closeMobileMenu() {
-    const m = byId('mobile-menu');
+    const m = byId('mobile-menu'), btn = byId('menu-btn');
     if (!m || !m.classList.contains('is-open')) return;
     m.classList.remove('is-open'); m.setAttribute('aria-hidden', 'true');
-    byId('menu-btn').setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu');
     if (!Modals.stack.length) document.documentElement.classList.remove('is-locked');
+    // Keep the top bar on top until the panel has slid away
+    clearTimeout(menuCloseTimer);
+    menuCloseTimer = setTimeout(() => document.documentElement.classList.remove('is-menu-open'), reduceMotion() ? 0 : 340);
 }
+function toggleMobileMenu() { if (byId('mobile-menu').classList.contains('is-open')) closeMobileMenu(); else openMobileMenu(); }
 
 let scrollTicking = false;
 function updateScrollState() {
@@ -1476,7 +1559,7 @@ function zineCardHTML(b, i) {
     const pics = b.items.filter(m => m.type === 'image').slice(0, 3);
     const newest = postsCache.find(p => p.id === (b.items[0] || {}).postId);
     const stickers = pics.map(m => '<span class="zg-sticker' + (blur && m.nsfw ? ' is-veiled' : '') + '"><img src="' + esc(m.url) + '" alt="" loading="lazy" decoding="async"></span>').join('');
-    return '<button class="zg-card zg-paper' + (i === 0 ? ' is-wide' : '') + '" style="--zc:' + ZINE_COLORS[i % ZINE_COLORS.length] + '" data-action="open-board" data-key="' + esc(b.key) + '">'
+    return '<button class="zg-card zg-paper' + (i === 0 ? ' is-wide' : '') + '" style="--zc:' + ZINE_COLORS[i % ZINE_COLORS.length] + '" data-action="open-board" data-key="' + esc(b.key) + '" data-glare>'
         + '<span class="zg-card-text">'
         + '<span class="zg-card-title">' + esc(b.name) + '</span>'
         + '<span class="zg-card-meta"><span><strong>' + plural(b.items.length, 'piece') + '</strong>' + (b.key === ALL_BOARD ? 'Everything, every board' : 'Board ' + String(i).padStart(2, '0')) + '</span>'
@@ -1554,7 +1637,7 @@ function renderComics() {
         const started = p != null && pages > 1;
         // Pages 2-4 fanned out; always shown on the top card, and on any card left with a wide row to itself
         const strip = (c.pages || []).slice(1, 4).map(u => '<span class="zg-sticker"><img src="' + esc(safeUrl(u)) + '" alt="" loading="lazy" decoding="async"></span>').join('');
-        return '<a class="zg-card zg-paper zc-card' + (i === 0 ? ' is-wide' : '') + '" style="--zc:' + ZINE_COLORS[i % ZINE_COLORS.length] + '" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '">'
+        return '<a class="zg-card zg-paper zc-card' + (i === 0 ? ' is-wide' : '') + '" style="--zc:' + ZINE_COLORS[i % ZINE_COLORS.length] + '" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '" data-glare>'
             + '<span class="zc-cover">' + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="zc-cover-empty" aria-hidden="true">' + esc((c.title || '?').charAt(0).toUpperCase()) + '</span>') + '</span>'
             + '<span class="zg-card-text">'
             + '<span class="zg-card-title">' + esc(c.title || 'Untitled') + '</span>'
@@ -4129,8 +4212,7 @@ const actions = {
     'gate-yes': () => ageGateAccept(),
     'gate-no': () => ageGateDeny(),
     'toggle-theme': () => { toggleDarkLight(); if (Studio.draft && ui.adminTab === 'look' && ui.view === 'admin') { Studio.editing = getMode(); Studio.render(); } },
-    'open-menu': () => openMobileMenu(),
-    'close-menu': () => closeMobileMenu(),
+    'toggle-menu': () => toggleMobileMenu(),
     'to-top': () => window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' }),
 
     'open-post': (el, e) => { e.preventDefault(); if (el.dataset.closePost) closePost(); openPost(Number(el.dataset.id), 0, { focus: el.dataset.focus }); },
@@ -4278,6 +4360,8 @@ function scrollToFeed() {
 function bindEvents() {
     bindHoldButton();
     bindTooltips();
+    bindGlare();
+    window.matchMedia('(max-width: 900px)').addEventListener('change', e => { if (!e.matches) closeMobileMenu(); });
     document.addEventListener('click', e => {
         const el = e.target.closest('[data-action]');
         if (!el) {

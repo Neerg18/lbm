@@ -94,31 +94,31 @@
         <a class="icon-btn" href="#/admin" data-view-link="admin" aria-label="Admin">
             <i class="fa-solid fa-gear" aria-hidden="true"></i>
         </a>
-        <button class="icon-btn menu-btn" id="menu-btn" data-action="open-menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
-            <span></span><span></span><span></span>
+        <button class="icon-btn menu-btn" id="menu-btn" data-action="toggle-menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+            <span class="menu-btn-words" aria-hidden="true"><span class="menu-btn-roll"><span>Menu</span><span>Close</span><span>Menu</span><span>Close</span></span></span>
+            <span class="menu-btn-plus" aria-hidden="true"></span>
         </button>
     </div>
 </header>
 
-<!-- Full screen mobile menu -->
+<!-- Full screen mobile menu: two color layers sweep in, then the panel, then the links one by one -->
 <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
-    <div class="mobile-menu-head">
-        <span class="mobile-menu-name" id="mobile-menu-name">Menu</span>
-        <button class="icon-btn" data-action="close-menu" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-    </div>
-    <nav class="mobile-menu-nav" aria-label="Mobile">
-        <ul>
-            <li><a href="#/" data-view-link="home">Home</a></li>
-            <li><a href="#/gallery" data-view-link="gallery">Gallery</a></li>
-            <li><a href="#/comics" data-view-link="comics">Comics</a></li>
-            <li><a href="#/commissions" data-view-link="commissions">Commissions</a></li>
-            <li><a href="#/about" data-view-link="about">About</a></li>
-            <li><a href="#/admin" data-view-link="admin">Admin</a></li>
-        </ul>
-    </nav>
-    <div class="mobile-menu-foot">
-        <button class="text-btn" data-action="toggle-theme"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i> <span class="theme-label">Light mode</span></button>
-        <div class="social-icons" id="menu-social"></div>
+    <div class="mm-layers" aria-hidden="true"><span></span><span></span></div>
+    <div class="mm-panel">
+        <nav class="mobile-menu-nav" aria-label="Mobile">
+            <ul>
+                <li style="--i:0"><a href="#/" data-view-link="home"><span class="mm-label">Home</span></a></li>
+                <li style="--i:1"><a href="#/gallery" data-view-link="gallery"><span class="mm-label">Gallery</span></a></li>
+                <li style="--i:2"><a href="#/comics" data-view-link="comics"><span class="mm-label">Comics</span></a></li>
+                <li style="--i:3"><a href="#/commissions" data-view-link="commissions"><span class="mm-label">Commissions</span></a></li>
+                <li style="--i:4"><a href="#/about" data-view-link="about"><span class="mm-label">About</span></a></li>
+                <li style="--i:5"><a href="#/admin" data-view-link="admin"><span class="mm-label">Admin</span></a></li>
+            </ul>
+        </nav>
+        <div class="mobile-menu-foot">
+            <button class="text-btn" data-action="toggle-theme"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i> <span class="theme-label">Light mode</span></button>
+            <div class="social-icons" id="menu-social"></div>
+        </div>
     </div>
 </div>
 
