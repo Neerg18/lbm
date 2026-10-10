@@ -30,6 +30,8 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Smaller Images:** PNG and JPG uploads are saved as WebP automatically, and **Clean up → Shrink images** converts the ones already on your site (then lists the old files to delete on Neocities)
 - **Faster Posting:** Paste an image straight into the post editor, or bulk upload many images as separate posts
 - **Accessibility:** Keyboard navigation, screen reader labels and a skip-to-content link
+- **Hold to Delete:** Deleting a post, comic, comment or commission tier (and the big Clean up erases) takes a one-second press and hold, by mouse, finger or the Enter key, so nothing goes by accident. Other questions use the same pop-up with a normal button
+- **Button Tooltips:** Icon-only buttons show their name when you hover over them or tab to them. The first one waits a moment, then the next ones appear right away
 - **No Flash on Load:** Your saved theme and colors appear instantly for returning visitors
 
 ---
@@ -111,6 +113,7 @@ For deeper edits:
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
 - **This fork:** NEERG 7.0 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
+- **Hold button and tooltip ideas:** [React Bits](https://reactbits.dev) by David Haz (written fresh in plain JavaScript for this site)
 
 ---
 

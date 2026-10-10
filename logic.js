@@ -411,6 +411,170 @@ const Modals = {
 };
 
 /* ═════════════════════════════════════════════
+   ARE YOU SURE? (in place of the browser's confirm box)
+   Anything that deletes asks you to press and hold, so a slip of the finger can't remove it.
+   Hold idea from React Bits (reactbits.dev)
+   ═════════════════════════════════════════════ */
+
+const HOLD_MS = 1000;
+const Confirm = { resolve: null, holding: null, pointer: null, rect: null, down: 0, p: 0, raf: 0 };
+
+// Resolves true or false. opts: { hold, title, yes } (hold: a press-and-hold button labeled with `yes`)
+function askConfirm(text, opts = {}) {
+    if (Confirm.resolve) finishConfirm(false);
+    const el = byId('confirm-modal'), hold = byId('confirm-hold');
+    byId('confirm-heading').textContent = opts.title || (opts.hold ? 'Are you sure?' : 'Continue?');
+    byId('confirm-text').textContent = text;
+    byId('confirm-yes').hidden = !!opts.hold;
+    byId('confirm-yes').textContent = opts.yes || 'OK';
+    hold.hidden = !opts.hold;
+    $$('.hold-label', hold).forEach(s => { s.textContent = opts.yes || 'Hold to delete'; });
+    holdSet(0); hold.classList.remove('is-holding', 'is-done');
+    byId('confirm-hint').hidden = !opts.hold;
+    byId('confirm-hint').textContent = 'Press and hold until the button fills up.';
+    return new Promise(resolve => {
+        Confirm.resolve = resolve;
+        Modals.open(el, { onRequestClose: () => finishConfirm(false), focus: opts.hold ? '#confirm-hold' : '#confirm-yes' });
+    });
+}
+function finishConfirm(ok) {
+    const resolve = Confirm.resolve; if (!resolve) return;
+    Confirm.resolve = null; Confirm.holding = null; Confirm.pointer = null;
+    cancelAnimationFrame(Confirm.raf);
+    Modals.close(byId('confirm-modal'));
+    resolve(ok);
+}
+
+function holdSet(p) { Confirm.p = p; byId('confirm-hold').style.setProperty('--hold', p.toFixed(4)); }
+// Fills toward 1 at a steady speed while held; drains back quickly when let go early
+function holdDrive(to, ms, ease) {
+    cancelAnimationFrame(Confirm.raf);
+    const from = Confirm.p, start = performance.now();
+    const step = now => {
+        const t = ms > 0 ? Math.min(1, (now - start) / ms) : 1;
+        holdSet(from + (to - from) * ease(t));
+        if (t < 1) Confirm.raf = requestAnimationFrame(step);
+        else if (to === 1 && Confirm.holding) holdDone();
+    };
+    Confirm.raf = requestAnimationFrame(step);
+}
+function holdStart(kind) {
+    if (Confirm.holding || !Confirm.resolve) return;
+    const btn = byId('confirm-hold');
+    Confirm.holding = kind; Confirm.down = performance.now(); Confirm.rect = btn.getBoundingClientRect();
+    btn.classList.add('is-holding');
+    holdDrive(1, HOLD_MS * (1 - Confirm.p), t => t);
+}
+function holdRelease(drifted) {
+    if (!Confirm.holding) return;
+    Confirm.holding = null; Confirm.pointer = null;
+    byId('confirm-hold').classList.remove('is-holding');
+    if (!drifted && performance.now() - Confirm.down < 250) byId('confirm-hint').textContent = 'Keep holding: let go once the button is full.';
+    holdDrive(0, 200, t => 1 - Math.pow(1 - t, 3));
+}
+function holdDone() {
+    Confirm.holding = null; Confirm.pointer = null;
+    byId('confirm-hold').classList.add('is-done');
+    try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+    setTimeout(() => finishConfirm(true), reduceMotion() ? 0 : 160);
+}
+function bindHoldButton() {
+    const btn = byId('confirm-hold');
+    btn.addEventListener('pointerdown', e => {
+        if (e.button !== 0 || !e.isPrimary || Confirm.holding) return;
+        Confirm.pointer = e.pointerId;
+        try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+        holdStart('pointer');
+    });
+    btn.addEventListener('pointermove', e => {
+        const r = Confirm.rect;
+        if (e.pointerId !== Confirm.pointer || !r) return;
+        // Sliding off the button cancels, like letting go
+        if (e.clientX < r.left - 10 || e.clientX > r.right + 10 || e.clientY < r.top - 10 || e.clientY > r.bottom + 10) holdRelease(true);
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => btn.addEventListener(type, e => {
+        if (e.pointerId === Confirm.pointer) holdRelease(type !== 'pointerup');
+    }));
+    btn.addEventListener('keydown', e => {
+        if (e.key !== ' ' && e.key !== 'Enter') return;
+        e.preventDefault();
+        if (!e.repeat) holdStart('key');
+    });
+    btn.addEventListener('keyup', e => {
+        if ((e.key === ' ' || e.key === 'Enter') && Confirm.holding === 'key') { e.preventDefault(); holdRelease(false); }
+    });
+    btn.addEventListener('blur', () => holdRelease(true));
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+/* ═════════════════════════════════════════════
+   TOOLTIPS (buttons that only show an icon)
+   The first one waits a moment; while one is up, the next shows right away.
+   Warm-up idea from React Bits (reactbits.dev)
+   ═════════════════════════════════════════════ */
+
+const TIP_DELAY = 450, TIP_WARM = 300;
+const Tip = { target: null, timer: 0, hideTimer: 0, warmUntil: 0 };
+
+function tipTarget(node) {
+    const t = node && node.closest ? node.closest('button[aria-label], a[aria-label]') : null;
+    if (!t || t.disabled || t.getAttribute('aria-hidden') === 'true' || t.hidden) return null;
+    // Only icon buttons: anything with words or a picture on it already explains itself
+    if (/[\p{L}\p{N}]/u.test(t.textContent) || t.querySelector('img, video, canvas')) return null;
+    return t;
+}
+function tipArm(t) {
+    clearTimeout(Tip.timer);
+    const warm = !byId('tip').hidden || performance.now() < Tip.warmUntil;
+    Tip.target = t;
+    if (warm) tipShow(t); else Tip.timer = setTimeout(() => tipShow(t), TIP_DELAY);
+}
+function tipShow(t) {
+    const tip = byId('tip');
+    if (!document.contains(t) || !t.getAttribute('aria-label')) return;
+    clearTimeout(Tip.hideTimer);
+    tip.textContent = t.getAttribute('aria-label');
+    tip.hidden = false;
+    const r = t.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, gap = 9;
+    const below = r.top - h - gap < 8;
+    const left = clamp(r.left + r.width / 2 - w / 2, 8, Math.max(8, innerWidth - w - 8));
+    tip.dataset.side = below ? 'bottom' : 'top';
+    tip.style.left = left + 'px';
+    tip.style.top = (below ? r.bottom + gap : r.top - h - gap) + 'px';
+    tip.style.setProperty('--tip-arrow', clamp(r.left + r.width / 2 - left, 10, w - 10) + 'px');
+    requestAnimationFrame(() => tip.classList.add('is-on'));
+}
+function tipHide(instant) {
+    clearTimeout(Tip.timer);
+    const tip = byId('tip');
+    if (!tip.hidden) Tip.warmUntil = performance.now() + TIP_WARM;
+    Tip.target = null;
+    tip.classList.remove('is-on');
+    clearTimeout(Tip.hideTimer);
+    if (instant || reduceMotion()) tip.hidden = true;
+    else Tip.hideTimer = setTimeout(() => { if (!tip.classList.contains('is-on')) tip.hidden = true; }, 160);
+}
+function bindTooltips() {
+    document.addEventListener('pointerover', e => {
+        if (e.pointerType === 'touch') return;
+        const t = tipTarget(e.target);
+        if (t === Tip.target) return;
+        if (t) tipArm(t); else if (Tip.target) tipHide();
+    });
+    document.addEventListener('pointerout', e => { if (!e.relatedTarget && Tip.target) tipHide(); });
+    // Keyboard users get the label as soon as they tab onto the button
+    document.addEventListener('focusin', e => {
+        const t = tipTarget(e.target);
+        if (t && t.matches(':focus-visible')) { Tip.target = t; tipShow(t); }
+    });
+    document.addEventListener('focusout', e => { if (Tip.target && e.target === Tip.target) tipHide(); });
+    document.addEventListener('pointerdown', () => { if (Tip.target) tipHide(true); }, true);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && Tip.target) tipHide(true); }, true);
+    window.addEventListener('scroll', () => { if (Tip.target) tipHide(true); }, { capture: true, passive: true });
+    window.addEventListener('resize', () => { if (Tip.target) tipHide(true); });
+}
+
+/* ═════════════════════════════════════════════
    THEME
    ═════════════════════════════════════════════ */
 
@@ -678,7 +842,7 @@ function renderSocialLinks() {
     const icons = links.map(l => {
         const key = normalizePlatform(l.platform);
         const label = l.label || l.platform || 'Link';
-        return '<a href="' + esc(safeUrl(l.url)) + '" target="_blank" rel="noopener me" aria-label="' + esc(label) + '" title="' + esc(label) + '"><i class="' + PLATFORMS[key].icon + '" aria-hidden="true"></i></a>';
+        return '<a href="' + esc(safeUrl(l.url)) + '" target="_blank" rel="noopener me" aria-label="' + esc(label) + '"><i class="' + PLATFORMS[key].icon + '" aria-hidden="true"></i></a>';
     });
     const hero = byId('hero-social'); if (hero) hero.innerHTML = icons.slice(0, 5).join('');
     ['menu-social', 'footer-social'].forEach(id => { const n = byId(id); if (n) n.innerHTML = icons.join(''); });
@@ -1155,7 +1319,7 @@ function tileHTML(post, no) {
     else if (media.length > 1) badges += '<span class="badge right"><i class="fa-regular fa-images" aria-hidden="true"></i>' + media.length + '</span>';
 
     const veil = veiled ? '<button class="veil" data-action="reveal" data-id="' + post.id + '"><i class="fa-regular fa-eye-slash" aria-hidden="true"></i>Sensitive<small>Tap to show</small></button>' : '';
-    const del = isAdminLoggedIn ? '<button class="tile-del" data-action="delete-post" data-id="' + post.id + '" aria-label="Delete post" title="Delete post"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>' : '';
+    const del = isAdminLoggedIn ? '<button class="tile-del" data-action="delete-post" data-id="' + post.id + '" aria-label="Delete post"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>' : '';
     return '<article class="tile' + (veiled ? ' is-veiled' : '') + '" data-id="' + post.id + '">'
         + '<div class="tile-frame stamp"><div class="stamp-pic"><a class="tile-media' + (type === 'none' ? ' is-text' : '') + '" href="#/post/' + post.id + '" data-action="open-post" data-id="' + post.id + '"' + (type === 'none' ? '' : ' aria-label="Open post from ' + esc(date) + '"') + '>' + visual + '<span class="tile-badges">' + badges + '</span></a>' + veil + '</div>' + stampCapHTML(post, no) + '</div>'
         + (type !== 'none' && cap ? '<p class="tile-cap">' + esc(cap) + '</p>' : '')
@@ -1626,8 +1790,8 @@ function addComment(postId, author, text, parentId = null) {
     return true;
 }
 
-function deleteComment(postId, cid) {
-    if (!confirm('Delete this comment? Replies to it will go too.')) return;
+async function deleteComment(postId, cid) {
+    if (!await askConfirm('Delete this comment? Replies to it will go too.', { hold: true, title: 'Delete this comment?' })) return;
     queueOp({ k: 'del', p: postId, cid });
     renderComments(postId);
     refreshReactionsUI(postId);
@@ -2500,9 +2664,9 @@ function togglePin(id) {
     renderManagePosts(); renderHome();
     savePosts();
 }
-function deletePost(id) {
+async function deletePost(id) {
     id = Number(id);
-    if (!confirm('Delete this post for good? This can\'t be undone.')) return;
+    if (!await askConfirm('It\'s removed from your site for good. This can\'t be undone.', { hold: true, title: 'Delete this post?' })) return;
     postsCache = postsCache.filter(p => p.id !== id);
     delete interactionsCache[id]; delete interactionsRemote[id];
     if (ui.post.id === id) closePost();
@@ -2596,8 +2760,8 @@ function renderEditComicPages() {
     box.innerHTML = items.map((it, i) => '<div class="ps-item' + (it.file ? ' is-new' : '') + '" draggable="true" data-index="' + i + '">'
         + '<img src="' + esc(it.preview || it.url) + '" alt="">'
         + '<span class="num">' + (i + 1) + '</span>'
-        + '<button type="button" class="ps-swap" data-action="ec-swap" data-index="' + i + '" title="Swap image" aria-label="Swap the image on page ' + (i + 1) + '"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i></button>'
-        + '<button type="button" data-action="ec-remove" data-index="' + i + '" title="Remove page" aria-label="Remove page ' + (i + 1) + '">✕</button>'
+        + '<button type="button" class="ps-swap" data-action="ec-swap" data-index="' + i + '" aria-label="Swap the image on page ' + (i + 1) + '"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i></button>'
+        + '<button type="button" data-action="ec-remove" data-index="' + i + '" aria-label="Remove page ' + (i + 1) + '">✕</button>'
         + '</div>').join('');
     enableDragSort(box, '.ps-item', (from, to) => { const [m] = items.splice(from, 1); items.splice(to, 0, m); renderEditComicPages(); });
 }
@@ -2663,8 +2827,8 @@ async function saveEditedComic(form) {
     renderComicsAdmin(); renderComics();
     saveComics();
 }
-function deleteComic(id) {
-    if (!confirm('Delete this comic? The page images stay on Neocities, but the comic is removed from your site.')) return;
+async function deleteComic(id) {
+    if (!await askConfirm('The page images stay on Neocities, but the comic is removed from your site.', { hold: true, title: 'Delete this comic?' })) return;
     comicsCache = comicsCache.filter(c => c.id !== Number(id));
     renderComicsAdmin(); renderComics();
     saveComics();
@@ -2870,12 +3034,12 @@ function moveTier(btn) {
     const again = $('[data-action="tier-move"][data-dir="' + btn.dataset.dir + '"]', moved);
     (again && !again.disabled ? again : $('[name="name"]', moved)).focus();
 }
-function removeTier(btn) {
+async function removeTier(btn) {
     const rows = $$('#cm-tier-list .tier-row');
     const i = rows.indexOf(btn.closest('.tier-row'));
     const tiers = readTierRows();
     const t = tiers[i]; if (!t) return;
-    if ((t.name || t.price || t.image || t.notes) && !confirm('Remove the ' + (t.name || 'untitled') + ' tier? It leaves your page when you save.')) return;
+    if ((t.name || t.price || t.image || t.notes) && !await askConfirm('It leaves your page when you save.', { hold: true, title: 'Remove the ' + (t.name || 'untitled') + ' tier?', yes: 'Hold to remove' })) return;
     tiers.splice(i, 1);
     renderTierEditor(tiers);
 }
@@ -3214,17 +3378,17 @@ const Cleanup = {
         cleanupLog(s ? 'Removed ' + plural(s, 'inline image') + ', freed about ' + formatBytes(b) : 'No inline images', s ? 'success' : 'info');
         return { posts: s > 0 };
     },
-    old() {
+    async old() {
         const d = prompt('Delete posts older than how many days?', '365');
         if (!d || isNaN(parseInt(d, 10))) { cleanupLog('Cancelled', 'info'); return {}; }
         const cutoff = Date.now() - parseInt(d, 10) * 86400000, b = postsCache.length;
-        if (!confirm('This permanently deletes ' + plural(postsCache.filter(p => p.id < cutoff).length, 'post') + '. Continue?')) { cleanupLog('Cancelled', 'info'); return {}; }
+        if (!await askConfirm('This permanently deletes ' + plural(postsCache.filter(p => p.id < cutoff).length, 'post') + '. It can\'t be undone.', { hold: true, title: 'Delete old posts?' })) { cleanupLog('Cancelled', 'info'); return {}; }
         postsCache = postsCache.filter(p => p.id >= cutoff);
         const r = b - postsCache.length; cleanupLog(r ? 'Deleted ' + plural(r, 'post') + ' older than ' + d + ' days' : 'No posts that old', r ? 'warn' : 'info');
         return { posts: r > 0 };
     },
-    nuke() {
-        if (!confirm('Erase every like, dislike and comment on your site? This can\'t be undone.')) { cleanupLog('Cancelled', 'info'); return {}; }
+    async nuke() {
+        if (!await askConfirm('Every like, dislike and comment on your site goes. This can\'t be undone.', { hold: true, title: 'Erase all likes and comments?', yes: 'Hold to erase' })) { cleanupLog('Cancelled', 'info'); return {}; }
         const c = Object.keys(interactionsCache).length; interactionsCache = {};
         cleanupLog(c ? 'Erased likes and comments on ' + plural(c, 'post') : 'Nothing to erase', c ? 'warn' : 'info');
         return { interactions: true };
@@ -3237,7 +3401,7 @@ async function runCleanup(fn, btn) {
         cleanupLog('Running all safe cleanups', 'info');
         ['trim', 'dupes', 'orphans', 'empty', 'compact', 'base64'].forEach(k => Object.entries(Cleanup[k]()).forEach(([f, v]) => { if (v) changed[f] = true; }));
         changed = { posts: true, comics: true, interactions: true, system: true };
-    } else changed = Cleanup[fn]() || {};
+    } else changed = (await Cleanup[fn]()) || {};
     refreshCleanupStats();
     renderHome();
     if (btn) { btn.classList.remove('is-running'); btn.classList.add('is-done'); }
@@ -3313,7 +3477,7 @@ async function runShrink() {
     if (isLocalMode()) { showToast('Connect your site to Neocities first, so the copies can be uploaded.', 'error'); return; }
     const refs = shrinkableRefs();
     if (!refs.length) return;
-    if (!confirm('Make smaller WebP copies of ' + plural(refs.length, 'image') + ' and switch your site over to them?\n\nYour originals stay on Neocities until you delete them, so nothing is lost if something goes wrong. Keep this tab open until it finishes.')) return;
+    if (!await askConfirm('Your originals stay on Neocities until you delete them, so nothing is lost if something goes wrong. Keep this tab open until it finishes.', { title: 'Make smaller WebP copies of ' + plural(refs.length, 'image') + '?', yes: 'Shrink images' })) return;
     Shrink.running = true; Shrink.stop = false;
     const bar = byId('shrink-bar'), txt = byId('shrink-text'), count = byId('shrink-count');
     byId('shrink-progress').hidden = false; byId('shrink-stop').hidden = false; byId('shrink-start').disabled = true;
@@ -3847,7 +4011,7 @@ function renderAotdTiles() {
             + '<span class="aotd-tile-status">' + (random ? (chosen ? 'In the rotation' : 'Left out') : (chosen ? 'Shown every day' : 'Not used')) + '</span></button>'
             + '<div class="aotd-tile-tools">'
             + (d.colors ? '<select class="aotd-tile-color" data-id="' + d.id + '" aria-label="' + d.name + ' ' + d.colors[0].toLowerCase() + ' color">' + d.colors[1].map(c => '<option value="' + c[0] + '"' + (c[0] === color ? ' selected' : '') + '>' + c[1] + '</option>').join('') + '</select>' : '<span class="aotd-tile-nocolor"></span>')
-            + '<button type="button" class="aotd-tile-peek" data-action="aotd-peek" data-id="' + d.id + '" aria-label="Preview ' + d.name + '" title="Preview ' + d.name + '"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>'
+            + '<button type="button" class="aotd-tile-peek" data-action="aotd-peek" data-id="' + d.id + '" aria-label="Preview ' + d.name + '"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>'
             + '</div></div>';
     }).join('');
     $$('input[name="aotd-mode"]').forEach(r => { r.checked = r.value === (random ? 'random' : 'one'); r.closest('.aotd-mode').classList.toggle('is-on', r.checked); });
@@ -4037,6 +4201,8 @@ const actions = {
     'reader-fit': el => { const r = byId('reader'); const on = !r.classList.contains('is-fit-width'); r.classList.toggle('is-fit-width', on); el.setAttribute('aria-pressed', String(on)); el.textContent = on ? 'Fit height' : 'Fit width'; },
 
     'modal-close': el => { const m = el.closest('.overlay'); if (m) Modals.close(m); },
+    'confirm-yes': () => finishConfirm(true),
+    'confirm-no': () => finishConfirm(false),
 
     // Admin
     'logout': () => logoutAdmin(),
@@ -4097,7 +4263,7 @@ const actions = {
     'shrink-stop': el => { Shrink.stop = true; el.disabled = true; el.textContent = 'Stopping'; setTimeout(() => { el.disabled = false; el.textContent = 'Stop after this one'; }, 1500); },
     'shrink-copy': () => { const t = byId('shrink-list').value; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('List copied'), () => { byId('shrink-list').select(); showToast('Press Ctrl+C to copy the selected list'); }); },
     'shrink-download': () => downloadFile(byId('shrink-list').value + '\n', 'old-images-to-delete.txt'),
-    'shrink-forget': () => { if (!confirm('Clear the list? Only do this once the old files are deleted from Neocities.')) return; writeJSON(KEYS.shrinkLeftovers, []); renderShrink(); },
+    'shrink-forget': async () => { if (!await askConfirm('Only do this once the old files are deleted from Neocities.', { title: 'Clear the list?', yes: 'Clear the list' })) return; writeJSON(KEYS.shrinkLeftovers, []); renderShrink(); },
     'setup-create': () => generateSystem(),
     'setup-restore': () => restoreFromBackup(),
     'setup-preset': el => { setupPreset = Number(el.dataset.index); $$('#su-presets .preset').forEach((b, i) => b.setAttribute('aria-pressed', String(i === setupPreset))); }
@@ -4110,6 +4276,8 @@ function scrollToFeed() {
 }
 
 function bindEvents() {
+    bindHoldButton();
+    bindTooltips();
     document.addEventListener('click', e => {
         const el = e.target.closest('[data-action]');
         if (!el) {
