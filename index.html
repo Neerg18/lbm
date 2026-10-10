@@ -675,22 +675,59 @@
                         </div>
                     </fieldset>
 
-                    <fieldset class="group">
+                    <fieldset class="group aotd-admin">
                         <legend>Art of Today pop-up</legend>
-                        <label class="check"><input type="checkbox" id="s-aotd"> <span>Greet visitors with one piece from your archive, once a day <em>(everyone sees the same piece that day; posts tagged NSFW are never picked)</em></span></label>
-                        <div class="form-grid">
-                            <label class="field"><span>Paper color</span>
-                                <select id="s-aotd-color">
-                                    <option value="#FFE53B">Yellow</option>
-                                    <option value="#FF8CC6">Pink</option>
-                                    <option value="#7FD3F7">Blue</option>
-                                    <option value="#F3EBDD">Cream</option>
-                                </select>
-                            </label>
-                            <div class="field aotd-preview-field">
-                                <span>See how it looks</span>
-                                <button type="button" class="btn" data-action="preview-aotd"><i class="fa-regular fa-eye" aria-hidden="true"></i> Preview the pop-up</button>
+                        <label class="check"><input type="checkbox" id="s-aotd"> <span>Show a pop-up with one piece from your archive the first time someone visits each day <em>(closing it hides it until tomorrow)</em></span></label>
+
+                        <div class="aotd-sec">
+                            <h3 class="aotd-h">Design</h3>
+                            <div class="aotd-modes" role="radiogroup" aria-label="How the design is picked">
+                                <label class="aotd-mode"><input type="radio" name="aotd-mode" value="random"> A different design every day</label>
+                                <label class="aotd-mode"><input type="radio" name="aotd-mode" value="one"> Always use one design</label>
                             </div>
+                            <p class="hint" id="aotd-mode-help"></p>
+                            <div class="aotd-tiles" id="aotd-tiles"></div>
+                            <p class="hint">Some designs have a color to choose under their picture. The eye button previews that design.</p>
+                        </div>
+
+                        <div class="aotd-sec">
+                            <h3 class="aotd-h">Artwork</h3>
+                            <label class="check"><input type="radio" name="aotd-art" value="all"> <span>A random piece from all posts</span></label>
+                            <label class="check"><input type="radio" name="aotd-art" value="board"> <span>A random piece from one board</span></label>
+                            <label class="field aotd-indent" id="aotd-board-field"><span>Board</span><select id="s-aotd-board"></select></label>
+                            <label class="check"><input type="radio" name="aotd-art" value="pick"> <span>The same piece I pick</span></label>
+                            <div class="aotd-indent aotd-pick" id="aotd-pick-field">
+                                <span class="aotd-pick-show" id="aotd-pick-show"></span>
+                                <button type="button" class="btn small" data-action="aotd-choose">Choose a piece</button>
+                                <input type="hidden" id="s-aotd-post">
+                            </div>
+                            <label class="check"><input type="checkbox" id="s-aotd-nsfw"> <span>Skip posts tagged NSFW <em>(the pop-up can appear on top of any page, so this keeps it safe to open anywhere)</em></span></label>
+                        </div>
+
+                        <div class="aotd-sec">
+                            <h3 class="aotd-h">Words and timing</h3>
+                            <div class="form-grid">
+                                <label class="field"><span>Headline</span><input type="text" id="s-aotd-headline" maxlength="40" placeholder="Art of Today"></label>
+                                <label class="field"><span>Message <em>(leave empty for none)</em></span><input type="text" id="s-aotd-message" maxlength="80" placeholder="One piece a day, picked just for you."></label>
+                                <label class="field"><span>Show it after</span>
+                                    <select id="s-aotd-delay">
+                                        <option value="1">1 second</option>
+                                        <option value="2">2 seconds</option>
+                                        <option value="5">5 seconds</option>
+                                    </select>
+                                </label>
+                                <label class="field"><span>Animation</span>
+                                    <select id="s-aotd-anim">
+                                        <option value="design">Each design's own entrance and exit</option>
+                                        <option value="fade">Simple fade</option>
+                                        <option value="none">No animation</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <p class="hint">Visitors whose device asks for less motion always get a simple fade.</p>
+                            <label class="check"><input type="checkbox" id="s-aotd-phones"> <span>Also show it on phones</span></label>
+                            <p class="hint">Each visitor sees it once a day. Everyone gets the same piece and design on the same day.</p>
+                            <div><button type="button" class="btn" data-action="preview-aotd"><i class="fa-regular fa-eye" aria-hidden="true"></i> Preview today's pop-up</button></div>
                         </div>
                     </fieldset>
 
