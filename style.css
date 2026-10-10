@@ -513,7 +513,7 @@ input[type="range"] { width: 100%; accent-color: var(--hl); }
     overflow-y: auto; overscroll-behavior: contain;
 }
 .mobile-menu-nav { flex: 1; padding: 12px var(--gutter) 28px; }
-.mobile-menu-nav ul { list-style: none; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; counter-reset: mm; }
+.mobile-menu-nav ul { list-style: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; counter-reset: mm; }
 .mobile-menu-nav li { overflow: hidden; line-height: 1; padding: .04em 0; }
 .mobile-menu-nav a {
     position: relative; display: inline-block; max-width: 100%;
@@ -521,13 +521,13 @@ input[type="range"] { width: 100%; accent-color: var(--hl); }
     font-family: var(--font-display);
     font-size: min(3.4rem, 7.8vw); /* "Commissions" fits on one line, even on a 320px phone */
     line-height: 1.04;
-    text-transform: uppercase; letter-spacing: -.01em;
+    text-align: right; text-transform: uppercase; letter-spacing: -.01em;
     color: var(--text);
     counter-increment: mm;
 }
 .mobile-menu-nav a:hover, .mobile-menu-nav a[aria-current="page"] { color: var(--accent); text-decoration: none; }
 /* Each link rises and straightens, one after another; numbers fade in just behind */
-.mm-label { display: inline-block; overflow-wrap: anywhere; transform: translateY(140%) rotate(10deg); transform-origin: 50% 100%; transition: transform 0s linear .34s; }
+.mm-label { display: inline-block; overflow-wrap: anywhere; transform: translateY(140%) rotate(10deg); transform-origin: 100% 100%; transition: transform 0s linear .34s; }
 .mobile-menu.is-open .mm-label { transform: none; transition: transform 1s var(--ease-out) calc(.25s + var(--i) * .1s); }
 .mobile-menu-nav a::after {
     content: counter(mm, decimal-leading-zero);
