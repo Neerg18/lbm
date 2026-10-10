@@ -19,6 +19,7 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Featured Carousel:** Show your newest, most liked or pinned posts on Home, or hide it
 - **Paper Home & About:** Below your banner, Home and About sit on a paper sheet with bold outlined cards: cream in light mode, night blue with cream outlines in dark mode. Recent work shows as postage stamps, Featured gets a details card and a commissions card, and About adds live counts, your links and your latest work
 - **Recommended Comic:** A ticket at the bottom of Home (side by side on computers, upright on phones) points visitors to a comic, picking up where they left off. It's the newest comic unless you choose one in **Admin → Site info**
+- **Art of Today:** Once a day, visitors are greeted by a tabloid-style pop-up with one piece from your archive (everyone gets the same piece that day, and posts tagged NSFW are never picked). It slams in, drops away when closed, and waits until after the age check. Turn it off, change its paper color or preview it in **Admin → Site info**
 - **Both Themes Everywhere:** Home, About, Gallery and Comics all switch with the light/dark button
 - **Zine Gallery:** The Gallery is a collage of colored paper cards, one per board with "All media" first, and each board opens into taped-on polaroids
 - **Zine Comics:** The Comics page matches the Gallery: a paper card for each comic with its cover stuck on, a reading progress bar, a "Continue" shortcut back to where you left off, and each comic's page list has a header in that comic's color
@@ -78,7 +79,7 @@ All visual customization is done through the **Admin** dashboard. No code editin
 | **Posts** | Find, edit, pin and delete existing posts |
 | **Comics** | Create comics, reorder pages by dragging, add new pages later |
 | **Commissions** | The open/closed switch, status badge, tiers (example art, price, notes, color), terms, request link, hazard-tape words and poster colors |
-| **Site info** | Site name, tagline, profile picture, bio, age check, comments, reactions, featured posts, recommended comic, search engine description |
+| **Site info** | Site name, tagline, profile picture, bio, age check, comments, reactions, featured posts, recommended comic, Art of Today pop-up, search engine description |
 | **Colors & style** | Dark and light palettes, presets, color generator, reaction button colors, profile ring |
 | **Home banner** | Header images (latest posts or your own picks) and the scrolling text band |
 | **Social links** | Links shown on the header, About page, Commissions page and footer |

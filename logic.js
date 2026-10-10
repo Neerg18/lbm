@@ -40,7 +40,8 @@ const KEYS = {
     recoveryDismissed: 'neerg_recovery_dismissed',
     comicProgress: 'neerg_comic_progress',
     shrinkLeftovers: 'neerg_shrink_leftovers',
-    shrinkSkipped: 'neerg_shrink_skipped'
+    shrinkSkipped: 'neerg_shrink_skipped',
+    aotdSeen: 'neerg_aotd_seen'
 };
 
 const AGE_OK_DAYS = 30;
@@ -159,6 +160,7 @@ let currentConfig = {
     commissionStatus: 'AVAILABLE FOR COMMISSIONS', statusColor: '#FB3640',
     commissionsInfo: '', commissionsLink: '',
     ageGate: true, featuredMode: 'recent', recommendedComic: '', blurNsfw: false, webpUploads: true,
+    artOfToday: true, aotdColor: '#FFE53B',
     colors: { ...DEFAULT_DARK },
     lightColors: null,
     pfpRingStyle: null
@@ -2711,6 +2713,7 @@ function populateSiteForm() {
         rec.innerHTML = '<option value="">Newest comic</option>' + list.map(cm => '<option value="' + cm.id + '">' + esc(cm.title || 'Untitled') + '</option>').join('') + '<option value="off">Don\'t show one</option>';
         rec.value = list.some(cm => String(cm.id) === String(c.recommendedComic)) || c.recommendedComic === 'off' ? String(c.recommendedComic) : '';
     }
+    chk('s-aotd', c.artOfToday !== false); set('s-aotd-color', AOTD_COLORS.includes(c.aotdColor) ? c.aotdColor : AOTD_COLORS[0]);
     set('s-like-label', c.likeLabel); set('s-dislike-label', c.dislikeLabel);
     set('s-title', c.metaTitle); set('s-desc', c.metaDescription);
     set('s-bgimage', c.bgImage); set('s-css', c.customCss); set('s-newkey', '');
@@ -2727,6 +2730,7 @@ async function saveSiteSettings() {
     c.allowComments = byId('s-comments').checked; c.reactionsEnabled = byId('s-reactions').checked;
     c.reactionIcon = byId('s-reaction-style').value; c.featuredMode = byId('s-featured').value;
     if (byId('s-rec-comic')) c.recommendedComic = byId('s-rec-comic').value;
+    if (byId('s-aotd')) { c.artOfToday = byId('s-aotd').checked; c.aotdColor = byId('s-aotd-color').value; }
     c.likeLabel = byId('s-like-label').value; c.dislikeLabel = byId('s-dislike-label').value;
     c.metaTitle = val('s-title'); c.metaDescription = val('s-desc');
     c.bgImage = val('s-bgimage'); c.customCss = byId('s-css').value;
@@ -3469,7 +3473,11 @@ function gateLoaded() {
 function gateClose() {
     const gate = byId('gate');
     gate.classList.add('is-leaving');
-    setTimeout(() => { gate.hidden = true; Gate.active = false; if (!Modals.stack.length) document.documentElement.classList.remove('is-locked'); }, 520);
+    setTimeout(() => {
+        gate.hidden = true; Gate.active = false;
+        if (!Modals.stack.length) document.documentElement.classList.remove('is-locked');
+        setTimeout(maybeShowAotd, 500);
+    }, 520);
 }
 function ageGateAccept() {
     try { localStorage.setItem(KEYS.age, String(Date.now())); } catch (e) {}
@@ -3486,6 +3494,84 @@ function ageGateAccept() {
 }
 function ageGateDeny() {
     byId('gate-body').innerHTML = '<div class="gate-denied"><p class="big" aria-hidden="true">🚫</p><p>Access denied.</p><p>You must be 18+ to view this site.</p></div>';
+}
+
+/* ═════════════════════════════════════════════
+   ART OF TODAY (a tabloid pop-up, once a day per visitor)
+   ═════════════════════════════════════════════ */
+
+const AOTD_COLORS = ['#FFE53B', '#FF8CC6', '#7FD3F7', '#F3EBDD'];
+const AOTD_FACE = '<svg class="aotd-face" viewBox="0 0 74 74" fill="none" stroke="#111111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 40c0-17 10-28 24-28s22 11 22 26c0 17-10 28-23 28S14 56 14 40z" fill="#FFFFFF"/><path d="M20 26c6-10 22-14 34-6 4-6 10-6 12-2-6 0-8 4-10 8"/><path d="M28 40v3M46 40v3"/><path d="M30 53c5 4 11 4 15 0"/></svg>';
+
+function aotdToday() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// Everyone gets the same piece on the same day. Stepping by a large prime walks through every post before repeating.
+function aotdPick() {
+    const pool = postsCache.filter(p => firstImage(p) && !isNsfw(p)).sort((a, b) => a.id - b.id);
+    if (!pool.length) return null;
+    const d = new Date();
+    const day = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+    return pool[(day * 7919) % pool.length];
+}
+function renderAotd(post, color) {
+    const paper = AOTD_COLORS.includes(color) ? color : AOTD_COLORS.includes(currentConfig.aotdColor) ? currentConfig.aotdColor : AOTD_COLORS[0];
+    byId('aotd').style.setProperty('--aotd-paper', paper);
+    const d = new Date();
+    const date = d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
+    const day = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()];
+    const cap = excerpt(post.content, 60);
+    const tag = stampTag(post);
+    const posted = formatDate(post);
+    const link = 'href="#/post/' + post.id + '" data-action="aotd-view" data-id="' + post.id + '"';
+    byId('aotd-paper').innerHTML = '<h2 class="aotd-top" id="aotd-title">Art of Today</h2>'
+        + '<a class="aotd-art" ' + link + '><img src="' + esc(firstImage(post)) + '" alt="' + esc(cap ? 'Today\'s artwork: ' + cap : 'Today\'s artwork') + '" decoding="async"></a>'
+        + '<span class="aotd-vert" aria-hidden="true">Today\'s art</span>'
+        + '<span class="aotd-side" aria-hidden="true">' + esc(siteName()) + ' · Daily pick</span>'
+        + AOTD_FACE
+        + '<div class="aotd-info"><p class="aotd-date">' + date + ' <small>(' + day + ')</small></p><ol class="aotd-list">'
+        + '<li><b>01</b><mark>' + esc(cap || 'Untitled piece') + '</mark></li>'
+        + '<li><b>02</b><span>' + (tag ? 'From the ' + esc(tag) + ' board' : 'From the archive') + '</span></li>'
+        + '<li><b>03</b><span>' + (posted ? 'Posted ' + esc(posted) : 'From the vault') + '</span></li>'
+        + '<li><b>04</b><span>Post</span><mark>No.' + postNumbers().get(post.id) + '</mark></li>'
+        + '</ol></div>'
+        + '<a class="aotd-view" ' + link + '>View post <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>'
+        + '<span class="aotd-bot" aria-hidden="true">Pick of the day</span>';
+}
+function showAotd(opts = {}) {
+    const el = byId('aotd');
+    if (!el || Modals.isOpen(el)) return;
+    const post = aotdPick();
+    if (!post) { if (opts.preview) showToast('Post some artwork first, then the pop-up has something to show.', 'error'); return; }
+    renderAotd(post, opts.color);
+    el.classList.remove('is-leaving');
+    Modals.open(el, { onRequestClose: () => closeAotd(), focus: '.aotd-card' });
+    if (!opts.preview) try { localStorage.setItem(KEYS.aotdSeen, aotdToday()); } catch (e) {}
+}
+function maybeShowAotd() {
+    if (!dataReady || currentConfig.artOfToday === false || Gate.active) return;
+    let seen = null;
+    try { seen = localStorage.getItem(KEYS.aotdSeen); } catch (e) {}
+    if (seen === aotdToday()) return;
+    // Don't cover a post someone came to see from a shared link, or the admin dashboard; it'll wait for their next visit
+    if (Modals.stack.length || ui.view === 'admin' || !byId('setup').hidden) return;
+    const post = aotdPick();
+    if (!post) return;
+    // Let the picture load first so the entrance plays with the art in place
+    let shown = false;
+    const go = () => { if (shown) return; shown = true; if (!Modals.stack.length && ui.view !== 'admin') showAotd(); };
+    const img = new Image();
+    img.onload = img.onerror = go;
+    img.src = firstImage(post);
+    setTimeout(go, 2500);
+}
+function closeAotd(then) {
+    const el = byId('aotd');
+    if (!Modals.isOpen(el) || el.classList.contains('is-leaving')) return;
+    el.classList.add('is-leaving');
+    const done = () => { Modals.close(el); if (then) then(); };
+    if (reduceMotion()) done(); else setTimeout(done, 480);
 }
 
 /* ═════════════════════════════════════════════
@@ -3539,6 +3625,9 @@ const actions = {
     'to-top': () => window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' }),
 
     'open-post': (el, e) => { e.preventDefault(); if (el.dataset.closePost) closePost(); openPost(Number(el.dataset.id), 0, { focus: el.dataset.focus }); },
+    'close-aotd': () => closeAotd(),
+    'aotd-view': (el, e) => { e.preventDefault(); const id = Number(el.dataset.id); closeAotd(() => openPost(id)); },
+    'preview-aotd': () => showAotd({ preview: true, color: byId('s-aotd-color') ? byId('s-aotd-color').value : null }),
     'close-post': () => closePost(),
     'post-prev': () => stepPost(-1),
     'post-next': () => stepPost(1),
@@ -3818,6 +3907,7 @@ async function init() {
     route();
     if (!hasSystem) { gateSkip(); showSetup(); }
     else gateDataReady();
+    if (hasSystem && !Gate.active) setTimeout(maybeShowAotd, 900);
     if (!IS_LOCAL_FILE) setTimeout(injectBridge, 600);
     if (pendingOps.length) setTimeout(() => scheduleInteractionsSync(), 2500);
 }

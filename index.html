@@ -676,6 +676,25 @@
                     </fieldset>
 
                     <fieldset class="group">
+                        <legend>Art of Today pop-up</legend>
+                        <label class="check"><input type="checkbox" id="s-aotd"> <span>Greet visitors with one piece from your archive, once a day <em>(everyone sees the same piece that day; posts tagged NSFW are never picked)</em></span></label>
+                        <div class="form-grid">
+                            <label class="field"><span>Paper color</span>
+                                <select id="s-aotd-color">
+                                    <option value="#FFE53B">Yellow</option>
+                                    <option value="#FF8CC6">Pink</option>
+                                    <option value="#7FD3F7">Blue</option>
+                                    <option value="#F3EBDD">Cream</option>
+                                </select>
+                            </label>
+                            <div class="field aotd-preview-field">
+                                <span>See how it looks</span>
+                                <button type="button" class="btn" data-action="preview-aotd"><i class="fa-regular fa-eye" aria-hidden="true"></i> Preview the pop-up</button>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
                         <legend>Search and sharing</legend>
                         <div class="form-grid">
                             <label class="field"><span>Browser tab title</span><input type="text" id="s-title"></label>
@@ -866,6 +885,15 @@
         <div class="stage-pager" id="post-pager" hidden></div>
     </div>
     <aside class="post-info" id="post-info"></aside>
+</div>
+
+<!-- ═══════════ ART OF TODAY (once a day; filled in by logic.js) ═══════════ -->
+<div class="aotd" id="aotd" role="dialog" aria-modal="true" aria-labelledby="aotd-title" hidden>
+    <button class="aotd-dim" data-action="close-aotd" tabindex="-1" aria-hidden="true"></button>
+    <div class="aotd-card" tabindex="-1">
+        <button class="aotd-close" data-action="close-aotd" aria-label="Close until tomorrow"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        <div class="aotd-paper" id="aotd-paper"></div>
+    </div>
 </div>
 
 <!-- ═══════════ FULL SIZE MEDIA VIEWER ═══════════ -->

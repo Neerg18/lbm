@@ -2002,6 +2002,109 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .picker-grid img { width: 100%; height: 100%; object-fit: cover; }
 
 /* ═══════════════════════════════════════════
+   ART OF TODAY POP-UP
+   A tabloid front page with one piece from the archive, once a day.
+   Inside the card everything is sized in cqw (1cqw = 1% of the card's
+   width), so the whole page scales as one piece. Phones get a stacked
+   version; computers get the wide poster from the mockup.
+   ═══════════════════════════════════════════ */
+.aotd {
+    --aotd-paper: #FFE53B; --aotd-ink: #111111;
+    position: fixed; inset: 0; z-index: 450;
+    display: flex; align-items: center; justify-content: center;
+    padding: 28px 16px;
+}
+.aotd-dim { position: absolute; inset: 0; width: 100%; background: rgba(5, 8, 16, .8); cursor: default; }
+.aotd-card { position: relative; container-type: inline-size; width: min(440px, 100%); }
+.aotd-card:focus { outline: none; }
+.aotd-close {
+    position: absolute; right: -12px; top: -12px; z-index: 3;
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--aotd-ink); color: #FFFFFF; border: 2px solid #FFFFFF;
+    font-size: 1.1rem;
+    transition: transform .2s var(--ease-out);
+}
+.aotd-close:hover { transform: rotate(90deg); }
+.aotd-paper {
+    position: relative; overflow: hidden auto;
+    max-height: calc(100dvh - 56px);
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 3cqw; align-items: start;
+    padding: 0 5cqw;
+    background: var(--aotd-paper); color: var(--aotd-ink);
+    font-family: var(--font-body);
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7);
+}
+.aotd-paper :focus-visible { outline: 3px solid var(--aotd-ink); outline-offset: 3px; border-radius: 0; }
+.aotd-top, .aotd-bot, .aotd-vert, .aotd-date, .aotd-list b, .aotd-view { font-family: 'Anton', 'Arial Narrow', Impact, sans-serif; font-weight: 400; letter-spacing: .01em; }
+.aotd-top, .aotd-bot, .aotd-vert, .aotd-side, .aotd-view { text-transform: uppercase; white-space: nowrap; }
+.aotd-top, .aotd-bot { line-height: 1; }
+.aotd-top { grid-column: 1 / -1; margin: -3.6cqw 0 1cqw -1.4cqw; font-size: 18cqw; }
+.aotd-bot { grid-column: 1 / -1; height: 12.6cqw; overflow: hidden; margin: 4cqw 0 0 -1.4cqw; font-size: 18cqw; }
+.aotd-art { grid-column: 1; align-self: stretch; position: relative; display: block; min-height: 72cqw; overflow: hidden; background: #444444; }
+.aotd-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.35); transition: filter .4s var(--ease); }
+.aotd-art:hover img, .aotd-art:focus-visible img { filter: none; }
+.aotd-vert { grid-column: 2; writing-mode: vertical-rl; font-size: 12.5cqw; line-height: .9; }
+.aotd-side, .aotd-face { display: none; }
+.aotd-info { grid-column: 1 / -1; min-width: 0; margin-top: 4cqw; }
+.aotd-date { font-size: 11cqw; line-height: 1; white-space: nowrap; }
+.aotd-date small { font-size: .5em; }
+.aotd-list { list-style: none; margin: 2.4cqw 0 0; padding: 0; display: flex; flex-direction: column; gap: 1.4cqw; font-weight: 800; font-size: 4.2cqw; line-height: 1.3; }
+.aotd-list li { display: flex; align-items: baseline; gap: 2cqw; min-width: 0; }
+.aotd-list b { flex: none; }
+.aotd-list span, .aotd-list mark { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aotd-list mark { padding: 0 1.4cqw; background: #FFFFFF; color: inherit; }
+.aotd-view {
+    grid-column: 1 / -1; margin-top: 5cqw;
+    display: flex; align-items: center; justify-content: center; gap: 2.4cqw;
+    min-height: 52px; padding: 0 4cqw;
+    background: var(--aotd-ink); color: var(--aotd-paper);
+    font-size: 5.6cqw; letter-spacing: .06em;
+}
+.aotd-view:hover { color: #FFFFFF; }
+.aotd-view i { font-size: .8em; }
+.aotd-preview-field { justify-content: flex-end; }
+.aotd-preview-field .btn { align-self: flex-start; }
+
+@media (min-width: 820px) and (min-height: 520px) {
+    .aotd { padding: 40px; }
+    .aotd-card { width: min(1000px, 100%, calc((100dvh - 80px) * 1.78)); }
+    .aotd-close { right: -20px; top: -20px; }
+    .aotd-paper { display: block; aspect-ratio: 1000 / 562; max-height: none; overflow: hidden; padding: 0; }
+    .aotd-paper > * { position: absolute; margin: 0; }
+    .aotd-top { left: -.8cqw; top: -3.4cqw; font-size: 15.2cqw; }
+    .aotd-bot { left: 33cqw; bottom: 0; height: 10.8cqw; font-size: 15.2cqw; }
+    .aotd-art { left: 33cqw; top: 11.6cqw; width: 40cqw; height: 32.4cqw; min-height: 0; }
+    .aotd-vert { left: 74.4cqw; top: 11.6cqw; font-size: 7.1cqw; line-height: 1; }
+    .aotd-side { display: block; left: 83.4cqw; top: 11.8cqw; writing-mode: vertical-rl; font-weight: 800; font-size: 1.3cqw; letter-spacing: .2em; }
+    .aotd-face { display: block; left: 3cqw; top: 12.4cqw; width: 7.4cqw; height: auto; }
+    .aotd-info { left: 3cqw; top: 21cqw; width: 29cqw; }
+    .aotd-date { font-size: 5cqw; }
+    .aotd-list { margin-top: 1cqw; gap: .6cqw; font-size: 1.7cqw; }
+    .aotd-list li { gap: .8cqw; }
+    .aotd-list mark { padding: .1cqw .6cqw; }
+    .aotd-view { left: 3cqw; top: 41cqw; min-height: 5.2cqw; padding: 0 2.2cqw; gap: 1cqw; font-size: 2.2cqw; }
+}
+
+/* Slams onto the page; the headlines slide in from both sides and the art flashes like a fresh print. Drops away on close. */
+@keyframes aotdDimIn { from { opacity: 0; } }
+@keyframes aotdDimOut { to { opacity: 0; } }
+@keyframes aotdIn { from { opacity: 0; transform: scale(1.35) rotate(-4deg); } }
+@keyframes aotdOut { to { opacity: 0; transform: translateY(90px) rotate(4deg); } }
+@keyframes aotdFromLeft { from { transform: translateX(-160px); } }
+@keyframes aotdFromRight { from { transform: translateX(160px); } }
+@keyframes aotdDrop { from { opacity: 0; transform: translateY(-70px); } }
+@keyframes aotdFlash { from { filter: grayscale(1) contrast(1.35) brightness(3); } }
+.aotd-dim { animation: aotdDimIn .45s ease both; }
+.aotd-card { animation: aotdIn .55s cubic-bezier(.2, 1.3, .4, 1) both; }
+.aotd-top { animation: aotdFromLeft .6s cubic-bezier(.2, .8, .2, 1) .15s both; }
+.aotd-bot { animation: aotdFromRight .6s cubic-bezier(.2, .8, .2, 1) .2s both; }
+.aotd-vert { animation: aotdDrop .6s cubic-bezier(.2, .8, .2, 1) .3s both; }
+.aotd-art img { animation: aotdFlash .7s ease .25s both; }
+.aotd.is-leaving .aotd-dim { animation: aotdDimOut .5s ease .05s forwards; }
+.aotd.is-leaving .aotd-card { animation: aotdOut .45s cubic-bezier(.6, 0, .8, .3) forwards; }
+
+/* ═══════════════════════════════════════════
    SETUP
    ═══════════════════════════════════════════ */
 .setup { position: fixed; inset: 0; z-index: 600; overflow-y: auto; background: var(--bg); padding: clamp(20px, 5vw, 60px) 16px; }
@@ -2142,4 +2245,5 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
     .marquee-track { animation: none; }
     .mobile-menu-nav a { transform: none; }
+    .aotd *, .aotd *::before { animation-delay: 0s !important; }
 }
