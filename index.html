@@ -69,6 +69,7 @@
 </div>
 
 <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<div class="tip" id="tip" aria-hidden="true" hidden></div>
 
 <!-- ═══════════ TOP BAR ═══════════ -->
 <header class="topbar" id="topbar">
@@ -87,10 +88,10 @@
     </nav>
 
     <div class="topbar-actions">
-        <button class="icon-btn" id="theme-btn" data-action="toggle-theme" aria-label="Switch to light mode" title="Switch theme">
+        <button class="icon-btn" id="theme-btn" data-action="toggle-theme" aria-label="Switch to light mode">
             <i class="fa-solid fa-sun" aria-hidden="true"></i>
         </button>
-        <a class="icon-btn" href="#/admin" data-view-link="admin" aria-label="Admin" title="Admin">
+        <a class="icon-btn" href="#/admin" data-view-link="admin" aria-label="Admin">
             <i class="fa-solid fa-gear" aria-hidden="true"></i>
         </a>
         <button class="icon-btn menu-btn" id="menu-btn" data-action="open-menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
@@ -1086,6 +1087,23 @@
             <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
         </div>
         <div class="picker-grid" id="picker-grid"></div>
+    </div>
+</div>
+
+<!-- ═══════════ ARE YOU SURE? (filled in by askConfirm in logic.js) ═══════════ -->
+<div class="overlay modal confirm-modal" id="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-heading" aria-describedby="confirm-text" hidden>
+    <div class="modal-card narrow">
+        <h2 id="confirm-heading">Are you sure?</h2>
+        <p class="confirm-text" id="confirm-text"></p>
+        <div class="form-foot">
+            <button class="btn btn-ghost" data-action="confirm-no">Cancel</button>
+            <button class="btn btn-primary" id="confirm-yes" data-action="confirm-yes">OK</button>
+            <button type="button" class="btn hold-btn" id="confirm-hold" aria-describedby="confirm-hint">
+                <span class="hold-label"></span>
+                <span class="hold-fill" aria-hidden="true"><span class="hold-label"></span></span>
+            </button>
+        </div>
+        <p class="hold-hint" id="confirm-hint" aria-live="polite"></p>
     </div>
 </div>
 
