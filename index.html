@@ -12,8 +12,8 @@
     NEERG v7 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
-    Upload index.html, style.css, logic.js, marked.min.js and the fonts
-    folder to your Neocities root.
+    Upload index.html, style.css, logic.js, marked.min.js, sky.js, sky.css
+    and the fonts folder to your Neocities root.
     Your content lives in system.js, posts.js, comics.js and interactions.js,
     which the site writes for you. Everything else is managed from the
     Admin page (the gear icon). No code editing needed.
@@ -344,16 +344,20 @@
 
     <!-- ═══════════ ABOUT ═══════════ -->
     <section class="view" data-view="about" id="view-about" hidden>
-        <div class="wrap">
-            <div class="about">
-                <div class="ring ring-about" id="about-ring">
-                    <img class="ring-img" id="about-pfp" alt="" hidden>
-                    <span class="ring-fallback" id="about-fallback" aria-hidden="true">N</span>
-                </div>
-                <div class="about-body">
-                    <h1 class="about-name" id="about-name">NEERG</h1>
+        <!-- The sky: sun, moon and sea drawn by sky.js (loaded the first time About opens) behind the text -->
+        <div class="sky" id="about-sky">
+            <div class="sky-stage" aria-hidden="true"></div>
+            <div class="sky-txt">
+                <p class="sky-kicker">About</p>
+                <h1 class="sky-name" id="about-name">NEERG</h1>
+                <p class="sky-sub" id="about-tagline" hidden></p>
+                <div class="sky-bio prose" id="about-bio"></div>
+                <div class="sky-actions">
+                    <a class="sky-btn" href="#/gallery">See my work <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    <a class="sky-btn is-ghost" href="#/commissions">Commissions</a>
                 </div>
             </div>
+            <div class="sky-dock" hidden></div>
         </div>
 
         <!-- Same band as Home, carrying the tagline and the Home band's words -->
@@ -364,20 +368,12 @@
         <div class="nb-sheet">
             <div class="wrap wide nb-inner nb-about">
                 <div class="nb-row">
-                    <section class="nb-card nb-bio" aria-label="About">
-                        <span class="nb-tag">About me</span>
-                        <h2 class="nb-statement" id="about-tagline"></h2>
-                        <div class="prose" id="about-bio"></div>
-                        <span class="nb-burst" id="about-burst" hidden aria-hidden="true"><svg viewBox="0 0 120 120"><polygon points="60.0,2.0 69.8,17.1 85.2,7.7 87.4,25.6 105.3,23.8 99.6,40.9 116.5,47.1 104.0,60.0 116.5,72.9 99.6,79.1 105.3,96.2 87.4,94.4 85.2,112.3 69.8,102.9 60.0,118.0 50.2,102.9 34.8,112.3 32.6,94.4 14.7,96.2 20.4,79.1 3.5,72.9 16.0,60.0 3.5,47.1 20.4,40.9 14.7,23.8 32.6,25.6 34.8,7.7 50.2,17.1" stroke="#0B0F1A" stroke-width="3" stroke-linejoin="round"/></svg><span id="about-burst-text"></span></span>
-                    </section>
                     <a class="nb-card nb-comm" id="about-comm" href="#/commissions" hidden>
                         <span class="nb-label">Commissions</span>
                         <span class="nb-comm-status"><span class="nb-dot" aria-hidden="true"></span><span class="feat-comm-text"></span></span>
                         <span class="nb-comm-note">Prices, examples and how to order.</span>
                         <span class="nb-pill">See prices <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
                     </a>
-                </div>
-                <div class="nb-row">
                     <section class="nb-card nb-nums" aria-labelledby="nums-title">
                         <h2 class="nb-label" id="nums-title">By the numbers</h2>
                         <dl class="nb-table">
