@@ -40,7 +40,7 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 
 ## Getting Started
 
-1. Upload `index.html`, `style.css`, and `logic.js` to your Neocities site
+1. Upload `index.html`, `style.css`, `logic.js`, `marked.min.js` and the `fonts` folder to your Neocities site
 2. Open your site. A **Setup Wizard** appears automatically
 3. Enter a password (8+ characters) and your Neocities API key (Neocities → Settings → API). That's it, you're live
 
@@ -48,7 +48,7 @@ No code editing required. Everything is managed from the **Admin** page (the ⚙
 
 ### Upgrading from an earlier NEERG
 
-NEERG 7.0 stores your content in the same format as 6.0, so just replace `index.html`, `style.css` and `logic.js`. Your posts, comics, likes and settings stay where they are.
+NEERG 7.0 stores your content in the same format as 6.0, so just replace `index.html`, `style.css`, `logic.js`, `marked.min.js` and the `fonts` folder. Your posts, comics, likes and settings stay where they are.
 
 > Tip: hit **Back up** in the dashboard before upgrading, just in case.
 
@@ -61,6 +61,8 @@ your-neocities-site/
 ├── index.html          ← main page
 ├── style.css           ← all styles
 ├── logic.js            ← all backend logic
+├── marked.min.js       ← turns Markdown captions into formatted text
+├── fonts/              ← the site's icons (a trimmed Font Awesome)
 ├── system.js           ← auto-generated on first setup
 ├── posts.js            ← auto-generated when you post
 ├── comics.js           ← auto-generated when you add a comic
@@ -69,7 +71,11 @@ your-neocities-site/
     └── comics/         ← comic pages stored here
 ```
 
-Only the first three files live in this repository. The rest are created on your Neocities site by the Admin page.
+Only the files above `system.js` live in this repository. The rest are created on your Neocities site by the Admin page.
+
+### Icons
+
+The site carries only the Font Awesome icons it uses (about 9 KB instead of about 300 KB). The list is at the top of `style.css`. To use an icon that isn't on it, add a line such as `.fa-star{--fa:"\f005"}` (the code is on the icon's page at fontawesome.com), then rebuild the files in `fonts/` from the free Font Awesome 6.7.2 download with the icon's code included, for example with fontTools: `pyftsubset fa-solid-900.woff2 --unicodes=U+F005,... --flavor=woff2`.
 
 ---
 
@@ -115,6 +121,8 @@ For deeper edits:
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
 - **This fork:** NEERG 7.0 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
+- **Icons:** [Font Awesome Free 6.7.2](https://fontawesome.com) (icons CC BY 4.0, fonts SIL OFL 1.1, code MIT), trimmed to the icons this site uses
+- **Markdown:** [marked 15.0.12](https://github.com/markedjs/marked) (MIT)
 - **Hold button, tooltip, glass shine and staggered menu ideas:** [React Bits](https://reactbits.dev) by David Haz (written fresh in plain JavaScript for this site)
 
 ---
