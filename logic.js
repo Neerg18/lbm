@@ -205,7 +205,7 @@ function unicodeToBase64(str) {
     return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p1) => String.fromCharCode(parseInt(p1, 16))));
 }
 function base64ToUnicode(str) {
-    return decodeURIComponent(atob(str).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(atob(str), c => c.charCodeAt(0)));
 }
 async function sha256(message) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
@@ -217,6 +217,9 @@ function downloadFile(content, name) {
     a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function readText(key) {
+    try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
 }
 function readJSON(key, fallback) {
     try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
@@ -761,7 +764,7 @@ function applyVisualConfig() {
     });
 
     // About + commissions
-    const bio = cfg.aboutBio || readJSON(KEYS.bio, null) || localStorage.getItem(KEYS.bio) || '';
+    const bio = cfg.aboutBio || readJSON(KEYS.bio, null) || readText(KEYS.bio);
     const bioEl = byId('about-bio'); if (bioEl) bioEl.innerHTML = bio ? md(bio) : '<p>' + esc(name) + ' hasn\'t written a bio yet.</p>';
     renderCommissions();
 
@@ -1003,6 +1006,16 @@ function loadScript(src) {
     });
 }
 
+/* A data file that exists but didn't load (offline, server hiccup) must never be saved over from this page:
+   the save would replace the live file with this page's empty copy. A file that isn't there yet is fine. */
+const loadFailed = new Set();
+const LOAD_FAILED_MSG = 'Some of your site\'s files didn\'t load, so saving is paused to keep them safe. Refresh the page and try again.';
+async function noteLoadFailure(src) {
+    if (IS_LOCAL_FILE) return;
+    try { const r = await fetch(src + '?v=' + Date.now(), { method: 'HEAD', cache: 'no-store' }); if (r.status === 404) return; } catch (e) {}
+    loadFailed.add(src);
+}
+
 function decodeGlobal(name) {
     if (typeof window[name] === 'undefined') return undefined;
     try { return JSON.parse(base64ToUnicode(window[name])); }
@@ -1063,7 +1076,8 @@ function parseSystemData() {
 function viewHash(view) { return view === 'home' || !view ? '#/' : '#/' + view; }
 
 function parseHash() {
-    const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+    let raw = location.hash.replace(/^#\/?/, '');
+    try { raw = decodeURIComponent(raw); } catch (e) {}
     const r = { view: 'home', post: null, comic: null, page: null };
     if (/^\d+$/.test(raw)) { r.view = null; r.post = Number(raw); return r; }
     const parts = raw.split('/').filter(Boolean);
@@ -1177,7 +1191,9 @@ function updateScrollState() {
 
 function getInteractions(id) { return interactionsCache[id] || { likes: 0, dislikes: 0, comments: [] }; }
 function commentCount(id) { return (getInteractions(id).comments || []).length; }
-function myReactions() { return readJSON(KEYS.reactions, {}) || {}; }
+// Read once and kept in memory: every tile asks for it, and reading storage for each one adds up
+let myReactionsCache = null;
+function myReactions() { return myReactionsCache || (myReactionsCache = readJSON(KEYS.reactions, {}) || {}); }
 function postScore(p) { const i = getInteractions(p.id); return (i.likes || 0) - (i.dislikes || 0) * 0.5 + commentCount(p.id) * 0.5; }
 
 function sortPosts(list, sort) {
@@ -1354,7 +1370,8 @@ function startFeatured() {
     if (featuredStops() < 2) return;
     ui.featured.timer = setInterval(() => {
         const sec = byId('featured');
-        if (document.hidden || !sec || sec.matches(':hover') || sec.contains(document.activeElement)) return;
+        if (document.hidden || Modals.stack.length || !sec || sec.matches(':hover') || sec.contains(document.activeElement)) return;
+        const r = sec.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return;
         featuredGo(ui.featured.i + 1);
     }, 6000);
 }
@@ -1410,7 +1427,8 @@ function tileHTML(post, no) {
         + '</article>';
 }
 
-function renderFeed() {
+// keep: how many tiles are already on screen (Show more), so only the new ones get added
+function renderFeed(keep = 0) {
     const grid = byId('feed-grid'); if (!grid) return;
     const all = filteredPosts();
     // Round each batch up to whole rows so the grid never ends on a half-empty row
@@ -1427,8 +1445,9 @@ function renderFeed() {
     } else if (!all.length) {
         grid.innerHTML = '<div class="empty"><h3>No posts match that</h3><p>Try a different word or tag.</p><button class="btn" data-action="clear-filters">Show all posts</button></div>';
     } else {
-        const nos = postNumbers();
-        grid.innerHTML = shown.map(p => tileHTML(p, nos.get(p.id))).join('');
+        const nos = postNumbers(), have = keep ? $$('.tile', grid) : [];
+        if (keep && have.length === keep && have.every((t, i) => shown[i] && Number(t.dataset.id) === shown[i].id)) grid.insertAdjacentHTML('beforeend', shown.slice(keep).map(p => tileHTML(p, nos.get(p.id))).join(''));
+        else grid.innerHTML = shown.map(p => tileHTML(p, nos.get(p.id))).join('');
     }
     const more = byId('feed-more');
     if (more) {
@@ -1808,7 +1827,7 @@ function composerHTML() {
             + '<label class="sr-only" for="comment-text">Your comment</label><textarea id="comment-text" maxlength="1000" placeholder="Write a comment" required></textarea>'
             + '<div class="composer-row" style="justify-content:flex-end"><button class="btn btn-primary small" type="submit">Post comment</button></div></form>';
     }
-    const saved = localStorage.getItem(KEYS.commenter) || '';
+    const saved = readText(KEYS.commenter);
     return '<form class="composer" data-form="comment">'
         + '<label class="sr-only" for="comment-text">Your comment</label><textarea id="comment-text" maxlength="1000" placeholder="Leave a comment" required></textarea>'
         + '<div class="composer-row"><label class="sr-only" for="comment-name">Your name</label><input type="text" id="comment-name" maxlength="40" placeholder="Your name (optional)" value="' + esc(saved) + '">'
@@ -1843,7 +1862,7 @@ function openReplyForm(cid) {
     const parent = (getInteractions(ui.post.id).comments || []).find(c => c.id === cid);
     const form = document.createElement('form');
     form.className = 'reply-form'; form.dataset.form = 'reply'; form.dataset.cid = cid;
-    const saved = localStorage.getItem(KEYS.commenter) || '';
+    const saved = readText(KEYS.commenter);
     form.innerHTML = '<textarea maxlength="1000" placeholder="Reply to @' + esc(parent ? parent.author : '') + '" required aria-label="Your reply"></textarea>'
         + '<div class="composer-row">' + (isAdminLoggedIn ? '' : '<input type="text" maxlength="40" placeholder="Your name (optional)" value="' + esc(saved) + '" aria-label="Your name">')
         + '<button class="btn btn-ghost small" type="button" data-action="cancel-reply">Cancel</button><button class="btn btn-primary small" type="submit">Reply</button></div>';
@@ -1944,7 +1963,11 @@ async function syncInteractions() {
     interactionsSyncing = true;
     const ops = pendingOps.slice();
     const fresh = await fetchRemoteInteractions();
-    if (fresh && typeof fresh === 'object') interactionsRemote = fresh;
+    // Without a fresh copy, uploading would wipe likes and comments added since this page loaded. The actions
+    // stay saved in this browser and sync next time.
+    if (!fresh || typeof fresh !== 'object') { interactionsSyncing = false; interactionsAgain = false; return; }
+    interactionsRemote = fresh;
+    loadFailed.delete('interactions.js');
     const merged = clone(interactionsRemote || {});
     ops.forEach(op => applyOp(merged, op));
     const result = await uploadToBridge('interactions', { data: merged, quiet: !isAdminLoggedIn });
@@ -1963,6 +1986,7 @@ async function syncInteractions() {
 
 /* Admin tools that rewrite interactions as a whole (cleanup, erase all) */
 async function saveInteractionsOverwrite() {
+    if (loadFailed.has('interactions.js')) { showToast(LOAD_FAILED_MSG, 'error'); return { success: false }; }
     pendingOps = []; persistOps();
     writeJSON(KEYS.interactions, interactionsCache);
     if (!globalAuthToken || IS_LOCAL_FILE) return { success: false };
@@ -1970,7 +1994,6 @@ async function saveInteractionsOverwrite() {
     if (r.success) interactionsRemote = clone(interactionsCache);
     return r;
 }
-function saveInteractionsLocal() { writeJSON(KEYS.interactions, interactionsCache); scheduleInteractionsSync(); }
 
 function reactTo(postId, type, btn) {
     postId = Number(postId);
@@ -1979,7 +2002,7 @@ function reactTo(postId, type, btn) {
     const next = cur === type ? null : type;
     queueOp({ k: 'vote', p: postId, from: cur, to: next });
     if (next) mine[postId] = next; else delete mine[postId];
-    writeJSON(KEYS.reactions, mine);
+    writeJSON(KEYS.reactions, mine); myReactionsCache = mine;
     refreshReactionsUI(postId);
     const fresh = $$('.react.' + type + '[data-id="' + postId + '"]');
     fresh.forEach(b => { b.classList.remove('pop'); void b.offsetWidth; if (next) b.classList.add('pop'); });
@@ -2268,6 +2291,10 @@ async function uploadToBridge(target, opts = {}) {
     if (!token) {
         if (!opts.quiet) showToast('Your site isn\'t connected to Neocities yet. Reconnect it to sync.', 'error');
         return { success: false, message: 'no token' };
+    }
+    if (loadFailed.has(target + '.js')) {
+        if (!opts.quiet) showToast(LOAD_FAILED_MSG, 'error');
+        return { success: false, message: 'load failed' };
     }
     let passwordCheck = null;
     if (['system', 'posts', 'comics', 'media_only'].includes(target)) {
@@ -2951,7 +2978,7 @@ function populateSiteForm() {
     const set = (id, v) => { const el = byId(id); if (el) el.value = v == null ? '' : v; };
     const chk = (id, v) => { const el = byId(id); if (el) el.checked = !!v; };
     set('s-sitename', c.siteName); set('s-tagline', c.tagline); set('s-feedname', c.leafletsName); set('s-copyright', c.copyright);
-    set('s-pfp', c.pfpImage); set('s-bio', c.aboutBio || localStorage.getItem(KEYS.bio) || '');
+    set('s-pfp', c.pfpImage); set('s-bio', c.aboutBio || readText(KEYS.bio));
     chk('s-agegate', c.ageGate !== false); chk('s-blur', c.blurNsfw); chk('s-comments', c.allowComments); chk('s-reactions', c.reactionsEnabled);
     set('s-reaction-style', c.reactionIcon || 'thumb'); set('s-featured', c.featuredMode || 'recent');
     const rec = byId('s-rec-comic');
@@ -3379,7 +3406,6 @@ function saveSocialLinks() {
    ═════════════════════════════════════════════ */
 
 function formatBytes(b) { return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(2) + ' MB'; }
-function sizeOf(obj) { try { return new Blob([JSON.stringify(obj)]).size; } catch (e) { return JSON.stringify(obj).length; } }
 function fileSizes() {
     const enc = (name, obj) => new Blob(['window.' + name + ' = "' + unicodeToBase64(JSON.stringify(obj)) + '";']).size;
     return { system: enc('AZUMINT_SYSTEM', systemPayload()), posts: enc('AZUMINT_POSTS', postsCache), comics: enc('AZUMINT_COMICS', comicsCache), interactions: enc('AZUMINT_INTERACTIONS', interactionsCache) };
@@ -3483,7 +3509,6 @@ async function runCleanup(fn, btn) {
     if (fn === 'full') {
         cleanupLog('Running all safe cleanups', 'info');
         ['trim', 'dupes', 'orphans', 'empty', 'compact', 'base64'].forEach(k => Object.entries(Cleanup[k]()).forEach(([f, v]) => { if (v) changed[f] = true; }));
-        changed = { posts: true, comics: true, interactions: true, system: true };
     } else changed = (await Cleanup[fn]()) || {};
     refreshCleanupStats();
     renderHome();
@@ -3683,7 +3708,7 @@ async function restoreFromBackup() {
 const Gate = { active: false, shown: 0, target: 0, raf: 0, done: false };
 
 function ageAccepted() {
-    const ok = parseInt(localStorage.getItem(KEYS.age) || '0', 10);
+    const ok = parseInt(readText(KEYS.age) || '0', 10);
     return ok && Date.now() - ok < AGE_OK_DAYS * 86400000;
 }
 function gateInit() {
@@ -4251,7 +4276,7 @@ const actions = {
         }, fromPost ? 320 : 0);
     },
     'clear-filters': () => { ui.feed.tag = 'all'; ui.feed.q = ''; byId('feed-search').value = ''; renderTagChips(); renderFeed(); },
-    'feed-more': () => { ui.feed.limit += FEED_STEP; renderFeed(); },
+    'feed-more': () => { const keep = $$('#feed-grid .tile').length; ui.feed.limit += FEED_STEP; renderFeed(keep); },
     'featured-prev': () => featuredGo(ui.featured.i - 1),
     'featured-next': () => featuredGo(ui.featured.i + 1),
     'featured-go': el => featuredGo(Number(el.dataset.index)),
@@ -4432,8 +4457,7 @@ function bindEvents() {
     document.addEventListener('error', e => {
         if (e.target.tagName !== 'IMG') return;
         e.target.classList.remove('is-loading');
-        const tile = e.target.closest('.masonry-item'); if (tile) { tile.hidden = true; return; }
-        if (e.target.closest('.tile-media, .feat-media, .hero-panel, .board-cover, .comic-cover, .page-thumb, .m-thumb, .stamp-pic, .nb-stub-cover, .nb-tk-pages')) e.target.classList.add('is-broken');
+        if (e.target.closest('.tile-media, .feat-media, .hero-panel, .zg-pola-img, .zg-sticker, .zc-cover, .cm-art, .page-thumb, .m-thumb, .stamp-pic, .nb-stub-cover, .nb-tk-pages')) e.target.classList.add('is-broken');
     }, true);
 
     // Hover to play video previews
@@ -4502,18 +4526,18 @@ async function init() {
 
     let loaded = 0;
     const files = ['system.js', 'posts.js', 'comics.js', 'interactions.js'];
-    await Promise.all(files.map(f => loadScript(f).then(() => { loaded++; gateProgress(10 + loaded * 20); })));
+    await Promise.all(files.map(f => loadScript(f).then(async ok => { if (!ok) await noteLoadFailure(f); loaded++; gateProgress(10 + loaded * 20); })));
 
     const hasSystem = parseSystemData();
     applyVisualConfig();
     renderHome();
     dataReady = true;
     route();
-    if (!hasSystem) { gateSkip(); showSetup(); }
+    if (!hasSystem && loadFailed.has('system.js')) { gateDataReady(); showToast('This site didn\'t finish loading. Check your connection and refresh the page.', 'error'); }
+    else if (!hasSystem) { gateSkip(); showSetup(); }
     else gateDataReady();
     if (hasSystem && !Gate.active) maybeShowAotd();
     window.addEventListener('resize', aotdRefit);
-    if (!IS_LOCAL_FILE) setTimeout(injectBridge, 600);
     if (pendingOps.length) setTimeout(() => scheduleInteractionsSync(), 2500);
 }
 
