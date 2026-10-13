@@ -1592,9 +1592,6 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .prose th, .prose td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; }
 .prose th { color: var(--text); }
 
-.about { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); }
-.ring-about { --ring-size: clamp(150px, 20vw, 240px); }
-.about-name { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1; text-transform: uppercase; overflow-wrap: anywhere; }
 .link-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
 .link-pill {
     display: inline-flex; align-items: center; gap: 10px;
@@ -1709,19 +1706,35 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .nb-tk-foot { padding: 12px clamp(20px, 3vw, 40px); border-top: 3px solid var(--nb-edge); border-radius: 0 0 23px 0; background: var(--accent); color: var(--accent-ink); font-family: 'Anton', Impact, sans-serif; font-size: .95rem; letter-spacing: .2em; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
 
 /* ═══════════════════════════════════════════
-   ABOUT ON PAPER
+   ABOUT: THE SKY, THEN THE PAPER
+   The sky's drawing and motion live in sky.js and sky.css, which load the first time About opens.
+   The text on it is styled here so it shows right away, in Chewy and Mali (also loaded then).
    ═══════════════════════════════════════════ */
-.about { align-items: center; margin-bottom: clamp(40px, 5vw, 64px); }
+.view[data-view="about"] { padding-top: 0; margin-top: calc(var(--topbar-h) * -1); }
+.sky {
+    --sky-ink: #FFFFFF;
+    position: relative; isolation: isolate; overflow: hidden;
+    min-height: max(var(--sky-h, 0px), 100svh);
+    background: var(--sk-sky1, #2C66B6) linear-gradient(180deg, var(--sk-sky1, #2C66B6) 0%, var(--sk-sky2, #3F8BCB) 44%, var(--sk-sky3, #BDEDE4) 58%, var(--sk-seaFar, #0E86B4) 58%, var(--sk-seaNear, #38C8E0) 100%);
+    color: var(--sky-ink);
+}
+.sky-stage { position: absolute; inset: 0; z-index: 0; }
+.sky-txt { position: relative; z-index: 5; max-width: 680px; padding: calc(var(--topbar-h) + clamp(28px, 4vw, 44px)) var(--gutter) 0; text-shadow: 0 2px 14px rgba(12,32,72,.45); }
+.sky-kicker { font-family: 'Mali', cursive; font-weight: 700; font-size: 1.2rem; letter-spacing: .02em; }
+.sky-name { margin-top: 2px; font-family: 'Chewy', 'Bricolage Grotesque', cursive; font-weight: 400; font-size: clamp(5.4rem, 11vw, 8.75rem); line-height: .95; letter-spacing: .01em; overflow-wrap: anywhere; }
+.sky-sub { margin-top: 6px; font-family: 'Mali', cursive; font-weight: 600; font-size: clamp(1.5rem, 2.6vw, 2rem); line-height: 1.1; }
+.sky-bio { margin-top: 16px; max-width: 42ch; font-family: 'Mali', cursive; font-weight: 500; font-size: clamp(.95rem, 1.4vw, 1.125rem); line-height: 1.6; color: var(--sky-ink); }
+.sky-bio p + p { margin-top: .6em; }
+.sky-bio a { color: var(--sky-ink); }
+.sky-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.sky-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 22px; border: 2px solid #FFFFFF; border-radius: 999px; background: #FFFFFF; color: #1F4F8F; font-family: 'Mali', cursive; font-weight: 700; font-size: 1rem; text-shadow: none; text-decoration: none; transition: background-color .2s var(--ease), color .2s var(--ease); }
+.sky-btn:hover { text-decoration: none; background: #FFE9A8; border-color: #FFE9A8; color: #1F4F8F; }
+.sky-btn.is-ghost { background: rgba(14,40,90,.28); color: #FFFFFF; }
+.sky-btn.is-ghost:hover { background: rgba(14,40,90,.5); border-color: #FFFFFF; color: #FFFFFF; }
+.sky-dock[hidden] { display: none; }
 .nb-about { gap: 28px; }
 .nb-row { display: flex; flex-wrap: wrap; gap: 28px; align-items: stretch; }
 .nb-tag { align-self: flex-start; }
-.nb-bio { position: relative; flex: 2 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
-.nb-statement { padding-right: clamp(0px, 8vw, 120px); font-family: var(--font-display); font-weight: 400; font-size: clamp(2.2rem, 5.4vw, 5rem); line-height: .9; letter-spacing: -.02em; text-transform: uppercase; overflow-wrap: anywhere; }
-.nb-bio .prose { max-width: 62ch; font-size: 1.15rem; color: var(--text-2); }
-.nb-burst { position: absolute; right: -24px; top: -40px; width: 150px; height: 150px; display: grid; place-items: center; rotate: 10deg; pointer-events: none; }
-.nb-burst svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.nb-burst polygon { fill: var(--accent); }
-.nb-burst span { position: relative; max-width: 92px; text-align: center; font-family: 'Anton', Impact, sans-serif; font-size: .95rem; line-height: 1.1; letter-spacing: .04em; text-transform: uppercase; color: var(--accent-ink); overflow-wrap: anywhere; }
 .nb-about .nb-comm { flex: 1 1 320px; min-width: 0; gap: 16px; }
 .nb-about .nb-comm .nb-pill { margin-top: auto; }
 .nb-nums { flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 18px; background: var(--nb-yellow); color: var(--nb-ink); }
@@ -2982,9 +2995,6 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
     .nb-count b { font-size: 1.9rem; }
     .select-label { display: none; }
     .nb-sheet .select select { min-width: 0; width: 120px; }
-    .nb-burst { right: -10px; top: -34px; width: 110px; height: 110px; }
-    .nb-burst span { max-width: 70px; font-size: .78rem; }
-    .nb-statement { padding-right: 64px; }
     .nb-nums .nb-table > div { padding: 12px 10px; }
     .tile-meta { font-size: .78rem; }
     .tile-meta time { flex-basis: 100%; }
@@ -2992,8 +3002,6 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
     .zc-card { flex-direction: column; align-items: stretch; }
     .zc-card .zc-cover, .zc-card.is-wide .zc-cover { width: 58%; align-self: center; }
     .zc-pow { min-height: 200px; }
-    .about { grid-template-columns: 1fr; justify-items: center; text-align: center; }
-    .about .prose { text-align: left; }
     .link-list { justify-content: center; }
     .form-grid { grid-template-columns: 1fr; }
     .m-row { grid-template-columns: 60px minmax(0, 1fr); }

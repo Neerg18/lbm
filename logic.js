@@ -954,15 +954,9 @@ function renderMarquee() {
     track.innerHTML = run + run;
 }
 
-// About gets the same band: the tagline plus the Home band's words, and the first of those as a sticker
+// About gets the same band: the tagline plus the Home band's words
 function renderAboutBand(s, items) {
     const shown = s.visible ? items : [];
-    const burst = byId('about-burst');
-    if (burst) {
-        const first = shown[0] && shown[0].length <= 24 ? shown[0] : '';
-        burst.hidden = !first;
-        byId('about-burst-text').textContent = first;
-    }
     const band = byId('about-band'), track = byId('about-band-track');
     if (!band || !track) return;
     const words = [currentConfig.tagline || '', ...shown].map(t => String(t).trim()).filter(Boolean);
@@ -1121,6 +1115,46 @@ function route() {
     }
 }
 
+/* ═════════════════════════════════════════════
+   ABOUT SKY
+   The drawing (sky.js, sky.css) and its fonts load the first time About opens, and the scene
+   only runs while About is on screen. Bump SKY_VERSION after changing sky.js or sky.css.
+   ═════════════════════════════════════════════ */
+
+const SKY_VERSION = '1';
+let skyLoading = null;
+function loadSky() {
+    if (window.NeergSky) return Promise.resolve(window.NeergSky);
+    if (skyLoading) return skyLoading;
+    if (!byId('sky-fonts')) {
+        const f = document.createElement('link');
+        f.rel = 'stylesheet'; f.id = 'sky-fonts';
+        f.href = 'https://fonts.googleapis.com/css2?family=Chewy&family=Mali:wght@500;600;700&display=swap';
+        document.head.appendChild(f);
+    }
+    if (!byId('sky-css')) {
+        const l = document.createElement('link');
+        l.rel = 'stylesheet'; l.id = 'sky-css'; l.href = 'sky.css?v=' + SKY_VERSION;
+        document.head.appendChild(l);
+    }
+    skyLoading = new Promise(resolve => {
+        const s = document.createElement('script');
+        s.src = 'sky.js?v=' + SKY_VERSION;
+        s.onload = () => resolve(window.NeergSky || null);
+        s.onerror = () => { skyLoading = null; resolve(null); };
+        document.head.appendChild(s);
+    });
+    return skyLoading;
+}
+function startSky() {
+    loadSky().then(sky => {
+        if (!sky || ui.view !== 'about') return;
+        sky.mount(byId('about-sky'));
+        sky.start();
+    });
+}
+function stopSky() { if (window.NeergSky) window.NeergSky.stop(); }
+
 function showView(view) {
     if (!VIEWS.includes(view)) view = 'home';
     closeMobileMenu();
@@ -1141,6 +1175,7 @@ function showView(view) {
     if (view === 'gallery') renderGallery();
     if (view === 'comics') renderComics();
     if (view === 'commissions') replayTapes();
+    if (view === 'about') startSky(); else if (leaving === 'about') stopSky();
     if (view === 'admin') renderAdminView();
 }
 
