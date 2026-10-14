@@ -1037,13 +1037,13 @@ img.is-broken { visibility: hidden; }
 /* ═══════════════════════════════════════════
    GALLERY
    ═══════════════════════════════════════════ */
-/* Zine collage: charcoal backdrop, an ID card, one colored paper card per board, polaroids inside */
+/* Zine collage on your theme: the desk is the page background, the ID card a panel, and the board cards take
+   paper colors drawn from your palette (--zc-0 to --zc-5, with their inks --zi-0 to --zi-5, set by logic.js) */
 .view[data-view="gallery"] { padding: 0; }
 .zg {
     --zg-ink: #2B2B2B; --zg-cream: #EFE8DA; --zg-white: #FFFDF6;
-    /* Dark mode: charcoal desk and a dark ID card; light mode (below) swaps in a cream desk and a white card */
-    --zg-desk: #262626; --zg-desk-dots: rgba(255,255,255,.05);
-    --zg-id-bg: #37332D; --zg-id-fg: #EFE8DA; --zg-hello: #45403A;
+    --zg-desk: var(--bg); --zg-desk-dots: color-mix(in srgb, var(--text) 7%, transparent);
+    --zg-id-bg: var(--surface); --zg-id-fg: var(--text); --zg-hello: color-mix(in srgb, var(--text) 10%, var(--surface));
     --zg-gap: clamp(18px, 2vw, 28px);
     min-height: calc(100vh - var(--topbar-h));
     padding: clamp(24px, 3vw, 44px) 0 clamp(64px, 6vw, 110px);
@@ -1052,7 +1052,6 @@ img.is-broken { visibility: hidden; }
     background-size: 8px 8px;
     color: var(--zg-ink);
 }
-html[data-theme="light"] .zg { --zg-desk: #EAE2D3; --zg-desk-dots: rgba(43,43,43,.09); --zg-id-bg: #FFFDF6; --zg-id-fg: #2B2B2B; --zg-hello: #CFC6B4; }
 html[data-theme="light"] .zg-id { box-shadow: 0 14px 30px -20px rgba(0,0,0,.5); }
 .zg-inner { display: flex; flex-direction: column; gap: var(--zg-gap); }
 .zg-paper {
@@ -1062,9 +1061,9 @@ html[data-theme="light"] .zg-id { box-shadow: 0 14px 30px -20px rgba(0,0,0,.5); 
 .zg-top { display: flex; flex-wrap: wrap; gap: var(--zg-gap); }
 .zg-id { position: relative; flex: 999 1 640px; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 26px; padding: 26px; border-radius: 26px; background-color: var(--zg-id-bg); color: var(--zg-id-fg); }
 .zg-flower { position: absolute; left: -18px; top: -22px; width: 88px; height: 88px; transform: rotate(-12deg); }
-.zg-pic { position: relative; flex: none; width: clamp(150px, 13vw, 220px); aspect-ratio: 4 / 5; overflow: hidden; border: 3px solid var(--zg-id-fg); border-radius: 16px; background: #6A4BD8; }
+.zg-pic { position: relative; flex: none; width: clamp(150px, 13vw, 220px); aspect-ratio: 4 / 5; overflow: hidden; border: 3px solid var(--zg-id-fg); border-radius: 16px; background: var(--zc-0, #6A4BD8); }
 .zg-pic img { width: 100%; height: 100%; object-fit: cover; }
-.zg-pic-fallback { position: absolute; inset: 0; display: grid; place-items: center; font-size: 5rem; font-weight: 800; font-style: italic; color: var(--zg-cream); }
+.zg-pic-fallback { position: absolute; inset: 0; display: grid; place-items: center; font-size: 5rem; font-weight: 800; font-style: italic; color: var(--zi-0, var(--zg-cream)); }
 .zg-pic-tag { position: absolute; left: 10px; bottom: 12px; max-width: calc(100% - 20px); padding: 4px 12px; border: 2px solid var(--zg-ink); border-radius: 999px; background: var(--zg-cream); color: var(--zg-ink); font-size: .8rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: rotate(-6deg); }
 .zg-id-body { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .zg-name-row { display: flex; align-items: center; gap: 14px; }
@@ -1163,8 +1162,8 @@ button.zg-card:hover .zg-sticker:nth-child(2) { transform: rotate(7deg) translat
 .zc-continue:hover { background: var(--zg-id-fg); color: var(--zg-id-bg); opacity: .85; text-decoration: none; }
 .zc-pow {
     flex: 1 1 300px; display: grid; place-items: center; min-height: 300px; padding: 28px 28px 56px;
-    border-radius: 6px; background-color: #F2C230;
-    background-image: radial-gradient(#E8413B 22%, transparent 24%); background-size: 14px 14px;
+    border-radius: 6px; background-color: var(--zc-1, #F2C230);
+    background-image: radial-gradient(var(--zc-0, #E8413B) 22%, transparent 24%); background-size: 14px 14px;
 }
 .zc-bubble {
     position: relative; margin: 0; padding: .2em .55em .28em;
@@ -1202,11 +1201,11 @@ a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
 /* Comic page list: the comic's paper color up top, plain page thumbnails below */
 .comic-overlay { --zg-ink: #2B2B2B; display: block; overflow-y: auto; background: var(--bg); }
 .comic-head {
-    --text: var(--zg-ink); --text-2: var(--zg-ink); --text-3: rgba(43,43,43,.78); --line: rgba(43,43,43,.45); --line-strong: var(--zg-ink);
+    --text: var(--zg-ink); --text-2: var(--zg-ink); --text-3: color-mix(in srgb, var(--zg-ink) 78%, transparent); --line: color-mix(in srgb, var(--zg-ink) 45%, transparent); --line-strong: var(--zg-ink);
     position: sticky; top: 0; z-index: 2;
     padding: 16px 0;
     border-bottom: 3px solid var(--zg-ink);
-    background-color: var(--zc, #F2C230); color: var(--zg-ink);
+    background-color: var(--zc, var(--zc-0, #F2C230)); color: var(--zg-ink);
     background-image: radial-gradient(rgba(0,0,0,.07) 1px, transparent 1.5px), radial-gradient(rgba(255,255,255,.22) 1px, transparent 1.5px);
     background-size: 6px 6px, 9px 9px; background-position: 0 0, 3px 4px;
 }
