@@ -76,7 +76,18 @@ const DARK_PRESETS = [
     { name: 'Ocean Deep', colors: ['#050D1A', '#E0F0FF', '#0A1828', '#00D4FF', '#071020', '#102238', '#7A4FFF'] },
     { name: 'Forest', colors: ['#0A1208', '#E8F8E0', '#142010', '#B8FF38', '#0C1A0A', '#1A2C18', '#38FFD4'] },
     { name: 'Grape', colors: ['#0D0A1A', '#EDE8FF', '#1A1530', '#8B5CF6', '#120F22', '#221C3A', '#C084FC'] },
-    { name: 'Vintage', colors: ['#1A1408', '#FAF2E0', '#2A2010', '#D4A843', '#221A08', '#342A18', '#E06432'] }
+    { name: 'Vintage', colors: ['#1A1408', '#FAF2E0', '#2A2010', '#D4A843', '#221A08', '#342A18', '#E06432'] },
+    { name: 'Evening Walk', colors: ['#1F3434', '#F1D49A', '#2A4343', '#D35E36', '#253C3C', '#416B66', '#C0C29D'] },
+    { name: 'Retro Poster', colors: ['#1C1C1C', '#F2E8D5', '#262E2D', '#C94E44', '#222727', '#3E6868', '#C1AB85'] },
+    { name: 'Aurora Pastel', colors: ['#15122A', '#E5EBF8', '#211C3D', '#F4A4F5', '#1B1734', '#352E5C', '#BEFFEA'] },
+    { name: 'Terracotta', colors: ['#2E1818', '#F5DFBB', '#452424', '#F2542D', '#3A1F1F', '#5E3434', '#0E9594'] },
+    { name: 'Palace Spring', colors: ['#12233A', '#FFF6E8', '#1B3150', '#FA9058', '#172A45', '#2A4468', '#FECC64'] },
+    { name: 'Peach Fuzz', colors: ['#1A1730', '#FFEEDD', '#262145', '#9381FF', '#201C3B', '#3A3366', '#FFD8BE'] },
+    { name: 'Neon Lights', colors: ['#14122E', '#EEF0FF', '#222174', '#E23D8B', '#1B1A50', '#2A28AD', '#5DEA90'] },
+    { name: 'Mysterious Depths', colors: ['#0C0827', '#E6E8FF', '#14194D', '#1EA598', '#100F38', '#25387A', '#5950B8'] },
+    { name: 'Volcanic Ash', colors: ['#212529', '#E9ECEF', '#2B3035', '#FB5607', '#262A2F', '#3A4047', '#8338EC'] },
+    { name: 'Dragon Tales', colors: ['#2A1D2A', '#F6EEDC', '#4B344B', '#F93C0A', '#3A283A', '#5E465E', '#ADDCCC'] },
+    { name: 'Wildflower', colors: ['#172A1F', '#EAF3F8', '#264431', '#EAA043', '#1F3829', '#3A5A47', '#BED9EB'] }
 ];
 const LIGHT_PRESETS = [
     { name: 'Paper & Ink', colors: ['#F6F4EF', '#16130F', '#ECE8E1', '#C8102E', '#FFFFFF', '#DCD5CA', '#16130F'] },
@@ -85,7 +96,18 @@ const LIGHT_PRESETS = [
     { name: 'Sky & Sand', colors: ['#F0F8FF', '#0A1A2E', '#E0F0FA', '#0E7FC0', '#FFFFFF', '#B8D8EE', '#B45309'] },
     { name: 'Mint Garden', colors: ['#F0FDF4', '#0A1E12', '#DCFCE7', '#15803D', '#FFFFFF', '#BBF7D0', '#7C3AED'] },
     { name: 'Lavender Mist', colors: ['#FAF5FF', '#1E0A3E', '#F3E8FF', '#7C3AED', '#FFFFFF', '#DDD6FE', '#5B21B6'] },
-    { name: 'Golden Hour', colors: ['#FFFBEB', '#1C0F04', '#FEF3C7', '#B45309', '#FFFFFF', '#FDE68A', '#DC2626'] }
+    { name: 'Golden Hour', colors: ['#FFFBEB', '#1C0F04', '#FEF3C7', '#B45309', '#FFFFFF', '#FDE68A', '#DC2626'] },
+    { name: 'Evening Walk', colors: ['#F6E6C2', '#2A4343', '#F1D49A', '#D35E36', '#FBF3E1', '#C0C29D', '#416B66'] },
+    { name: 'Retro Poster', colors: ['#EFE6D3', '#1E2424', '#E3D5B8', '#C94E44', '#FAF5EA', '#C1AB85', '#3E6868'] },
+    { name: 'Aurora Pastel', colors: ['#F2F5FC', '#2A1640', '#E5EBF8', '#A94ACE', '#FFFFFF', '#D3CBF6', '#9881FF'] },
+    { name: 'Terracotta', colors: ['#FAEFDC', '#3A1E1E', '#F5DFBB', '#11686A', '#FFF8EC', '#E3C79A', '#F2542D'] },
+    { name: 'Palace Spring', colors: ['#FFF6E8', '#3B2414', '#FCEABC', '#D9622A', '#FFFFFF', '#F2D9A4', '#4A9BEF'] },
+    { name: 'Peach Fuzz', colors: ['#F8F7FF', '#2B2350', '#FFEEDD', '#6C5CE7', '#FFFFFF', '#FFD8BE', '#9381FF'] },
+    { name: 'Neon Lights', colors: ['#F2F2FF', '#1C1A4A', '#E4E4FB', '#E23D8B', '#FFFFFF', '#C9C8F0', '#2A28AD'] },
+    { name: 'Mysterious Depths', colors: ['#EEF0FA', '#0C0827', '#DFE3F5', '#5950B8', '#FFFFFF', '#C3C9EA', '#1EA598'] },
+    { name: 'Volcanic Ash', colors: ['#F1F3F5', '#212529', '#E9ECEF', '#8338EC', '#FFFFFF', '#D3D8DE', '#FB5607'] },
+    { name: 'Dragon Tales', colors: ['#EEF7F3', '#2E1F2E', '#D6EDE5', '#F93C0A', '#FFFFFF', '#ADDCCC', '#4886AB'] },
+    { name: 'Wildflower', colors: ['#EEF5FA', '#1B2B22', '#DCEBF5', '#264431', '#FFFFFF', '#BED9EB', '#EAA043'] }
 ];
 const RING_PRESETS = [
     { name: 'Neon Sunset', colors: ['#ff6b35', '#b8ff38', '#ff3c8e'] },
