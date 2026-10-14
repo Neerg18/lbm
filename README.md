@@ -9,7 +9,7 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 
 ## What's New Since 5.0
 
-- **Full Light & Dark Palettes:** Edit a separate dark and light palette, with a live preview and a contrast check
+- **Full Light & Dark Palettes:** Edit a separate dark and light palette, with a live preview and a contrast check. 18 ready-made presets for each (Evening Walk, Retro Poster, Aurora Pastel, Terracotta, Palace Spring, Peach Fuzz, Neon Lights, Mysterious Depths, Volcanic Ash, Dragon Tales, Wildflower and more)
 - **Color Generator:** Pick one color and a harmony (analogous, complementary, triadic and more) to build a whole palette
 - **Profile Ring Editor:** Gradient ring around your profile picture with presets, direction, thickness and glow
 - **18+ Age Check:** Optional content warning for first-time visitors, remembered for 30 days
