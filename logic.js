@@ -699,9 +699,39 @@ function paletteVars(p) {
         '--accent': p.accent, '--hl': p.navActive, '--like': p.like, '--dislike': p.dislike,
         '--like-ink': p.likeBtn || inkFor(p.like), '--dislike-ink': p.dislikeBtn || inkFor(p.dislike),
         '--accent-ink': inkFor(p.accent), '--hl-ink': inkFor(p.navActive),
-        '--status': normalizeHex(currentConfig.statusColor, p.accent)
+        '--status': normalizeHex(currentConfig.statusColor, p.accent),
+        ...zineVars(p)
     };
 }
+
+/* Gallery and Comics: the six paper colors their cards take in turn, drawn from the palette so the zine follows
+   the theme. Colors too close to the desk or to a card already picked are skipped; shifted hues of the accent and
+   the classic zine colors fill any gaps. Each card gets dark or cream ink, whichever reads better. */
+function zinePalette(p) {
+    const mix = (a, b, t) => { const x = hexToRgb(a), y = hexToRgb(b); return '#' + ['r', 'g', 'b'].map(k => Math.round(x[k] + (y[k] - x[k]) * t).toString(16).padStart(2, '0')).join('').toUpperCase(); };
+    const turn = (hex, deg) => { const [h, sat, l] = hexToHsl(hex); return hslToHex(h + deg, sat, l); };
+    const far = (a, b) => { const x = hexToRgb(a), y = hexToRgb(b); return Math.hypot(x.r - y.r, x.g - y.g, x.b - y.b) >= 55; };
+    const picks = [];
+    [p.accent, p.navActive, p.text, p.border, mix(p.accent, p.navActive, .5), mix(p.accent, p.text, .5), mix(p.navActive, p.text, .5),
+        mix(p.accent, p.bg, .35), mix(p.navActive, p.bg, .35), turn(p.accent, 35), turn(p.accent, -35), turn(p.navActive, 35), turn(p.navActive, -35),
+        turn(p.accent, 180)].concat(ZINE_COLORS).forEach(c => {
+        if (picks.length < 6 && contrastRatio(c, p.bg) >= 1.4 && picks.every(o => far(o, c))) picks.push(c);
+    });
+    return picks;
+}
+// The zine's soft ink or cream when it reads well (4.5:1), otherwise plain black or white
+function zineInk(c) {
+    const soft = contrastRatio(c, ZINE_INK) >= contrastRatio(c, ZINE_CREAM) ? ZINE_INK : ZINE_CREAM;
+    return contrastRatio(c, soft) >= 4.5 ? soft : inkFor(c);
+}
+function zineVars(p) {
+    const v = {};
+    zinePalette(p).forEach((c, i) => { v['--zc-' + i] = c; v['--zi-' + i] = zineInk(c); });
+    return v;
+}
+// Inline style giving a card the n-th zine color and its ink
+function zineSlot(n) { n %= 6; return '--zc:var(--zc-' + n + ');--zg-ink:var(--zi-' + n + ')'; }
+function setZineSlot(el, n) { n %= 6; el.style.setProperty('--zc', 'var(--zc-' + n + ')'); el.style.setProperty('--zg-ink', 'var(--zi-' + n + ')'); }
 
 function applyPalette(p) {
     const root = document.documentElement;
@@ -1602,8 +1632,9 @@ function allMediaItems() {
     return items;
 }
 
-// Zine gallery: paper colors the board cards take in turn, and each polaroid's tilt and tape
+// Zine gallery: the classic paper colors (used when the theme can't supply enough), card inks, and each polaroid's tilt and tape
 const ZINE_COLORS = ['#F2C230', '#E8752A', '#7DB46C', '#E88AAE', '#6FB1E0', '#C9A7F5'];
+const ZINE_INK = '#2B2B2B', ZINE_CREAM = '#FFFDF6';
 const ZINE_TILTS = [-1.5, 1.2, -0.8, 1.8, 1, -1.6, 0.8, -1.2];
 const ZINE_TAPES = ['rgba(242,194,48,.75)', 'rgba(125,180,108,.75)', 'rgba(232,117,42,.7)', 'rgba(58,166,242,.6)', 'rgba(201,167,245,.75)'];
 const ALL_BOARD = '__all';
@@ -1635,7 +1666,7 @@ function zineCardHTML(b, i) {
     const pics = b.items.filter(m => m.type === 'image').slice(0, 3);
     const newest = postsCache.find(p => p.id === (b.items[0] || {}).postId);
     const stickers = pics.map(m => '<span class="zg-sticker' + (blur && m.nsfw ? ' is-veiled' : '') + '"><img src="' + esc(m.url) + '" alt="" loading="lazy" decoding="async"></span>').join('');
-    return '<button class="zg-card zg-paper' + (i === 0 ? ' is-wide' : '') + '" style="--zc:' + ZINE_COLORS[i % ZINE_COLORS.length] + '" data-action="open-board" data-key="' + esc(b.key) + '" data-glare>'
+    return '<button class="zg-card zg-paper' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" data-action="open-board" data-key="' + esc(b.key) + '" data-glare>'
         + '<span class="zg-card-text">'
         + '<span class="zg-card-title">' + esc(b.name) + '</span>'
         + '<span class="zg-card-meta"><span><strong>' + plural(b.items.length, 'piece') + '</strong>' + (b.key === ALL_BOARD ? 'Everything, every board' : 'Board ' + String(i).padStart(2, '0')) + '</span>'
@@ -1671,7 +1702,7 @@ function renderGallery() {
     boardsEl.hidden = !!open;
     boardEl.hidden = !open;
     if (open) {
-        byId('board-head').style.setProperty('--zc', ZINE_COLORS[boards.indexOf(open) % ZINE_COLORS.length]);
+        setZineSlot(byId('board-head'), boards.indexOf(open));
         byId('board-title').textContent = open.name;
         byId('board-count').textContent = plural(open.items.length, 'piece');
         galleryLists.board = open.items;
@@ -1688,9 +1719,9 @@ function renderGallery() {
 
 function comicCover(c) { return safeUrl(c.cover || (c.pages && c.pages[0]) || ''); }
 // Each comic keeps the same paper color on the shelf and on its page list
-function comicColor(id) {
+function comicSlot(id) {
     const i = comicsCache.slice().sort((a, b) => b.id - a.id).findIndex(c => c.id === id);
-    return ZINE_COLORS[Math.max(i, 0) % ZINE_COLORS.length];
+    return Math.max(i, 0);
 }
 function renderComics() {
     renderRecComic(); renderAbout();
@@ -1713,7 +1744,7 @@ function renderComics() {
         const started = p != null && pages > 1;
         // Pages 2-4 fanned out; always shown on the top card, and on any card left with a wide row to itself
         const strip = (c.pages || []).slice(1, 4).map(u => '<span class="zg-sticker"><img src="' + esc(safeUrl(u)) + '" alt="" loading="lazy" decoding="async"></span>').join('');
-        return '<a class="zg-card zg-paper zc-card' + (i === 0 ? ' is-wide' : '') + '" style="--zc:' + ZINE_COLORS[i % ZINE_COLORS.length] + '" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '" data-glare>'
+        return '<a class="zg-card zg-paper zc-card' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '" data-glare>'
             + '<span class="zc-cover">' + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="zc-cover-empty" aria-hidden="true">' + esc((c.title || '?').charAt(0).toUpperCase()) + '</span>') + '</span>'
             + '<span class="zg-card-text">'
             + '<span class="zg-card-title">' + esc(c.title || 'Untitled') + '</span>'
@@ -2126,7 +2157,7 @@ function openComicGallery(id, opts = {}) {
 
     const pages = comic.pages;
     const prog = comicProgress()[comic.id];
-    overlay.style.setProperty('--zc', comicColor(comic.id));
+    setZineSlot(overlay, comicSlot(comic.id));
     byId('co-title').textContent = comic.title || 'Untitled';
     byId('co-meta').textContent = plural(pages.length, 'page') + ', posted ' + formatDate(comic);
     const tags = (comic.tags || []);
