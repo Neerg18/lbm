@@ -92,9 +92,9 @@ function loadVfx() {
 
 // Resolves false if the picture can't be read back (another site's picture without permission),
 // in which case it is shown plain.
-function paintCover(canvas, src) {
+function paintCover(canvas, src, scale) {
     const draw = img => {
-        const pr = Math.min(window.devicePixelRatio || 1, 2);
+        const pr = Math.min(window.devicePixelRatio || 1, 2) * (scale || 1);
         const w = Math.max(2, Math.round(canvas.offsetWidth * pr)), h = Math.max(2, Math.round(canvas.offsetHeight * pr));
         canvas.width = w; canvas.height = h;
         const s = Math.max(w / img.naturalWidth, h / img.naturalHeight), sw = w / s, sh = h / s;
@@ -129,6 +129,7 @@ class Fx {
     constructor() {
         this.vfx = null; this.recs = new Map(); this.dead = false;
         this.pr = Math.min(window.devicePixelRatio || 1, 1.5);
+        this.scale = 1; // how much the cover is zoomed on wide screens
         this.px = null; this.py = null;
         this.onPointer = e => { this.px = e.clientX; this.py = e.clientY; };
         window.addEventListener('pointermove', this.onPointer, { passive: true });
@@ -146,7 +147,7 @@ class Fx {
         this.recs.set(canvas, rec);
         const token = rec.token = (rec.token || 0) + 1;
         rec.src = src;
-        rec.ok = await paintCover(canvas, src);
+        rec.ok = await paintCover(canvas, src, this.scale);
         if (rec.token !== token || this.dead || !this.vfx) return;
         const host = canvas.parentElement;
         try {
@@ -449,7 +450,7 @@ const mixtape = {
                     noise: () => (noise.v += ((nr ? 0 : 1) - noise.v) * .08),
                     wind: () => (wind.v += ((winding ? 1 : 0) - wind.v) * .2),
                     ang: () => ang,
-                    box: () => [card.offsetWidth * fx.pr, card.offsetHeight * fx.pr]
+                    box: () => [card.offsetWidth * fx.scale * fx.pr, card.offsetHeight * fx.scale * fx.pr]
                 } });
             }
             if (wound) {
@@ -482,7 +483,7 @@ const mixtape = {
         });
         $$('.mx-px > canvas', root).forEach(c => {
             const h = {}, lab = c.closest('.mx-plab');
-            fx.put(c, c.dataset.src, { shader: LABEL_FX, uniforms: { hover: () => fx.hover(h, lab), radius: 10 * fx.pr } });
+            fx.put(c, c.dataset.src, { shader: LABEL_FX, uniforms: { hover: () => fx.hover(h, lab), radius: () => 10 * fx.scale * fx.pr } });
         });
         return {
             start() {
@@ -613,9 +614,9 @@ const spectrum = {
             main.classList.remove('sp-print'); void main.offsetWidth; main.classList.add('sp-print');
             fx.put(main, p.img, { shader: FRAME_FX, uniforms: {
                 hover: () => fx.hover(hm, main.parentElement),
-                radius: () => radii(main.parentElement, fx.pr)[0],
+                radius: () => radii(main.parentElement, fx.scale * fx.pr)[0],
                 prog: () => Math.min(1, (performance.now() - printAt) / 900),
-                cell: 6 * fx.pr
+                cell: () => 6 * fx.scale * fx.pr
             } });
             const others = P.map((x, i) => i).filter(i => i !== show).slice(0, 2);
             thumbs.forEach((t, k) => {
@@ -624,7 +625,7 @@ const spectrum = {
                 t.dataset.i = i;
                 t.setAttribute('aria-label', 'Show ' + P[i].label);
                 t.lastElementChild.textContent = 'NO.' + two(P[i].no);
-                fx.put(t.firstElementChild, P[i].img, { shader: FRAME_FX, uniforms: { hover: () => fx.hover(h, t), radius: () => radii(t, fx.pr)[0], prog: 1, cell: 4 * fx.pr } });
+                fx.put(t.firstElementChild, P[i].img, { shader: FRAME_FX, uniforms: { hover: () => fx.hover(h, t), radius: () => radii(t, fx.scale * fx.pr)[0], prog: 1, cell: () => 4 * fx.scale * fx.pr } });
             });
         }
         function drawArch() {
@@ -638,7 +639,7 @@ const spectrum = {
             fx.put(arch, p.img, { shader: ARCH_FX, uniforms: {
                 prog: () => ease((performance.now() - tourAt) / 750),
                 hover: () => fx.hover(ha, arch.parentElement),
-                rad: () => radii(arch.parentElement, fx.pr)
+                rad: () => radii(arch.parentElement, fx.scale * fx.pr)
             } });
         }
         root.addEventListener('click', e => {
@@ -663,6 +664,15 @@ const spectrum = {
 const COVERS = { broadcast, mixtape, spectrum };
 let cur = null;
 
+// Wider than 1280px, the whole cover scales up like a poster (up to 2x) so it fills the screen
+// instead of leaving empty margins. fx.scale is the zoom as the browser actually applied it.
+function fit(root, fx) {
+    const w = document.documentElement.clientWidth;
+    root.style.setProperty('--ab-zoom', w > 1280 ? String(Math.min(w / 1280, 2)) : '1');
+    const page = root.firstElementChild;
+    fx.scale = page && page.offsetWidth ? page.getBoundingClientRect().width / page.offsetWidth : 1;
+}
+
 function show(root, data) {
     hide();
     const style = COVERS[data.style] ? data.style : 'broadcast';
@@ -671,13 +681,14 @@ function show(root, data) {
     // A fresh page element each time, so the old cover's listeners go with it
     root.innerHTML = '<div class="ab-page">' + COVERS[style].html(data) + '</div>';
     const fx = new Fx();
+    fit(root, fx);
     const ctl = COVERS[style].wire(root.firstElementChild, data, fx);
-    const onResize = () => { clearTimeout(cur && cur.resizeTimer); if (cur) cur.resizeTimer = setTimeout(() => { if (ctl.resize) ctl.resize(); fx.repaint(); }, 200); };
+    const onResize = () => { clearTimeout(cur && cur.resizeTimer); if (cur) cur.resizeTimer = setTimeout(() => { fit(root, fx); if (ctl.resize) ctl.resize(); fx.repaint(); }, 200); };
     cur = { root, fx, ctl, onResize, resizeTimer: 0 };
     window.addEventListener('resize', onResize);
     ctl.start();
     // Fonts change the layout a little, so repaint the pictures once they're in
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (cur && cur.fx === fx) { if (ctl.resize) ctl.resize(); fx.repaint(); } });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (cur && cur.fx === fx) { fit(root, fx); if (ctl.resize) ctl.resize(); fx.repaint(); } });
     if (!still()) loadVfx().then(ok => { if (ok && cur && cur.fx === fx && fx.start()) root.classList.add('fx-on'); });
 }
 

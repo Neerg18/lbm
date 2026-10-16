@@ -1139,7 +1139,7 @@ function route() {
    and only runs while About is on screen. Bump ABOUT_VERSION after changing about.js or about.css.
    ═════════════════════════════════════════════ */
 
-const ABOUT_VERSION = '1';
+const ABOUT_VERSION = '2';
 const ABOUT_STYLES = ['broadcast', 'mixtape', 'spectrum'];
 let aboutLoading = null, aboutShown = '';
 function loadAbout() {

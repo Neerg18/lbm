@@ -11,6 +11,8 @@
 .view[data-view="about"] { padding: 0; }
 .ab { position: relative; overflow: hidden; }
 .ab-in { position: relative; width: 100%; max-width: 1280px; margin: 0 auto; }
+/* Wide screens: about.js sets --ab-zoom so the cover grows to fill the width */
+.ab-page { zoom: var(--ab-zoom, 1); }
 /* Zero-specificity resets, so every cover's own colors win over them */
 :where(.ab) a { color: inherit; text-decoration: none; }
 :where(.ab) a:hover { text-decoration: none; }
