@@ -12,8 +12,8 @@
     NEERG v7 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
-    Upload index.html, style.css, logic.js, marked.min.js, sky.js, sky.css
-    and the fonts folder to your Neocities root.
+    Upload index.html, style.css, logic.js, admin.js, marked.min.js, about.js,
+    about.css, vfx.min.js and the fonts folder to your Neocities root.
     Your content lives in system.js, posts.js, comics.js and interactions.js,
     which the site writes for you. Everything else is managed from the
     Admin page (the gear icon). No code editing needed.
@@ -343,60 +343,9 @@
     </section>
 
     <!-- ═══════════ ABOUT ═══════════ -->
+    <!-- One of three covers, picked in Admin › Site info › About page. about.js draws it here the first time About opens. -->
     <section class="view" data-view="about" id="view-about" hidden>
-        <!-- The sky: sun, moon and sea drawn by sky.js (loaded the first time About opens) behind the text -->
-        <div class="sky" id="about-sky">
-            <div class="sky-stage" aria-hidden="true"></div>
-            <div class="sky-txt">
-                <p class="sky-kicker">About</p>
-                <h1 class="sky-name" id="about-name">NEERG</h1>
-                <p class="sky-sub" id="about-tagline" hidden></p>
-                <div class="sky-bio prose" id="about-bio"></div>
-                <div class="sky-actions">
-                    <a class="sky-btn" href="#/gallery">See my work <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-                    <a class="sky-btn is-ghost" href="#/commissions">Commissions</a>
-                </div>
-            </div>
-            <div class="sky-dock" hidden></div>
-        </div>
-
-        <!-- Same band as Home, carrying the tagline and the Home band's words -->
-        <div class="marquee" id="about-band" hidden aria-hidden="true">
-            <div class="marquee-track" id="about-band-track"></div>
-        </div>
-
-        <div class="nb-sheet">
-            <div class="wrap wide nb-inner nb-about">
-                <div class="nb-row">
-                    <a class="nb-card nb-comm" id="about-comm" href="#/commissions" hidden>
-                        <span class="nb-label">Commissions</span>
-                        <span class="nb-comm-status"><span class="nb-dot" aria-hidden="true"></span><span class="feat-comm-text"></span></span>
-                        <span class="nb-comm-note">Prices, examples and how to order.</span>
-                        <span class="nb-pill">See prices <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
-                    </a>
-                    <section class="nb-card nb-nums" aria-labelledby="nums-title">
-                        <h2 class="nb-label" id="nums-title">By the numbers</h2>
-                        <dl class="nb-table">
-                            <div><dt>Posts</dt><dd id="about-n-posts">0</dd></div>
-                            <div><dt>Boards</dt><dd id="about-n-boards">0</dd></div>
-                            <div><dt>Comics</dt><dd id="about-n-comics">0</dd></div>
-                        </dl>
-                    </section>
-                    <section class="nb-card nb-links" id="about-find" hidden aria-labelledby="find-title">
-                        <span class="nb-label">Find me</span>
-                        <h2 class="nb-links-title" id="find-title">Online</h2>
-                        <div class="link-list" id="about-links"></div>
-                    </section>
-                </div>
-                <section class="nb-latest" id="about-latest" hidden aria-labelledby="latest-title">
-                    <div class="nb-head">
-                        <div class="nb-head-title"><h2 id="latest-title">Latest work</h2></div>
-                        <a class="nb-btn is-ink" href="#/gallery">See the gallery <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-                    </div>
-                    <div class="nb-stamps" id="about-latest-grid"></div>
-                </section>
-            </div>
-        </div>
+        <div id="about-root"></div>
     </section>
 
     <!-- ═══════════ ADMIN ═══════════ -->
@@ -634,6 +583,14 @@
 
                     <fieldset class="group">
                         <legend>About page</legend>
+                        <div class="field">
+                            <span>Cover design</span>
+                            <div class="ab-picks" role="radiogroup" aria-label="About page design">
+                                <label class="ab-pick"><input type="radio" name="about-style" value="broadcast"><span class="ab-mini is-broadcast" aria-hidden="true"><i></i><i></i><i></i></span><b>Broadcast</b><small>A VHS screen with your newest art and TV listings</small></label>
+                                <label class="ab-pick"><input type="radio" name="about-style" value="mixtape"><span class="ab-mini is-mixtape" aria-hidden="true"><i></i><i></i><i></i></span><b>Mixtape</b><small>A cassette label, a shelf of tapes and a label sheet</small></label>
+                                <label class="ab-pick"><input type="radio" name="about-style" value="spectrum"><span class="ab-mini is-spectrum" aria-hidden="true"><i></i><i></i><i></i></span><b>Spectrum</b><small>A rainbow label poster with your posts as tour dates</small></label>
+                            </div>
+                        </div>
                         <label class="field"><span>Bio <em>(Markdown works)</em></span><textarea id="s-bio" rows="5" placeholder="Who you are, what you make, what you're into."></textarea></label>
                     </fieldset>
 
