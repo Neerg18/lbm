@@ -3,7 +3,7 @@
 
 > Self-hosted digital art archive for Neocities. Post your art, comics and commission info, all managed from your browser. No code editing needed.
 
-Every update has its own version number (7.0.1, 7.0.2 and so on). See what changed in each one in the [changelog](CHANGELOG.md); each version is also a tag on GitHub.
+Every update has its own version number (7.0.1, 7.0.2 and so on). See what changed in each one in the [changelog](CHANGELOG.md), with links to each version's code on GitHub.
 
 Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f) is still in this repository's history.
 
