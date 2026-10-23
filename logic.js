@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG v7 · logic.js                                             ║
+ ║  NEERG 7.0.9 · logic.js                                          ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -18,7 +18,9 @@
    CONSTANTS
    ═════════════════════════════════════════════ */
 
-const NEERG_VERSION = '7.0';
+// The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
+// the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
+const NEERG_VERSION = '7.0.9';
 const FIXED_BRIDGE_URL = 'https://applchu.link/lbm/0.4/bridge.html?v=' + Date.now();
 const BRIDGE_ORIGIN = new URL(FIXED_BRIDGE_URL).origin;
 const IS_LOCAL_FILE = location.protocol === 'file:';
@@ -806,6 +808,7 @@ function applyVisualConfig() {
     const fb = byId('hero-fallback'); if (fb) fb.textContent = name.trim().charAt(0).toUpperCase() || '✦';
     const tg = byId('hero-tagline'); if (tg) { tg.textContent = cfg.tagline || ''; tg.hidden = !cfg.tagline; }
     const fc = byId('footer-copy'); if (fc) fc.textContent = cfg.copyright ? '© ' + cfg.copyright : '';
+    const fv = byId('footer-version'); if (fv) fv.textContent = 'NEERG ' + NEERG_VERSION;
     const ft = byId('feed-title'); if (ft) ft.textContent = 'Recent ' + (cfg.leafletsName || 'works').toLowerCase();
 
     // Profile picture everywhere
@@ -1136,10 +1139,9 @@ function route() {
 /* ═════════════════════════════════════════════
    ABOUT
    The cover picked in Admin (about.js, about.css and its fonts) loads the first time About opens
-   and only runs while About is on screen. Bump ABOUT_VERSION after changing about.js or about.css.
+   and only runs while About is on screen.
    ═════════════════════════════════════════════ */
 
-const ABOUT_VERSION = '2';
 const ABOUT_STYLES = ['broadcast', 'mixtape', 'spectrum'];
 let aboutLoading = null, aboutShown = '';
 function loadAbout() {
@@ -1147,13 +1149,13 @@ function loadAbout() {
     if (aboutLoading) return aboutLoading;
     const css = new Promise(resolve => {
         const l = document.createElement('link');
-        l.rel = 'stylesheet'; l.href = 'about.css?v=' + ABOUT_VERSION;
+        l.rel = 'stylesheet'; l.href = 'about.css?v=' + NEERG_VERSION;
         l.onload = l.onerror = resolve;
         document.head.appendChild(l);
     });
     const js = new Promise(resolve => {
         const s = document.createElement('script');
-        s.src = 'about.js?v=' + ABOUT_VERSION;
+        s.src = 'about.js?v=' + NEERG_VERSION;
         s.onload = resolve;
         s.onerror = () => { aboutLoading = null; resolve(); };
         document.head.appendChild(s);
@@ -2633,16 +2635,14 @@ function logoutAdmin() {
     showToast('Logged out');
 }
 
-/* The admin tools (admin.js) load the first time Admin opens, so visitors never download them.
-   Bump ADMIN_VERSION after changing admin.js. */
-const ADMIN_VERSION = '1';
+/* The admin tools (admin.js) load the first time Admin opens, so visitors never download them. */
 let adminLoading = null;
 function loadAdmin() {
     if (window.NEERG_ADMIN) return Promise.resolve(true);
     if (adminLoading) return adminLoading;
     adminLoading = new Promise(resolve => {
         const s = document.createElement('script');
-        s.src = 'admin.js?v=' + ADMIN_VERSION;
+        s.src = 'admin.js?v=' + NEERG_VERSION;
         s.onload = () => resolve(!!window.NEERG_ADMIN);
         s.onerror = () => { adminLoading = null; resolve(false); };
         document.head.appendChild(s);
