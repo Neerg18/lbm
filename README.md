@@ -1,7 +1,9 @@
-# NEERG 7.0
+# NEERG 7.0.9
 ### A fork of [LBM — Leaflet Blog Manager](https://lbm-test.neocities.org) by applesaucy
 
 > Self-hosted digital art archive for Neocities. Post your art, comics and commission info, all managed from your browser. No code editing needed.
+
+Every update has its own version number (7.0.1, 7.0.2 and so on). See what changed in each one in the [changelog](CHANGELOG.md); each version is also a tag on GitHub.
 
 Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f) is still in this repository's history.
 
@@ -49,7 +51,7 @@ No code editing required. Everything is managed from the **Admin** page (the ⚙
 
 ### Upgrading from an earlier NEERG
 
-NEERG 7.0 stores your content in the same format as 6.0, so just replace `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder (and delete `sky.js` and `sky.css` if you have them). Your posts, comics, likes and settings stay where they are.
+NEERG 7 stores your content in the same format as 6.0, so just replace `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder (and delete `sky.js` and `sky.css` if you have them). Your posts, comics, likes and settings stay where they are.
 
 > Tip: hit **Back up** in the dashboard before upgrading, just in case.
 
@@ -123,7 +125,7 @@ For deeper edits:
 ## Credits
 
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
-- **This fork:** NEERG 7.0 by [Neerg18](https://github.com/Neerg18)
+- **This fork:** NEERG 7.0.9 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
 - **Icons:** [Font Awesome Free 6.7.2](https://fontawesome.com) (icons CC BY 4.0, fonts SIL OFL 1.1, code MIT), trimmed to the icons this site uses
 - **Markdown:** [marked 15.0.12](https://github.com/markedjs/marked) (MIT)
@@ -136,4 +138,4 @@ For deeper edits:
 
 MIT. See [LICENSE](LICENSE).
 
-*NEERG 7.0 is a community fork. All core functionality belongs to the original LBM project.*
+*NEERG 7 is a community fork. All core functionality belongs to the original LBM project.*
