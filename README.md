@@ -1,4 +1,4 @@
-# NEERG 7.0.11
+# NEERG 7.0.12
 ### A fork of [LBM — Leaflet Blog Manager](https://lbm-test.neocities.org) by applesaucy
 
 > Self-hosted digital art archive for Neocities. Post your art, comics and commission info, all managed from your browser. No code editing needed.
@@ -35,7 +35,7 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Accessibility:** Keyboard navigation, screen reader labels and a skip-to-content link
 - **Hold to Delete:** Deleting a post, comic, comment or commission tier (and the big Clean up erases) takes a one-second press and hold, by mouse, finger or the Enter key, so nothing goes by accident. Other questions use the same pop-up with a normal button
 - **Button Tooltips:** Icon-only buttons show their name when you hover over them or tab to them. The first one waits a moment, then the next ones appear right away
-- **Glass Shine:** Gallery boards, comic cards and commission tier pictures catch a diagonal glass glare as the mouse moves on and off them (and when you tab to them). Nothing else on the site gets it, and devices that ask for less motion skip it
+- **Glass Shine:** Commission tier pictures catch a diagonal glass glare as the mouse moves on and off them (and when you tab to them). Nothing else on the site gets it, and devices that ask for less motion skip it
 - **Staggered Phone Menu:** On phones, two color layers in your accent color sweep in, then the menu panel, then each link rises into place with its number. The Menu button rolls to Close and its plus turns into a cross
 - **No Flash on Load:** Your saved theme and colors appear instantly for returning visitors
 
@@ -125,7 +125,7 @@ For deeper edits:
 ## Credits
 
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
-- **This fork:** NEERG 7.0.11 by [Neerg18](https://github.com/Neerg18)
+- **This fork:** NEERG 7.0.12 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
 - **Icons:** [Font Awesome Free 6.7.2](https://fontawesome.com) (icons CC BY 4.0, fonts SIL OFL 1.1, code MIT), trimmed to the icons this site uses
 - **Markdown:** [marked 15.0.12](https://github.com/markedjs/marked) (MIT)

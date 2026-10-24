@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.11 · admin.js                                         ║
+ ║  NEERG 7.0.12 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home banner, links and cleanup.  ║
  ║  logic.js loads this the first time Admin opens, so visitors     ║

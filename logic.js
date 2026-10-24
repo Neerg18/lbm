@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.11 · logic.js                                         ║
+ ║  NEERG 7.0.12 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.11';
+const NEERG_VERSION = '7.0.12';
 const FIXED_BRIDGE_URL = 'https://applchu.link/lbm/0.4/bridge.html?v=' + Date.now();
 const BRIDGE_ORIGIN = new URL(FIXED_BRIDGE_URL).origin;
 const IS_LOCAL_FILE = location.protocol === 'file:';
@@ -603,7 +603,7 @@ function bindTooltips() {
 }
 
 /* ═════════════════════════════════════════════
-   GLASS GLARE (gallery boards, comic cards, commission tiers)
+   GLASS GLARE (commission tiers)
    A shine sweeps across a card when the pointer comes on and again as it goes off,
    in the direction it moved. Idea from React Bits' Glare Hover (reactbits.dev)
    ═════════════════════════════════════════════ */
@@ -1682,7 +1682,7 @@ function zineCardHTML(b, i, pics) {
     const blur = currentConfig.blurNsfw;
     const newest = postsCache.find(p => p.id === (b.items[0] || {}).postId);
     const stickers = pics.map(m => '<span class="zg-sticker' + (blur && m.nsfw ? ' is-veiled' : '') + '"><img src="' + esc(m.url) + '" alt="" loading="lazy" decoding="async"></span>').join('');
-    return '<button class="zg-card zg-paper' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" data-action="open-board" data-key="' + esc(b.key) + '" data-glare>'
+    return '<button class="zg-card zg-paper' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" data-action="open-board" data-key="' + esc(b.key) + '">'
         + '<span class="zg-card-text">'
         + '<span class="zg-card-title">' + esc(b.name) + '</span>'
         + '<span class="zg-card-meta"><span><strong>' + plural(b.items.length, 'piece') + '</strong>' + (b.key === ALL_BOARD ? 'Everything, every board' : 'Board ' + String(i).padStart(2, '0')) + '</span>'
@@ -1761,7 +1761,7 @@ function renderComics() {
         const started = p != null && pages > 1;
         // Pages 2-4 fanned out; always shown on the top card, and on any card left with a wide row to itself
         const strip = (c.pages || []).slice(1, 4).map(u => '<span class="zg-sticker"><img src="' + esc(safeUrl(u)) + '" alt="" loading="lazy" decoding="async"></span>').join('');
-        return '<a class="zg-card zg-paper zc-card' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '" data-glare>'
+        return '<a class="zg-card zg-paper zc-card' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '">'
             + '<span class="zc-cover">' + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="zc-cover-empty" aria-hidden="true">' + esc((c.title || '?').charAt(0).toUpperCase()) + '</span>') + '</span>'
             + '<span class="zg-card-text">'
             + '<span class="zg-card-title">' + esc(c.title || 'Untitled') + '</span>'

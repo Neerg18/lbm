@@ -7,8 +7,12 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.12 · 2026-10-24
+**No shine on Gallery boards and comics**
+- The glass shine no longer sweeps over Gallery boards and comic cards when you point at them. Commission tier pictures still have it.
+
 ## 7.0.11 · 2026-10-24
-**Comic pages fan out on computers like on phones**
+**Comic pages fan out on computers like on phones** · [#13](https://github.com/Neerg18/lbm/pull/13) · [code](https://github.com/Neerg18/lbm/tree/6528654)
 - On computers, the page previews on the top Comics card now bunch up in an overlapping fan at the card's right end, the way they look on phones, instead of spreading across the card.
 
 ## 7.0.10 · 2026-10-24
