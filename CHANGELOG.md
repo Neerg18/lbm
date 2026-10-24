@@ -7,8 +7,12 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.11 · 2026-10-24
+**Comic pages fan out on computers like on phones**
+- On computers, the page previews on the top Comics card now bunch up in an overlapping fan at the card's right end, the way they look on phones, instead of spreading across the card.
+
 ## 7.0.10 · 2026-10-24
-**Random board previews, upright comic pages**
+**Random board previews, upright comic pages** · [#12](https://github.com/Neerg18/lbm/pull/12) · [code](https://github.com/Neerg18/lbm/tree/f9cb831)
 - Each Gallery board's preview shows three pictures picked at random from that board instead of the newest ones. You get a new mix on every visit, and boards skip pictures another board already shows, so boards that share posts still look different.
 - The top card on the Comics page shows its page previews standing upright like pages, instead of in wide frames.
 
