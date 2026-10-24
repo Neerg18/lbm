@@ -7,8 +7,12 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.13 · 2026-10-24
+**Long titles shrink to fit**
+- Long board and comic names like "Animation" or "Commissions" get smaller until each word fits on one line, instead of breaking in the middle ("Animati / on"). Short names keep their full size. This works on every screen size, and again when the window is resized.
+
 ## 7.0.12 · 2026-10-24
-**No shine on Gallery boards and comics**
+**No shine on Gallery boards and comics** · [#14](https://github.com/Neerg18/lbm/pull/14) · [code](https://github.com/Neerg18/lbm/tree/7d5590b)
 - The glass shine no longer sweeps over Gallery boards and comic cards when you point at them. Commission tier pictures still have it.
 
 ## 7.0.11 · 2026-10-24

@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.12 · logic.js                                         ║
+ ║  NEERG 7.0.13 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.12';
+const NEERG_VERSION = '7.0.13';
 const FIXED_BRIDGE_URL = 'https://applchu.link/lbm/0.4/bridge.html?v=' + Date.now();
 const BRIDGE_ORIGIN = new URL(FIXED_BRIDGE_URL).origin;
 const IS_LOCAL_FILE = location.protocol === 'file:';
@@ -1678,6 +1678,23 @@ function boardPreviews(boards) {
     return picks;
 }
 
+// Long board and comic titles shrink until their longest word fits on one line. CSS divides the title's
+// width by that word's width in em (--fit), measured here at the size the title shows at, since the font
+// draws a little wider as it gets smaller
+const fitCtx = document.createElement('canvas').getContext('2d');
+function fitTitles(root) {
+    $$('.zg-card-title', root).forEach(t => {
+        const words = t.textContent.split(/\s+/).filter(Boolean);
+        if (!words.length) return;
+        for (let pass = 0; pass < 2; pass++) {
+            const cs = getComputedStyle(t), px = parseFloat(cs.fontSize), ls = parseFloat(cs.letterSpacing) || 0;
+            fitCtx.font = cs.fontWeight + ' ' + px + 'px ' + cs.fontFamily;
+            const em = Math.max(...words.map(w => (fitCtx.measureText(w).width + ls * w.length) / px));
+            t.style.setProperty('--fit', em.toFixed(3));
+        }
+    });
+}
+
 function zineCardHTML(b, i, pics) {
     const blur = currentConfig.blurNsfw;
     const newest = postsCache.find(p => p.id === (b.items[0] || {}).postId);
@@ -1723,11 +1740,13 @@ function renderGallery() {
         byId('board-count').textContent = plural(open.items.length, 'piece');
         galleryLists.board = open.items;
         byId('board-grid').innerHTML = polaHTML(open.items, 'board');
+        fitTitles(byId('board-head'));
         return;
     }
     const previews = boardPreviews(boards);
     boardsEl.innerHTML = boards.length ? boards.map((b, i) => zineCardHTML(b, i, previews.get(b.key))).join('')
         : '<div class="empty"><h3>No boards yet</h3><p>Boards are made from post tags. Tag your posts and they\'ll group here.</p></div>';
+    fitTitles(boardsEl);
 }
 
 /* ═════════════════════════════════════════════
@@ -1772,6 +1791,7 @@ function renderComics() {
             + (strip ? '<span class="zg-stickers n' + Math.min(3, pages - 1) + '" aria-hidden="true">' + strip + '</span>' : '')
             + '</a>';
     }).join('');
+    fitTitles(grid);
 }
 
 /* ═════════════════════════════════════════════
@@ -3597,8 +3617,8 @@ function bindEvents() {
     window.addEventListener('hashchange', route);
     window.addEventListener('message', handleBridgeMessage);
     window.addEventListener('scroll', () => { if (!scrollTicking) { scrollTicking = true; requestAnimationFrame(updateScrollState); } }, { passive: true });
-    window.addEventListener('resize', debounce(() => { updateNavPill(); updateScrollState(); fitHome(); }, 100));
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateNavPill);
+    window.addEventListener('resize', debounce(() => { updateNavPill(); updateScrollState(); fitHome(); fitTitles(); }, 100));
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { updateNavPill(); fitTitles(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && pendingOps.length) scheduleInteractionsSync(); });
 }
 
