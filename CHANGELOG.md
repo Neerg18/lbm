@@ -7,6 +7,11 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.10 · 2026-10-24
+**Random board previews, upright comic pages**
+- Each Gallery board's preview shows three pictures picked at random from that board instead of the newest ones. You get a new mix on every visit, and boards skip pictures another board already shows, so boards that share posts still look different.
+- The top card on the Comics page shows its page previews standing upright like pages, instead of in wide frames.
+
 ## 7.0.9 · 2026-10-15
 **About covers fill wide screens** · [#9](https://github.com/Neerg18/lbm/pull/9), [#10](https://github.com/Neerg18/lbm/pull/10) · [code](https://github.com/Neerg18/lbm/tree/d0b1f94)
 - On screens wider than a laptop, the About cover grows like a poster, up to twice its size, instead of leaving empty space on both sides. The picture effects stay lined up.

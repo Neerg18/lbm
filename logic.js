@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.9 · logic.js                                          ║
+ ║  NEERG 7.0.10 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.9';
+const NEERG_VERSION = '7.0.10';
 const FIXED_BRIDGE_URL = 'https://applchu.link/lbm/0.4/bridge.html?v=' + Date.now();
 const BRIDGE_ORIGIN = new URL(FIXED_BRIDGE_URL).origin;
 const IS_LOCAL_FILE = location.protocol === 'file:';
@@ -1661,9 +1661,25 @@ function galleryBoards(tagBoards) {
     return all.length ? [{ key: ALL_BOARD, name: 'All media', items: all }].concat(tagBoards) : tagBoards;
 }
 
-function zineCardHTML(b, i) {
+/* Each board's preview shows three pictures picked at random from it, a new mix on every visit (they stay
+   put while you browse). Boards skip pictures an earlier board already shows, so boards that share most
+   of their posts still look different. */
+const PREVIEW_SEED = Math.floor(Math.random() * 2147483646) + 1;
+function boardPreviews(boards) {
+    const used = new Set(), picks = new Map();
+    boards.forEach((b, i) => {
+        let s = (PREVIEW_SEED + i * 7919) % 2147483647 || 1;
+        const rand = () => (s = s * 16807 % 2147483647) / 2147483647;
+        const mixed = b.items.filter(m => m.type === 'image').map(m => [rand(), m]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+        const pick = mixed.filter(m => !used.has(m.url)).concat(mixed.filter(m => used.has(m.url))).slice(0, 3);
+        pick.forEach(m => used.add(m.url));
+        picks.set(b.key, pick);
+    });
+    return picks;
+}
+
+function zineCardHTML(b, i, pics) {
     const blur = currentConfig.blurNsfw;
-    const pics = b.items.filter(m => m.type === 'image').slice(0, 3);
     const newest = postsCache.find(p => p.id === (b.items[0] || {}).postId);
     const stickers = pics.map(m => '<span class="zg-sticker' + (blur && m.nsfw ? ' is-veiled' : '') + '"><img src="' + esc(m.url) + '" alt="" loading="lazy" decoding="async"></span>').join('');
     return '<button class="zg-card zg-paper' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" data-action="open-board" data-key="' + esc(b.key) + '" data-glare>'
@@ -1709,7 +1725,8 @@ function renderGallery() {
         byId('board-grid').innerHTML = polaHTML(open.items, 'board');
         return;
     }
-    boardsEl.innerHTML = boards.length ? boards.map(zineCardHTML).join('')
+    const previews = boardPreviews(boards);
+    boardsEl.innerHTML = boards.length ? boards.map((b, i) => zineCardHTML(b, i, previews.get(b.key))).join('')
         : '<div class="empty"><h3>No boards yet</h3><p>Boards are made from post tags. Tag your posts and they\'ll group here.</p></div>';
 }
 

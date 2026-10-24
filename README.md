@@ -1,4 +1,4 @@
-# NEERG 7.0.9
+# NEERG 7.0.10
 ### A fork of [LBM — Leaflet Blog Manager](https://lbm-test.neocities.org) by applesaucy
 
 > Self-hosted digital art archive for Neocities. Post your art, comics and commission info, all managed from your browser. No code editing needed.
@@ -125,7 +125,7 @@ For deeper edits:
 ## Credits
 
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
-- **This fork:** NEERG 7.0.9 by [Neerg18](https://github.com/Neerg18)
+- **This fork:** NEERG 7.0.10 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
 - **Icons:** [Font Awesome Free 6.7.2](https://fontawesome.com) (icons CC BY 4.0, fonts SIL OFL 1.1, code MIT), trimmed to the icons this site uses
 - **Markdown:** [marked 15.0.12](https://github.com/markedjs/marked) (MIT)
