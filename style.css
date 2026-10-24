@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.9 · style.css
+ NEERG 7.0.10 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -1188,7 +1188,16 @@ a.zg-card:hover { text-decoration: none; transform: translateY(-4px) rotate(-.4d
 .zc-cover img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .zc-cover-empty { display: grid; place-items: center; height: 100%; font-size: 4rem; font-weight: 800; font-style: italic; opacity: .3; }
 a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
-.zc-card.is-wide .zg-stickers { flex: 1 1 340px; height: 300px; }
+.zc-card.is-wide .zg-stickers { flex: 1 1 340px; height: clamp(260px, 28vw, 360px); }
+/* Comic pages are tall, so their previews stand upright like pages: one at each end and one in the middle */
+.zc-card .zg-sticker { width: auto; max-width: 46%; height: 94%; aspect-ratio: 5 / 7; }
+.zc-card .zg-sticker img { object-position: center top; }
+.zc-card .zg-sticker:nth-child(1) { left: 3%; }
+.zc-card .zg-sticker:nth-child(2) { left: 50%; translate: -50% 0; }
+.zc-card .zg-sticker:nth-child(3) { left: auto; right: 3%; }
+.zc-card .zg-stickers.n1 .zg-sticker { left: 50%; width: auto; translate: -50% 0; }
+.zc-card .zg-stickers.n2 .zg-sticker:nth-child(1) { left: 16%; }
+.zc-card .zg-stickers.n2 .zg-sticker:nth-child(2) { left: auto; right: 16%; translate: none; }
 .zc-card:not(.is-wide) .zg-stickers { display: none; }
 @container zc-card (min-width: 800px) {
     .zc-card:not(.is-wide) .zg-stickers { display: block; flex: 1 1 260px; align-self: center; height: 280px; }
