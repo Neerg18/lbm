@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.12 · style.css
+ NEERG 7.0.13 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -1089,10 +1089,13 @@ html[data-theme="light"] .zg-id { box-shadow: 0 14px 30px -20px rgba(0,0,0,.5); 
 }
 button.zg-card:hover { transform: translateY(-4px) rotate(-.4deg); box-shadow: 0 18px 30px -18px rgba(0,0,0,.8); }
 .zg-card.is-wide { flex-basis: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 30px; }
-.zg-card-text { flex: none; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.zg-card-text { flex: none; min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
 .zg-card.is-wide .zg-card-text { flex: 1 1 380px; }
-.zg-card-title { display: block; font-size: clamp(3.6rem, 6vw, 6.5rem); line-height: .85; font-weight: 800; letter-spacing: -.04em; overflow-wrap: anywhere; }
-.zg-card.is-wide .zg-card-title { font-size: clamp(4.4rem, 9vw, 9rem); }
+/* --ts is a title's full size. A long title shrinks below it until its longest word fits on one line:
+   logic.js measures that word's width in em as --fit */
+.zg-card-title { --ts: clamp(3.6rem, 6vw, 6.5rem); display: block; font-size: var(--ts); line-height: .85; font-weight: 800; letter-spacing: -.04em; overflow-wrap: anywhere; }
+@supports (width: 1cqw) { .zg-card-title { font-size: min(var(--ts), 96cqw / var(--fit, .01)); } }
+.zg-card.is-wide .zg-card-title { --ts: clamp(4.4rem, 9vw, 9rem); }
 .zg-card-meta { display: flex; flex-wrap: wrap; gap: 14px 28px; font-size: 1rem; }
 .zg-card-meta strong { display: block; font-size: 1.6rem; line-height: 1.15; }
 .zg-open { align-self: flex-start; padding: 12px 22px; border-radius: 999px; background: var(--zg-ink); color: var(--zc); font-weight: 800; }
@@ -1108,8 +1111,8 @@ button.zg-card:hover { transform: translateY(-4px) rotate(-.4deg); box-shadow: 0
 button.zg-card:hover .zg-sticker:nth-child(2) { transform: rotate(7deg) translateY(-6px); }
 .zg-sticker.is-veiled img { filter: blur(14px) saturate(.8); transform: scale(1.15); }
 .zg-reveal { position: absolute; left: 50%; top: 50%; z-index: 2; padding: 10px 18px; border-radius: 999px; background: var(--zg-ink); color: var(--zg-cream); font-weight: 800; white-space: nowrap; transform: translate(-50%, -50%) rotate(-3deg); }
-.zg-board-head { gap: 10px; margin-bottom: clamp(26px, 3vw, 44px); }
-.zg-board-head .zg-card-title { font-size: clamp(4rem, 8vw, 8rem); }
+.zg-board-head { gap: 10px; margin-bottom: clamp(26px, 3vw, 44px); container-type: inline-size; }
+.zg-board-head .zg-card-title { --ts: clamp(4rem, 8vw, 8rem); }
 .zg-back { align-self: flex-start; padding: 8px 16px; border: 2px solid var(--zg-ink); border-radius: 999px; color: var(--zg-ink); font-weight: 800; }
 .zg-back:hover { background: var(--zg-ink); color: var(--zc); }
 .zg-board-count { font-size: 1.4rem; font-weight: 800; }
@@ -1177,7 +1180,7 @@ a.zg-card:hover { text-decoration: none; transform: translateY(-4px) rotate(-.4d
 .zc-card { container: zc-card / inline-size; flex-direction: row; align-items: flex-start; gap: clamp(20px, 2.4vw, 32px); }
 .zc-card.is-wide { align-items: center; }
 .zc-card .zg-card-text { flex: 1 1 240px; }
-.zc-card:not(.is-wide) .zg-card-title { font-size: clamp(2.6rem, 4vw, 4.6rem); }
+.zc-card:not(.is-wide) .zg-card-title { --ts: clamp(2.6rem, 4vw, 4.6rem); }
 .zc-cover {
     position: relative; flex: none; width: clamp(120px, 32%, 260px); aspect-ratio: 2 / 3; overflow: hidden;
     border: 8px solid var(--zg-white); border-radius: 4px 8px 8px 4px; background: var(--zg-white);

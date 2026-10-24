@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.12 · about.js
+ NEERG 7.0.13 · about.js
  The About page, drawn as one of three covers picked in Admin › Site info › About page:
    broadcast  a VHS screen and TV listings
    mixtape    a cassette label, tape shelf and label sheet
