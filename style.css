@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.11 · style.css
+ NEERG 7.0.12 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -477,7 +477,7 @@ input[type="range"] { width: 100%; accent-color: var(--hl); }
 .tip[data-side="bottom"]::after { top: auto; bottom: 100%; margin: 0 0 -4px -4px; border-radius: 2px 0 0 0; }
 
 /* ═══════════════════════════════════════════
-   GLASS GLARE (gallery boards, comic cards, commission tiers; moved by logic.js)
+   GLASS GLARE (commission tiers; moved by logic.js)
    ═══════════════════════════════════════════ */
 .glare {
     position: absolute; inset: 0; z-index: 5;
