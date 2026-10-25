@@ -1,4 +1,4 @@
-# NEERG 7.0.13
+# NEERG 7.0.14
 ### A fork of [LBM — Leaflet Blog Manager](https://lbm-test.neocities.org) by applesaucy
 
 > Self-hosted digital art archive for Neocities. Post your art, comics and commission info, all managed from your browser. No code editing needed.
@@ -18,10 +18,10 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **NSFW Blur:** Posts tagged NSFW stay blurred until a visitor taps to reveal
 - **Reaction Styles:** Thumbs, arrows, or your own custom like/dislike text
 - **Better Sorting:** Sort the feed by newest, oldest, most liked, least liked or most discussed
-- **Featured Carousel:** Show your newest, most liked or pinned posts on Home, or hide it
-- **Paper Home:** Below your banner, Home sits on a paper sheet with bold outlined cards: cream in light mode, night blue with cream outlines in dark mode. Recent work shows as postage stamps, and Featured gets a details card and a commissions card
+- **Featured Frame:** Under your banner and profile picture, a wide animated frame shows one featured piece at a time (newest, most liked or pinned posts, or hidden): its title scrolls along the edges, a crosshair locks on, a details panel lists its board, date, likes and its five main colors, and it moves to the next piece every 7 seconds with a timer line along the bottom
+- **Side Sliders:** Tall sliders beside Recent works show one picture at a time and keep moving to the next, like ad banners. On laptops only the right one shows, and on phones one runs sideways under the comics bar. In **Admin → Home page** you choose where they sit, what they show (random art, newest art, pieces you pick, comics, a mix with a commissions ad, or your own images with any link), how fast they change and which way they slide
 - **About Covers:** About is drawn like a retro magazine cover, in one of three designs you pick under **Site info → About page**: **Broadcast** (a VHS screen playing your newest art, with TV listings), **Mixtape** (a cassette label, a tape deck and a shelf of tapes) or **Spectrum** (a rainbow label poster with your posts as tour dates). Each one shows your name, tagline, bio, latest work, counts, commission status and links, and its pictures get WebGL effects (VHS wobble, pixel art, halftone print) for visitors who allow motion
-- **Recommended Comic:** A ticket at the bottom of Home (side by side on computers, upright on phones) points visitors to a comic, picking up where they left off. It's the newest comic unless you choose one in **Admin → Site info**
+- **Comics Bar:** Under Recent works, a bar points visitors to a comic, picking up where they left off, next to a commissions card with your status. It's the newest comic unless you choose one in **Admin → Site info**
 - **Art of Today:** Once a day, visitors are greeted by a pop-up with one piece from your archive, in one of ten designs (Botanical, Cinema, Calligraphy, Magazine, Caption strip, Editorial, Award band, Chapter frame, Tabloid, Calendar), each with its own entrance and exit and a phone version. Everyone gets the same piece and design on the same day, and it waits until after the age check. In **Admin → Site info** you choose a different design every day or one design always, which designs are in the rotation and their colors, where the art comes from (any post, one board, or a piece you pick), whether NSFW posts are skipped, the headline and message, how long it waits, the animation, and whether phones get it, with a preview for each design
 - **Both Themes Everywhere:** Home, Gallery and Comics all switch with the light/dark button (the About covers keep their own colors)
 - **Zine Gallery:** The Gallery is a collage of colored paper cards, one per board with "All media" first, and each board opens into taped-on polaroids
@@ -97,7 +97,7 @@ All visual customization is done through the **Admin** dashboard. No code editin
 | **Commissions** | The open/closed switch, status badge, tiers (example art, price, notes, color), terms, request link, hazard-tape words and poster colors |
 | **Site info** | Site name, tagline, profile picture, About page cover design, bio, age check, comments, reactions, featured posts, recommended comic, Art of Today pop-up, search engine description |
 | **Colors & style** | Dark and light palettes, presets, color generator, reaction button colors, profile ring |
-| **Home banner** | Header images (latest posts or your own picks) and the scrolling text band |
+| **Home page** | Header images (latest posts or your own picks), the scrolling text band and the side sliders |
 | **Social links** | Links shown on the header, About page, Commissions page and footer |
 
 For deeper edits:
@@ -125,7 +125,7 @@ For deeper edits:
 ## Credits
 
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
-- **This fork:** NEERG 7.0.13 by [Neerg18](https://github.com/Neerg18)
+- **This fork:** NEERG 7.0.14 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
 - **Icons:** [Font Awesome Free 6.7.2](https://fontawesome.com) (icons CC BY 4.0, fonts SIL OFL 1.1, code MIT), trimmed to the icons this site uses
 - **Markdown:** [marked 15.0.12](https://github.com/markedjs/marked) (MIT)

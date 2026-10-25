@@ -1,8 +1,8 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.13 · admin.js                                         ║
+ ║  NEERG 7.0.14 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
- ║  info, commissions, colors, the Home banner, links and cleanup.  ║
+ ║  info, commissions, colors, the Home page, links and cleanup.    ║
  ║  logic.js loads this the first time Admin opens, so visitors     ║
  ║  never download it. It shares logic.js's helpers and state.      ║
  ╚══════════════════════════════════════════════════════════════════╝
@@ -746,6 +746,7 @@ function populateBannerForm() {
         + '<button type="button" class="btn small" data-action="pick-image" data-target="bn-img-' + i + '">From posts</button>'
         + '<label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i><span class="sr-only">Upload</span><input type="file" accept="image/*" data-upload-target="bn-img-' + i + '" hidden></label></div>').join('');
     syncBannerForm();
+    populateSliderForm();
 }
 function syncBannerForm() {
     $$('[data-action="banner-mode"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === bannerDraftMode)));
@@ -770,8 +771,61 @@ function saveBannerSettings() {
     };
     currentConfig.bannerSettings = s;
     writeJSON(KEYS.banner, s);
-    renderHero(); renderMarquee();
+    currentConfig.homeSliders = sliderFormSettings();
+    renderHero(); renderMarquee(); renderSliders();
     saveSystem();
+}
+
+/* ═════════════════════════════════════════════
+   ADMIN: SIDE SLIDERS (saved with the header settings)
+   ═════════════════════════════════════════════ */
+
+let sliderPicks = [], sliderRowCount = 0;
+function populateSliderForm() {
+    const s = sliderSettings();
+    byId('sl-where').value = s.where; byId('sl-show').value = s.show;
+    byId('sl-secs').value = s.secs; byId('sl-dir').value = s.dir;
+    sliderPicks = s.picks.map(String);
+    byId('sl-own').innerHTML = '';
+    (s.own.length ? s.own : [{ img: '', link: '' }]).forEach(o => addSliderOwnRow(o.img, o.link));
+    const art = sortPosts(postsCache, 'newest').filter(p => firstImage(p));
+    byId('sl-picks').innerHTML = art.length
+        ? art.map(p => '<button type="button" data-action="sl-pick" data-id="' + p.id + '" aria-pressed="' + sliderPicks.includes(String(p.id)) + '" aria-label="' + esc(postTitle(p)) + '"><img src="' + esc(firstImage(p)) + '" alt="" loading="lazy"></button>').join('')
+        : '<p class="hint">No image posts yet.</p>';
+    syncSliderForm();
+}
+function addSliderOwnRow(img, link) {
+    const id = 'sl-own-img-' + (++sliderRowCount), row = document.createElement('div');
+    row.className = 'sl-own-row';
+    row.innerHTML = '<input type="text" id="' + id + '" class="sl-own-img" value="' + esc(img) + '" placeholder="Image link" aria-label="Image link">'
+        + '<button type="button" class="btn small" data-action="pick-image" data-target="' + id + '">From posts</button>'
+        + '<label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i><span class="sr-only">Upload</span><input type="file" accept="image/*" data-upload-target="' + id + '" hidden></label>'
+        + '<input type="text" class="sl-own-link" value="' + esc(link) + '" placeholder="Goes to (optional): a post, a shop, anywhere" aria-label="Where the image goes">'
+        + '<button type="button" class="btn small" data-action="sl-own-remove" aria-label="Remove this image"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
+    byId('sl-own').appendChild(row);
+}
+function toggleSliderPick(el) {
+    const id = el.dataset.id, i = sliderPicks.indexOf(id);
+    if (i >= 0) sliderPicks.splice(i, 1); else sliderPicks.push(id);
+    el.setAttribute('aria-pressed', String(i < 0));
+    syncSliderForm();
+}
+function sliderFormSettings() {
+    return {
+        where: byId('sl-where').value, show: byId('sl-show').value,
+        secs: clamp(parseInt(byId('sl-secs').value, 10) || 3, 2, 10), dir: byId('sl-dir').value,
+        picks: sliderPicks.slice(),
+        own: $$('#sl-own .sl-own-row').map(r => ({ img: $('.sl-own-img', r).value.trim(), link: $('.sl-own-link', r).value.trim() })).filter(o => o.img)
+    };
+}
+// Shows only the fields the chosen kind needs, and redraws the preview slider with the form as it stands
+function syncSliderForm() {
+    const s = sliderSettings(sliderFormSettings());
+    byId('sl-secs-out').textContent = plural(s.secs, 'second');
+    byId('sl-pick-field').hidden = s.show !== 'pick';
+    byId('sl-own-field').hidden = s.show !== 'own';
+    byId('sl-pick-count').textContent = '(' + sliderPicks.length + ' picked)';
+    fillRail(byId('sl-preview'), s.where === 'off' ? [] : sliderSlides(s, 'R'), s);
 }
 
 let pickerTarget = null;

@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.13 · logic.js                                         ║
+ ║  NEERG 7.0.14 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.13';
+const NEERG_VERSION = '7.0.14';
 const FIXED_BRIDGE_URL = 'https://applchu.link/lbm/0.4/bridge.html?v=' + Date.now();
 const BRIDGE_ORIGIN = new URL(FIXED_BRIDGE_URL).origin;
 const IS_LOCAL_FILE = location.protocol === 'file:';
@@ -181,7 +181,7 @@ let currentConfig = {
     tagline: 'Digital Art Archive', leafletsName: 'Works', allowComments: true, copyright: '2026 NEERG',
     bgImage: '', bannerImage: '', pfpImage: '', customCss: '', reactionsEnabled: true,
     reactionIcon: 'thumb', likeLabel: '^ NICE', dislikeLabel: 'MEH ^', widgetPadding: '15px',
-    socialLinks: [], bannerSettings: null, aboutBio: '', aboutStyle: 'broadcast',
+    socialLinks: [], bannerSettings: null, homeSliders: null, aboutBio: '', aboutStyle: 'broadcast',
     commissionStatus: 'AVAILABLE FOR COMMISSIONS', statusColor: '#FB3640',
     commissionsInfo: '', commissionsLink: '',
     ageGate: true, featuredMode: 'recent', recommendedComic: '', blurNsfw: false, webpUploads: true,
@@ -200,7 +200,7 @@ const ui = {
     viewer: { list: [], i: 0 },
     comic: { id: null, pushed: false },
     reader: { id: null, page: 0 },
-    featured: { i: 0, timer: null, stops: 0, list: [] },
+    featured: { i: 0, timer: null, list: [] },
     lastCommentAt: 0
 };
 
@@ -844,9 +844,10 @@ function renderStatus() {
     const text = (currentConfig.commissionStatus || '').trim();
     const pill = byId('hero-status');
     if (pill) { pill.hidden = !text; byId('hero-status-text').textContent = text; }
-    const card = byId('feat-comm'); if (card) card.hidden = !text;
-    $$('.feat-comm-text').forEach(n => { n.textContent = text; });
-    document.documentElement.style.setProperty('--status', normalizeHex(currentConfig.statusColor, paletteFor(getMode()).accent));
+    $$('.feat-comm-text').forEach(n => { n.textContent = text || 'See what I offer'; });
+    const status = normalizeHex(currentConfig.statusColor, paletteFor(getMode()).accent);
+    document.documentElement.style.setProperty('--status', status);
+    document.documentElement.style.setProperty('--status-ink', inkFor(status));
 }
 
 function renderCommissions() {
@@ -1223,7 +1224,7 @@ function showView(view) {
     updateScrollState();
 
     if (leaving === 'admin' && Studio.dirty) applyTheme();
-    if (view === 'home') { renderRecComic(); fitHome(); startFeatured(); } else stopFeatured();
+    if (view === 'home') { renderComicBar(); fitHome(); scheduleFeatured(); } else stopFeatured();
     if (view === 'gallery') renderGallery();
     if (view === 'comics') renderComics();
     if (view === 'commissions') replayTapes();
@@ -1376,93 +1377,95 @@ function featuredPosts() {
     return list.slice(0, 5);
 }
 
-// Bright paper colors for tag chips on the Home sheet
-const NB_CHIP_COLORS = ['#FF8CC6', '#00C2CB', '#FFD23F', '#FF9A3C', '#C9A7F5', '#8EE3B0'];
-function newestPostId() { return postsCache.reduce((m, p) => Math.max(m, p.id), 0); }
+// Home A: the featured frame. One piece at a time over its own blurred copy, with the title running along the edges;
+// it moves on by itself every few seconds and each new piece plays its entrance again
+const FEATURE_MS = 7000;
+const HUD_STAR = '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 0C54 36 64 46 100 50C64 54 54 64 50 100C46 64 36 54 0 50C36 46 46 36 50 0z" fill="currentColor"/></svg>';
+function postTitle(p) { return excerpt(p.content, 34) || stampTag(p) || 'Untitled piece'; }
 
 function renderFeatured() {
-    const sec = byId('featured'), track = byId('featured-track');
+    const sec = byId('featured');
     const list = ui.featured.list = featuredPosts();
-    if (!list.length) { sec.hidden = true; stopFeatured(); return; }
-    sec.hidden = false;
-    track.innerHTML = list.map((p, i) => {
-        const cap = excerpt(p.content, 80);
-        const tag = postTags(p)[0];
-        return '<a class="feat" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '" data-index="' + i + '" aria-label="Open featured post: ' + esc(cap || 'Untitled piece') + '">'
-            + '<span class="feat-media"><img src="' + esc(firstImage(p)) + '" alt="" loading="lazy" decoding="async"></span>'
-            + (tag ? '<span class="nb-sticker" aria-hidden="true">#' + esc(tag) + '</span>' : '')
-            + '</a>';
-    }).join('');
-    ui.featured.i = 0;
-    renderFeaturedDots();
-    track.scrollLeft = 0;
-    renderFeatInfo();
-    startFeatured();
+    sec.hidden = !list.length;
+    if (!list.length) { stopFeatured(); return; }
+    ui.featured.i = Math.min(ui.featured.i, list.length - 1);
+    showFeatured();
 }
 
-// The yellow card beside the board describes whichever piece is showing
-function renderFeatInfo() {
-    const box = byId('feat-info'); if (!box) return;
-    const list = ui.featured.list || [];
-    const p = list[ui.featured.i];
-    const burst = byId('feat-new');
-    if (!p) { box.innerHTML = ''; if (burst) burst.hidden = true; return; }
-    const cap = excerpt(p.content, 90);
-    const tags = postTags(p);
-    box.innerHTML = '<span class="nb-label">Now showing · ' + (ui.featured.i + 1) + ' of ' + list.length + '</span>'
-        + '<h3 class="nb-feat-title">' + (cap ? esc(cap) : 'Untitled piece') + '</h3>'
-        + '<dl class="nb-table"><div><dt>Posted</dt><dd>' + esc(formatDate(p)) + '</dd></div>'
-        + '<div><dt>Tags</dt><dd>' + (tags.length ? tags.slice(0, 3).map(t => '#' + esc(t)).join(' ') : 'None') + '</dd></div></dl>'
-        + '<a class="nb-btn is-ink" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '">View post <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>';
-    if (burst) burst.hidden = p.id !== newestPostId();
-}
-
-// Places the carousel can rest: one per card, fewer when wide screens show several cards side by side
-function featuredStops() {
-    const track = byId('featured-track'); if (!track) return 0;
-    const per = parseInt(getComputedStyle(track).getPropertyValue('--per'), 10) || 1;
-    return Math.max($$('.feat', track).length - per + 1, 1);
-}
-function renderFeaturedDots() {
-    const stops = ui.featured.stops = featuredStops();
-    ui.featured.i = Math.min(ui.featured.i, stops - 1);
-    byId('featured-dots').innerHTML = stops > 1 ? Array.from({ length: stops }, (_, i) => '<button data-action="featured-go" data-index="' + i + '" aria-label="Show featured post ' + (i + 1) + '"' + (i === ui.featured.i ? ' aria-current="true"' : '') + '>' + (i + 1) + '</button>').join('') : '';
-    $$('#featured .carousel-ctrl').forEach(c => { c.hidden = stops < 2; });
+function showFeatured() {
+    const list = ui.featured.list, n = list.length, p = list[ui.featured.i];
+    if (!p) return;
+    const img = esc(firstImage(p)), title = postTitle(p), tag = stampTag(p);
+    const open = 'href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '"';
+    const num = String(ui.featured.i + 1).padStart(2, '0') + ' / ' + String(n).padStart(2, '0');
+    // Enough copies of the title for each half of the scrolling line to cover the frame, and a pace that stays even for any length
+    const unit = title.length + 3, reps = Math.max(2, Math.ceil(16 / unit));
+    const run = esc(Array(reps).fill(title.toUpperCase() + ' ✦ ').join(''));
+    const line = cls => '<span class="ha-kin ' + cls + '" aria-hidden="true"><span style="--dur:' + (reps * unit * 0.9).toFixed(1) + 's">' + run + run + '</span></span>';
+    const likes = currentConfig.reactionsEnabled ? '<br>' + plural(getInteractions(p.id).likes || 0, 'like') : '';
+    byId('feat-frame').innerHTML = '<img class="ha-frame-bg" src="' + img + '" alt="">'
+        + '<span class="ha-grid" aria-hidden="true"></span>' + line('is-top') + line('is-bottom')
+        + '<a class="ha-art" ' + open + '><img src="' + img + '" alt="' + esc(title) + '"><span class="ha-shine" aria-hidden="true"></span></a>'
+        + '<span class="ha-reticle" aria-hidden="true"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="62"/><path d="M100 0v62M100 138v62M0 100h62M138 100h62"/><path class="thick" d="M100 30v10M100 160v10M30 100h10M160 100h10"/></svg><svg class="ha-spin" viewBox="0 0 200 200"><circle class="dash" cx="100" cy="100" r="80"/></svg><i></i></span>'
+        + '<span class="ha-label" aria-hidden="true"><span class="ha-hud">' + HUD_STAR + 'Featured</span><b>No.' + (postNumbers().get(p.id) || '') + '</b><span class="ha-dashes"><i></i><i></i><i></i></span>'
+        + '<span class="ha-gauge"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/><circle class="on" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="' + Math.round((ui.featured.i + 1) / n * 100) + ' 100"/></svg><span>' + num + '<i></i></span></span></span>'
+        + '<span class="ha-plus" aria-hidden="true"><i>+</i><i></i><i>+</i><i>+</i></span>'
+        + '<div class="ha-panel"><span class="ha-scan" aria-hidden="true"><i></i></span><span class="ha-tagname">' + esc(title) + '</span>'
+        + '<h2 id="feat-title">' + (tag ? esc(tag) + '<br>' : '') + esc(formatDate(p)) + likes + '</h2>'
+        + '<span class="ha-swatches" id="feat-swatches" aria-hidden="true"></span>'
+        + '<a class="ha-btn" ' + open + '>View piece <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div>'
+        + (n > 1 ? '<div class="ha-arrows" role="group" aria-label="Featured pieces"><button type="button" data-action="featured-prev" aria-label="Previous featured piece"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg></button><button type="button" data-action="featured-next" aria-label="Next featured piece"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg></button></div>'
+            + '<span class="ha-timer" aria-hidden="true"><i style="--dur:' + FEATURE_MS + 'ms"></i></span>' : '');
+    byId('feat-cap').innerHTML = '<b>' + esc(title) + '</b><span>' + (tag ? esc(tag) + ' · ' : '') + esc(formatDate(p)) + '</span><a class="ha-btn" ' + open + '>View piece <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>';
+    paletteOf(firstImage(p)).then(cols => {
+        const box = byId('feat-swatches');
+        if (box && ui.featured.list[ui.featured.i] === p) box.innerHTML = cols.map((c, k) => '<i style="background:' + c + ';animation-delay:' + (0.35 + k * 0.07).toFixed(2) + 's"></i>').join('');
+    });
+    scheduleFeatured();
 }
 
 function featuredGo(i) {
-    const track = byId('featured-track'); if (!track) return;
-    const cards = $$('.feat', track); if (!cards.length) return;
-    const stops = featuredStops();
-    ui.featured.i = (i + stops) % stops;
-    track.scrollTo({ left: cards[ui.featured.i].offsetLeft - cards[0].offsetLeft, behavior: reduceMotion() ? 'auto' : 'smooth' });
-    syncFeaturedDots();
-    renderFeatInfo();
+    const n = ui.featured.list.length; if (!n) return;
+    ui.featured.i = (i + n) % n;
+    showFeatured();
 }
-// Swiping the board by hand keeps the numbers and the details card in step
-function syncFeaturedFromScroll() {
-    const track = byId('featured-track'); if (!track) return;
-    const cards = $$('.feat', track); if (cards.length < 2) return;
-    const step = cards[1].offsetLeft - cards[0].offsetLeft || track.clientWidth;
-    const i = clamp(Math.round(track.scrollLeft / step), 0, cards.length - 1);
-    if (i === ui.featured.i) return;
-    ui.featured.i = i;
-    syncFeaturedDots();
-    renderFeatInfo();
-}
-function syncFeaturedDots() { $$('#featured-dots button').forEach((d, n) => d.setAttribute('aria-current', String(n === ui.featured.i))); }
-function startFeatured() {
+// Waits while the tab is hidden, a pop-up is open, the frame is off screen or someone is using its buttons
+function scheduleFeatured(wait = FEATURE_MS) {
     stopFeatured();
-    if (reduceMotion() || ui.view !== 'home') return;
-    if (featuredStops() < 2) return;
-    ui.featured.timer = setInterval(() => {
-        const sec = byId('featured');
-        if (document.hidden || Modals.stack.length || !sec || sec.matches(':hover') || sec.contains(document.activeElement)) return;
-        const r = sec.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return;
-        featuredGo(ui.featured.i + 1);
-    }, 6000);
+    if (reduceMotion() || ui.view !== 'home' || ui.featured.list.length < 2) return;
+    ui.featured.timer = setTimeout(() => {
+        const sec = byId('featured'), r = sec.getBoundingClientRect();
+        if (document.hidden || Modals.stack.length || r.bottom < 0 || r.top > innerHeight || sec.contains(document.activeElement)) scheduleFeatured(1000);
+        else featuredGo(ui.featured.i + 1);
+    }, wait);
 }
-function stopFeatured() { if (ui.featured.timer) clearInterval(ui.featured.timer); ui.featured.timer = null; }
+function stopFeatured() { clearTimeout(ui.featured.timer); ui.featured.timer = null; }
+
+// The five most common colors in a picture, for the swatches under the featured details
+const paletteJobs = new Map();
+function paletteOf(url) {
+    if (!paletteJobs.has(url)) paletteJobs.set(url, new Promise(resolve => {
+        const im = new Image();
+        im.crossOrigin = 'anonymous';
+        im.onerror = () => resolve([]);
+        im.onload = () => {
+            try {
+                const cv = document.createElement('canvas'); cv.width = cv.height = 32;
+                const cx = cv.getContext('2d'); cx.drawImage(im, 0, 0, 32, 32);
+                const d = cx.getImageData(0, 0, 32, 32).data, counts = new Map();
+                for (let k = 0; k < d.length; k += 4) {
+                    if (d[k + 3] < 128) continue;
+                    const key = (d[k] >> 5) << 6 | (d[k + 1] >> 5) << 3 | d[k + 2] >> 5;
+                    counts.set(key, (counts.get(key) || 0) + 1);
+                }
+                const hex = v => (v * 32 + 16).toString(16).padStart(2, '0');
+                resolve(Array.from(counts.entries()).sort((x, y) => y[1] - x[1]).slice(0, 5).map(([key]) => '#' + hex(key >> 6) + hex(key >> 3 & 7) + hex(key & 7)));
+            } catch (e) { resolve([]); }
+        };
+        im.src = url;
+    }));
+    return paletteJobs.get(url);
+}
 
 function renderTagChips() {
     const box = byId('feed-tags'); if (!box) return;
@@ -1476,24 +1479,22 @@ function renderTagChips() {
     if (ui.feed.tag !== 'all' && !counts.has(ui.feed.tag)) ui.feed.tag = 'all';
     box.hidden = !tags.length;
     box.innerHTML = '<button class="chip" data-action="filter-tag" data-tag="all" aria-pressed="' + (ui.feed.tag === 'all') + '">All <span class="n">' + postsCache.length + '</span></button>'
-        + tags.map(([k, v], i) => '<button class="chip" style="--cc:' + NB_CHIP_COLORS[i % NB_CHIP_COLORS.length] + '" data-action="filter-tag" data-tag="' + esc(k) + '" aria-pressed="' + (ui.feed.tag === k) + '">' + esc(v.name) + ' <span class="n">' + v.n + '</span></button>').join('');
+        + tags.map(([k, v]) => '<button class="chip" data-action="filter-tag" data-tag="' + esc(k) + '" aria-pressed="' + (ui.feed.tag === k) + '">' + esc(v.name) + ' <span class="n">' + v.n + '</span></button>').join('');
 }
 
-// Post numbers for the stamps: the oldest post is No.1
+// Post numbers: the oldest post is No.1
 function postNumbers() { return new Map(postsCache.slice().sort((a, b) => a.id - b.id).map((p, i) => [p.id, i + 1])); }
 function stampTag(post) { const t = postTags(post); return t.find(x => x.toLowerCase() !== 'nsfw') || t[0] || ''; }
-function stampCapHTML(post, no) {
-    const tag = stampTag(post);
-    return '<span class="stamp-cap"><b>No.' + no + '</b>' + (tag ? '<span class="stamp-tag">' + esc(tag) + '</span>' : '') + '</span>';
-}
 
-function tileHTML(post, no) {
+// low: the tile sits a little lower, so every other column steps down
+function tileHTML(post, no, low) {
     const media = mediaList(post);
     const first = media[0] || '';
     const type = first ? getMediaType(first) : 'none';
     const date = formatDate(post);
     const veiled = isVeiled(post);
     const cap = excerpt(post.content, 140);
+    const tag = stampTag(post);
     let visual = '';
     if (type === 'image') visual = '<img src="' + esc(first) + '" alt="' + esc(cap || 'Artwork from ' + date) + '" loading="lazy" decoding="async" class="is-loading">';
     else if (type === 'video') visual = '<video src="' + esc(first) + '" muted loop playsinline preload="metadata" data-hoverplay></video>';
@@ -1507,10 +1508,11 @@ function tileHTML(post, no) {
 
     const veil = veiled ? '<button class="veil" data-action="reveal" data-id="' + post.id + '"><i class="fa-regular fa-eye-slash" aria-hidden="true"></i>Sensitive<small>Tap to show</small></button>' : '';
     const del = isAdminLoggedIn ? '<button class="tile-del" data-action="delete-post" data-id="' + post.id + '" aria-label="Delete post"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>' : '';
-    return '<article class="tile' + (veiled ? ' is-veiled' : '') + '" data-id="' + post.id + '">'
-        + '<div class="tile-frame stamp"><div class="stamp-pic"><a class="tile-media' + (type === 'none' ? ' is-text' : '') + '" href="#/post/' + post.id + '" data-action="open-post" data-id="' + post.id + '"' + (type === 'none' ? '' : ' aria-label="Open post from ' + esc(date) + '"') + '>' + visual + '<span class="tile-badges">' + badges + '</span></a>' + veil + '</div>' + stampCapHTML(post, no) + '</div>'
+    return '<article class="tile' + (veiled ? ' is-veiled' : '') + (low ? ' is-low' : '') + '" data-id="' + post.id + '">'
+        + '<div class="tile-frame"><a class="tile-media' + (type === 'none' ? ' is-text' : '') + '" href="#/post/' + post.id + '" data-action="open-post" data-id="' + post.id + '"' + (type === 'none' ? '' : ' aria-label="Open post from ' + esc(date) + '"') + '>' + visual + '<span class="tile-badges">' + badges + '</span></a>' + veil + '</div>'
+        + '<div class="tile-line"><span>No.' + no + (tag ? ' · ' + esc(tag) : '') + '</span><time>' + esc(date) + '</time></div>'
         + (type !== 'none' && cap ? '<p class="tile-cap">' + esc(cap) + '</p>' : '')
-        + '<div class="tile-meta"><time>' + esc(date) + '</time><span class="reacts">' + reactsHTML(post) + '</span>' + del + '</div>'
+        + '<div class="tile-meta"><span class="reacts">' + reactsHTML(post) + '</span>' + del + '</div>'
         + '</article>';
 }
 
@@ -1525,7 +1527,7 @@ function renderFeed(keep = 0) {
     const filtering = ui.feed.tag !== 'all' || ui.feed.q.trim();
     if (count) {
         const n = filtering ? all.length : postsCache.length;
-        count.innerHTML = '<b>' + n + '</b>' + (filtering ? (n === 1 ? 'match' : 'matches') : (n === 1 ? 'post' : 'posts'));
+        count.textContent = n + ' ' + (filtering ? (n === 1 ? 'match' : 'matches') : (n === 1 ? 'post' : 'posts'));
     }
     if (!postsCache.length) {
         grid.innerHTML = '<div class="empty"><h3>Nothing posted yet</h3><p>New work will show up here.</p>' + (isAdminLoggedIn ? '<a class="btn btn-primary" href="#/admin">Make your first post</a>' : '') + '</div>';
@@ -1533,8 +1535,9 @@ function renderFeed(keep = 0) {
         grid.innerHTML = '<div class="empty"><h3>No posts match that</h3><p>Try a different word or tag.</p><button class="btn" data-action="clear-filters">Show all posts</button></div>';
     } else {
         const nos = postNumbers(), have = keep ? $$('.tile', grid) : [];
-        if (keep && have.length === keep && have.every((t, i) => shown[i] && Number(t.dataset.id) === shown[i].id)) grid.insertAdjacentHTML('beforeend', shown.slice(keep).map(p => tileHTML(p, nos.get(p.id))).join(''));
-        else grid.innerHTML = shown.map(p => tileHTML(p, nos.get(p.id))).join('');
+        const tile = (p, i) => tileHTML(p, nos.get(p.id), cols > 2 && i % cols % 2 === 1);
+        if (keep && have.length === keep && have.every((t, i) => shown[i] && Number(t.dataset.id) === shown[i].id)) grid.insertAdjacentHTML('beforeend', shown.slice(keep).map((p, i) => tile(p, keep + i)).join(''));
+        else grid.innerHTML = shown.map(tile).join('');
     }
     const more = byId('feed-more');
     if (more) {
@@ -1550,55 +1553,108 @@ function feedColumns() {
     return getComputedStyle(grid).gridTemplateColumns.split(' ').length;
 }
 
-function renderHome() { renderHero(); renderFeatured(); renderTagChips(); renderFeed(); renderRecComic(); renderAbout(); }
+function renderHome() { renderHero(); renderFeatured(); renderTagChips(); renderFeed(); renderComicBar(); renderSliders(); renderAbout(); }
 
-// The comic picked in Admin (Site info), or the newest one; 'off' hides the ticket
+// The comic picked in Admin (Site info), or the newest one; 'off' hides it
 function recommendedComic() {
     const pick = currentConfig.recommendedComic;
     if (pick === 'off') return null;
     const list = comicsCache.filter(c => (c.pages || []).length).sort((a, b) => b.id - a.id);
     return list.find(c => String(c.id) === String(pick)) || list[0] || null;
 }
-const NB_SPARK = '<svg class="nb-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1C13 8 16 11 23 12C16 13 13 16 12 23C11 16 8 13 1 12C8 11 11 8 12 1Z" style="fill:var(--hl)" stroke="#0B0F1A" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-function renderRecComic() {
-    const sec = byId('rec-comic'), box = byId('rec-ticket'); if (!sec || !box) return;
+// The comic half of the bar under Recent works: where you left off, or where to start
+function renderComicBar() {
+    const box = byId('rec-comic'); if (!box) return;
     const c = recommendedComic();
-    sec.hidden = !c;
+    box.hidden = !c;
     if (!c) { box.innerHTML = ''; return; }
-    const pages = c.pages, n = pages.length;
-    const title = c.title || 'Untitled';
+    const n = c.pages.length, title = c.title || 'Untitled', cover = comicCover(c);
     const p = comicProgress()[c.id];
     const midway = p != null && p > 0 && p < n - 1;
-    const cover = comicCover(c);
-    const thumbs = (n > 1 ? pages.slice(1, 4) : pages.slice(0, 1)).map(safeUrl).filter(Boolean);
-    const run = (words, times) => Array(times).fill(words).join(' ✦ ');
-    box.innerHTML = '<span class="nb-oval" aria-hidden="true">Read this!</span>'
-        + '<div class="nb-stub">'
-        + '<span class="nb-stub-side" aria-hidden="true"><span>' + esc(run('Recommended read ✦ ' + siteName() + ' comics', 4)) + '</span></span>'
-        + '<div class="nb-stub-main"><span class="nb-stub-top" aria-hidden="true">' + esc(run(siteName() + ' comics ✦ Recommended read', 3)) + '</span>'
-        + '<a class="nb-stub-cover" href="#/comics/' + c.id + '" aria-label="See every page of ' + esc(title) + '">'
-        + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="nb-stub-empty" aria-hidden="true">' + esc(title.charAt(0).toUpperCase()) + '</span>')
-        + NB_SPARK + '</a></div></div>'
-        + '<div class="nb-tk-body"><span class="nb-notch top" aria-hidden="true"><i></i></span><span class="nb-notch bottom" aria-hidden="true"><i></i></span>'
-        + '<div class="nb-tk-main">'
-        + '<div class="nb-tk-top"><h2 class="nb-tk-kicker" id="rec-title">Recommended comic</h2><i class="fa-solid fa-crosshairs" aria-hidden="true"></i></div>'
-        + '<h3 class="nb-tk-title">' + esc(title) + '</h3>'
-        + '<div class="nb-tk-chips"><span>' + esc(siteName()) + '</span>' + (c.tags || []).slice(0, 3).map(t => '<span>' + esc(t) + '</span>').join('') + '</div>'
-        + '<div class="nb-tk-mid"><dl class="nb-tk-info"><dt>Pages</dt><dd>' + plural(n, 'page') + '</dd><dt>Posted</dt><dd>' + esc(formatDate(c)) + '</dd>'
-        + '<dt>Start</dt><dd>' + (midway ? 'Page ' + (p + 1) + ', where you left off' : 'Page 1') + '</dd></dl>'
-        + (thumbs.length ? '<div class="nb-tk-pages" aria-hidden="true">' + thumbs.map(u => '<img src="' + esc(u) + '" alt="" loading="lazy" decoding="async">').join('') + '</div>' : '')
-        + '</div>'
-        + '<div class="nb-tk-actions"><a class="nb-btn is-ink" href="#/comics/' + c.id + '/' + (midway ? p + 1 : 1) + '">' + (midway ? 'Keep reading' : 'Start reading') + ' <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>'
-        + '<a class="nb-btn" href="#/comics">All comics</a></div>'
-        + '</div>'
-        + '<div class="nb-tk-foot" aria-hidden="true">' + esc(run(siteName() + ' ✦ Recommended comic ✦ ' + (midway ? 'Pick up on page ' + (p + 1) : 'Start from page 1'), 3)) + '</div>'
-        + '</div>';
+    const pct = midway ? Math.round((p + 1) / n * 100) : 0;
+    box.href = '#/comics/' + c.id + '/' + (midway ? p + 1 : 1);
+    box.innerHTML = (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="ha-next-empty" aria-hidden="true">' + esc(title.charAt(0).toUpperCase()) + '</span>')
+        + '<span class="ha-next-text"><span class="ha-kicker">' + (midway ? 'Keep reading' : 'Next stop') + ' · Comics</span><strong>' + esc(title) + '</strong><span>' + (midway ? 'Page ' + (p + 1) + ' of ' + n : plural(n, 'page')) + '</span></span>'
+        + '<span class="ha-lines" aria-hidden="true" style="--pct:' + pct + '%"><i></i><i></i><i></i></span>'
+        + '<span class="ha-btn">' + (midway ? 'Keep reading' : 'Start reading') + ' <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>';
 }
 
-// After a resize, or on coming back to Home, refit the carousel and feed to the new width
+/* Home A: the side sliders. Tall columns beside Recent works (a sideways band on phones) that show one picture
+   at a time and keep moving on their own: the pictures are stacked, and each step slides the next one in */
+const SLIDER_DEFAULTS = { where: 'both', show: 'random', picks: [], own: [], secs: 3, dir: 'up' };
+function sliderSettings(s) { return Object.assign({}, SLIDER_DEFAULTS, s || currentConfig.homeSliders || {}); }
+// One shuffle per side per visit, so the sides differ and a re-render keeps the same order
+const sliderOrder = {};
+function sliderSlides(s, side) {
+    const art = postsCache.filter(p => firstImage(p) && !(currentConfig.blurNsfw && isNsfw(p))).sort((a, b) => b.id - a.id);
+    const nos = postNumbers();
+    const postSlide = p => ({ img: firstImage(p), href: '#/post/' + p.id, post: p.id, kicker: 'No.' + nos.get(p.id) + (stampTag(p) ? ' · ' + stampTag(p) : ''), title: postTitle(p), cta: 'View' });
+    const comics = comicsCache.filter(c => comicCover(c)).sort((a, b) => b.id - a.id)
+        .map(c => ({ img: comicCover(c), href: '#/comics/' + c.id, kicker: 'Comic · ' + plural((c.pages || []).length, 'page'), title: c.title || 'Untitled', cta: 'Read' }));
+    if (!sliderOrder[side] || sliderOrder[side].length !== art.length) {
+        const order = art.map((p, i) => i);
+        for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+        sliderOrder[side] = order;
+    }
+    const mixed = sliderOrder[side].map(i => art[i]).slice(0, 10);
+    const rotate = list => side === 'R' ? list.slice(Math.floor(list.length / 2)).concat(list.slice(0, Math.floor(list.length / 2))) : list;
+    switch (s.show) {
+        case 'newest': return rotate(art.slice(0, 10).map(postSlide));
+        case 'pick': return rotate(s.picks.map(id => art.find(p => String(p.id) === String(id))).filter(Boolean).map(postSlide));
+        case 'comics': return rotate(comics);
+        case 'own': return rotate(s.own.filter(o => safeUrl(o.img)).map(o => ({ img: safeUrl(o.img), href: safeUrl(o.link), external: true, kicker: '', title: '', cta: o.link ? 'Open' : '' })));
+        case 'mix': {
+            const a = mixed.map(postSlide), list = [];
+            const ad = a[2] ? Object.assign({}, a[2], { href: '#/commissions', post: null, promo: true, kicker: 'Commissions', title: (currentConfig.commissionStatus || '').trim() || 'Commissions', cta: 'See tiers' }) : null;
+            [a[0], comics[0], a[1], ad, a[3], comics[1], a[4]].forEach(x => { if (x) list.push(x); });
+            return list;
+        }
+        default: return mixed.map(postSlide);
+    }
+}
+function slideHTML(sl, on) {
+    const attrs = sl.href ? 'href="' + esc(sl.href) + '"' + (sl.post ? ' data-action="open-post" data-id="' + sl.post + '"' : '') + (sl.external ? ' target="_blank" rel="noopener"' : '') : '';
+    const text = sl.title || sl.kicker ? '<span class="ha-slide-text">' + (sl.kicker ? '<span class="ha-kicker">' + esc(sl.kicker) + '</span>' : '') + (sl.title ? '<b>' + esc(sl.title) + '</b>' : '') + (sl.cta ? '<span class="ha-cta">' + sl.cta + ' <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>' : '') + '</span>' : '';
+    return '<' + (sl.href ? 'a' : 'span') + ' class="ha-slide' + (on ? ' is-on' : '') + (sl.promo ? ' is-promo' : '') + '" ' + attrs + '><img class="ha-slide-bg" src="' + esc(sl.img) + '" alt="" loading="lazy" decoding="async">'
+        + '<span class="ha-slide-body"><img class="ha-slide-art" src="' + esc(sl.img) + '" alt="' + esc(sl.title || '') + '" loading="lazy" decoding="async">' + text + '</span></' + (sl.href ? 'a' : 'span') + '>';
+}
+function fillRail(rail, slides, s) {
+    if (!rail) return;
+    rail.hidden = !slides.length;
+    if (!slides.length) { rail.innerHTML = ''; return; }
+    rail.innerHTML = '<div class="ha-win"><div class="ha-track" data-secs="' + s.secs + '" data-dir="' + s.dir + '">' + slides.map((sl, i) => slideHTML(sl, !i)).join('') + '</div></div>';
+    rail.firstChild.firstChild.at = Date.now();
+}
+function renderSliders() {
+    const s = sliderSettings(), mid = byId('ha-mid'); if (!mid) return;
+    mid.dataset.rails = s.where;
+    const off = s.where === 'off';
+    const left = off ? [] : sliderSlides(s, 'L'), right = off ? [] : sliderSlides(s, 'R');
+    fillRail(byId('rail-l'), left, s);
+    fillRail(byId('rail-r'), right, s);
+    fillRail(byId('rail-band'), right, s);
+}
+// One clock moves every slider on screen; a slider in a hidden view or box has no layout and is skipped
+function stepSliders() {
+    if (document.hidden || reduceMotion()) return;
+    const now = Date.now();
+    $$('.ha-track').forEach(t => {
+        const list = t.children;
+        if (list.length < 2 || !t.offsetParent || now - (t.at || 0) < Number(t.dataset.secs) * 1000) return;
+        t.at = now;
+        const cur = $('.is-on', t) || list[0], next = cur.nextElementSibling || list[0];
+        // The next picture jumps to the side it comes in from, then both slide at once
+        next.classList.add('is-next');
+        void next.offsetWidth;
+        next.classList.remove('is-next');
+        next.classList.add('is-on');
+        cur.classList.remove('is-on');
+    });
+}
+
+// After a resize, or on coming back to Home, refit the feed to the new width
 function fitHome() {
     if (ui.view !== 'home') return;
-    if (!byId('featured').hidden && featuredStops() !== ui.featured.stops) { renderFeaturedDots(); featuredGo(ui.featured.i); startFeatured(); }
     if (postsCache.length && feedColumns() !== ui.feed.cols) renderFeed();
 }
 
@@ -1760,7 +1816,7 @@ function comicSlot(id) {
     return Math.max(i, 0);
 }
 function renderComics() {
-    renderRecComic(); renderAbout();
+    renderComicBar(); renderAbout();
     const grid = byId('comics-grid'); if (!grid) return;
     const list = comicsCache.slice().sort((a, b) => b.id - a.id);
     const progress = comicProgress();
@@ -3388,7 +3444,6 @@ const actions = {
     'feed-more': () => { const keep = $$('#feed-grid .tile').length; ui.feed.limit += FEED_STEP; renderFeed(keep); },
     'featured-prev': () => featuredGo(ui.featured.i - 1),
     'featured-next': () => featuredGo(ui.featured.i + 1),
-    'featured-go': el => featuredGo(Number(el.dataset.index)),
 
     'open-board': el => { ui.gallery.board = el.dataset.key; renderGallery(); window.scrollTo(0, 0); },
     'close-board': () => { ui.gallery.board = null; renderGallery(); },
@@ -3466,6 +3521,9 @@ const actions = {
     'ring-preset': el => Studio.ringPreset(Number(el.dataset.index)),
     'banner-mode': el => { bannerDraftMode = el.dataset.mode; syncBannerForm(); },
     'banner-save': () => saveBannerSettings(),
+    'sl-pick': el => toggleSliderPick(el),
+    'sl-own-add': () => { addSliderOwnRow('', ''); syncSliderForm(); },
+    'sl-own-remove': el => { el.closest('.sl-own-row').remove(); syncSliderForm(); },
     'pick-image': el => openPicker(el.dataset.target),
     'pick-this': el => {
         const t = byId(pickerTarget); if (t) { t.value = el.dataset.url; t.dispatchEvent(new Event('input', { bubbles: true })); }
@@ -3557,16 +3615,15 @@ function bindEvents() {
     byId('feed-sort').addEventListener('change', e => { ui.feed.sort = e.target.value; ui.feed.limit = FEED_STEP; renderFeed(); });
     byId('mp-search').addEventListener('input', debounce(() => renderManagePosts(), 150));
 
-    // Featured carousel follows manual swipes
-    const ft = byId('featured-track');
-    ft.addEventListener('scroll', debounce(syncFeaturedFromScroll, 80), { passive: true });
+    // One clock for every side slider on screen
+    setInterval(stepSliders, 250);
 
     // Images fade in once loaded
     document.addEventListener('load', e => { if (e.target.tagName === 'IMG') e.target.classList.remove('is-loading'); }, true);
     document.addEventListener('error', e => {
         if (e.target.tagName !== 'IMG') return;
         e.target.classList.remove('is-loading');
-        if (e.target.closest('.tile-media, .feat-media, .hero-panel, .zg-pola-img, .zg-sticker, .zc-cover, .cm-art, .page-thumb, .m-thumb, .stamp-pic, .nb-stub-cover, .nb-tk-pages')) e.target.classList.add('is-broken');
+        if (e.target.closest('.tile-media, .ha-frame, .ha-slide, .ha-next, .hero-panel, .zg-pola-img, .zg-sticker, .zc-cover, .cm-art, .page-thumb, .m-thumb')) e.target.classList.add('is-broken');
     }, true);
 
     // Hover to play video previews
@@ -3583,6 +3640,7 @@ function bindEvents() {
         else if (t.id === 'c-dislike-ink') Studio.setShared('dislikeBtn', t.value);
         else if (/^ring-/.test(t.id)) Studio.readRing();
         else if (t.id === 'bn-speed') byId('bn-speed-out').textContent = t.value + 's per loop';
+        else if (/^sl-/.test(t.id) || t.closest('.sl-own')) syncSliderForm();
         else if (/^bn-img-\d$/.test(t.id)) { const prev = t.parentElement.querySelector('.prev'); if (prev) prev.style.backgroundImage = 'url("' + safeUrl(t.value).replace(/"/g, '%22') + '")'; }
         else if (t.id === 's-status-color') document.documentElement.style.setProperty('--status', t.value);
         else if (t.id === 'cm-f-tape') syncTapeSample();
