@@ -8,8 +8,14 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.16 · 2026-10-25
+**Smoother hovering and a lighter home page**
+- Pointing at Gallery boards, Comics and the pictures inside a board no longer makes the page stutter. The cards and pictures still lift, tilt and cast a shadow the same way, but the computer now moves them in one piece instead of redrawing them for every frame. In tests that cut the drawing work by about 8 times on Gallery boards and by over 100 times inside a board.
+- The moving grid lines and the scanning light in the home page's featured frame work the same way now. The home page uses about a tenth of the drawing work it did while you're just looking at it.
+- Nothing looks different.
+
 ## 7.0.15 · 2026-10-25
-**Make a site by uploading one file**
+**Make a site by uploading one file** · [#17](https://github.com/Neerg18/lbm/pull/17) · [code](https://github.com/Neerg18/lbm/tree/ba08794)
 - Anyone making their own NEERG site can now upload just one file, `one-file/index.html`, instead of 8 files and a folder. The rest of the code loads from this GitHub through jsDelivr, a free service that serves code to websites. Their posts, comics, pictures and settings still live on their own site.
 - To update a one-file site, upload the newest `one-file/index.html` over the old one. Until then it stays on the version it has.
 - Sites that upload every file, like this one, work exactly as before.

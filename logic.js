@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.15 · logic.js                                         ║
+ ║  NEERG 7.0.16 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.15';
+const NEERG_VERSION = '7.0.16';
 // Where the code files live: beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // admin.js, about.js and about.css load from the same place as this file.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
