@@ -7,8 +7,17 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.14 · 2026-10-25
+**New home page**
+- **Featured frame:** the top of the home page is now a dark animated screen that shows one featured piece at a time. The title scrolls along the edges, the picture floats, and a crosshair spins over it. It moves to the next piece every 7 seconds, with a timer bar and up/down arrows to flip through by hand.
+- **Side sliders:** tall picture strips run beside Recent works, from the top of the list down to the comics bar. They show one picture at a time and then slide to the next. Laptops show only the right strip. Phones show one sideways strip under the comics bar.
+- **Customize the sliders in Admin:** under Home page → Side sliders you choose where they show (both sides, left, right or off), what they show (random art, newest art, pieces you pick, comics, your own pictures with links, or a mix of art, comics and a Commissions ad), how many seconds each picture stays, and which way they slide. A live preview shows the result.
+- **Comics bar:** the comic you're reading (or the newest one) and the Commissions link now sit together in one bar under Recent works.
+- Recent works cards show their number, tag and date, and the old paper-style home pieces were removed.
+- Your header banner, profile picture and nav bar stay as they were.
+
 ## 7.0.13 · 2026-10-24
-**Long titles shrink to fit**
+**Long titles shrink to fit** · [#15](https://github.com/Neerg18/lbm/pull/15) · [code](https://github.com/Neerg18/lbm/tree/043592c)
 - Long board and comic names like "Animation" or "Commissions" get smaller until each word fits on one line, instead of breaking in the middle ("Animati / on"). Short names keep their full size. This works on every screen size, and again when the window is resized.
 
 ## 7.0.12 · 2026-10-24
