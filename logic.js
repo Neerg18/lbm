@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.14 · logic.js                                         ║
+ ║  NEERG 7.0.15 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,10 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.14';
+const NEERG_VERSION = '7.0.15';
+// Where the code files live: beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
+// admin.js, about.js and about.css load from the same place as this file.
+const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
 const FIXED_BRIDGE_URL = 'https://applchu.link/lbm/0.4/bridge.html?v=' + Date.now();
 const BRIDGE_ORIGIN = new URL(FIXED_BRIDGE_URL).origin;
 const IS_LOCAL_FILE = location.protocol === 'file:';
@@ -1150,13 +1153,13 @@ function loadAbout() {
     if (aboutLoading) return aboutLoading;
     const css = new Promise(resolve => {
         const l = document.createElement('link');
-        l.rel = 'stylesheet'; l.href = 'about.css?v=' + NEERG_VERSION;
+        l.rel = 'stylesheet'; l.href = CODE_BASE + 'about.css?v=' + NEERG_VERSION;
         l.onload = l.onerror = resolve;
         document.head.appendChild(l);
     });
     const js = new Promise(resolve => {
         const s = document.createElement('script');
-        s.src = 'about.js?v=' + NEERG_VERSION;
+        s.src = CODE_BASE + 'about.js?v=' + NEERG_VERSION;
         s.onload = resolve;
         s.onerror = () => { aboutLoading = null; resolve(); };
         document.head.appendChild(s);
@@ -2735,7 +2738,7 @@ function loadAdmin() {
     if (adminLoading) return adminLoading;
     adminLoading = new Promise(resolve => {
         const s = document.createElement('script');
-        s.src = 'admin.js?v=' + NEERG_VERSION;
+        s.src = CODE_BASE + 'admin.js?v=' + NEERG_VERSION;
         s.onload = () => resolve(!!window.NEERG_ADMIN);
         s.onerror = () => { adminLoading = null; resolve(false); };
         document.head.appendChild(s);

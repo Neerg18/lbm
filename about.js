@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.14 · about.js
+ NEERG 7.0.15 · about.js
  The About page, drawn as one of three covers picked in Admin › Site info › About page:
    broadcast  a VHS screen and TV listings
    mixtape    a cassette label, tape shelf and label sheet
@@ -7,13 +7,13 @@
  logic.js loads this file and about.css the first time About opens, then calls
  NeergAbout.show(root, data) each time About is shown and NeergAbout.hide() when it isn't.
 
- Picture effects use VFX-JS by AMAGI (github.com/fand/vfx-js, MIT), self-hosted as vfx.min.js and
+ Picture effects use VFX-JS by AMAGI (github.com/fand/vfx-js, MIT), kept beside this file as vfx.min.js and
  loaded only when the visitor allows motion. Without WebGL the pictures simply show as they are.
 */
 (function () {
 'use strict';
 
-const VFX_SRC = 'vfx.min.js?v=1';
+const VFX_SRC = new URL('vfx.min.js?v=1', document.currentScript.src).href;
 const FONTS = {
     broadcast: 'family=Archivo+Black&family=Archivo:wght@400;600;800&family=VT323&family=Zen+Kaku+Gothic+New:wght@500;700;900',
     mixtape: 'family=Archivo:wdth,wght@62..125,400..900&family=Unbounded:wght@600;900&family=Yomogi&family=Space+Mono:wght@400;700',
