@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>NEERG</title>
+    <meta name="description" content="Digital art archive">
+    <meta name="theme-color" content="#000F08">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
+
+    <!--
+    NEERG 7.0.15 · index.html
+    A self-hosted art blog for Neocities, built on LBM by applesaucy.
+
+    Upload index.html, style.css, logic.js, admin.js, marked.min.js, about.js,
+    about.css, vfx.min.js and the fonts folder to your Neocities root.
+    Your content lives in system.js, posts.js, comics.js and interactions.js,
+    which the site writes for you. Everything else is managed from the
+    Admin page (the gear icon). No code editing needed.
+    -->
+
+    <script>
+        /* Paint saved colors before anything else, so returning visitors never see a flash of the wrong theme. */
+        (function () {
+            try {
+                var root = document.documentElement;
+                var mode = localStorage.getItem('neerg_theme') === 'light' ? 'light' : 'dark';
+                root.setAttribute('data-theme', mode);
+                var cache = JSON.parse(localStorage.getItem('neerg_palette_cache') || 'null');
+                if (cache && cache[mode]) { for (var k in cache[mode]) root.style.setProperty(k, cache[mode][k]); }
+                var ok = parseInt(localStorage.getItem('neerg_age_ok') || '0', 10);
+                if (ok && Date.now() - ok < 30 * 86400000) root.classList.add('gate-passed');
+            } catch (e) {}
+        })();
+    </script>
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
+    <!-- One-file NEERG 7.0.15: the code loads from github.com/Neerg18/lbm through jsDelivr. To update, upload the newest one-file/index.html over this file. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Neerg18/lbm@7de76838d79d36b4b0886abdaca6b38c57fd65ea/style.css">
+
+    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@7de76838d79d36b4b0886abdaca6b38c57fd65ea/marked.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@7de76838d79d36b4b0886abdaca6b38c57fd65ea/logic.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- ═══════════ LOADING + AGE CHECK ═══════════ -->
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-question">
+    <div class="gate-loader" id="gate-loader">
+        <div class="gate-loader-row">
+            <span id="gate-label">LOADING...</span>
+            <span id="gate-pct">0%</span>
+        </div>
+        <div class="gate-bar"><div class="gate-bar-fill" id="gate-bar"></div></div>
+    </div>
+    <div class="gate-window" id="gate-window" hidden>
+        <div class="gate-titlebar"><span>verify.exe</span><span aria-hidden="true">✕</span></div>
+        <div class="gate-body" id="gate-body">
+            <p class="gate-warn">⚠ CONTENT WARNING</p>
+            <p class="gate-question" id="gate-question">Are you <strong>18 years or older?</strong></p>
+            <div class="gate-actions">
+                <button class="gate-btn gate-yes" data-action="gate-yes">YES</button>
+                <button class="gate-btn gate-no" data-action="gate-no">NO</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<div class="tip" id="tip" aria-hidden="true" hidden></div>
+
+<!-- ═══════════ TOP BAR ═══════════ -->
+<header class="topbar" id="topbar">
+    <a class="brand" href="#/" aria-label="Home">
+        <img class="brand-pfp" id="brand-pfp" alt="" hidden>
+        <span class="brand-name" id="brand-name">NEERG</span>
+    </a>
+
+    <nav class="mainnav" id="mainnav" aria-label="Main">
+        <span class="mainnav-pill" id="mainnav-pill" aria-hidden="true"></span>
+        <a href="#/" data-view-link="home">Home</a>
+        <a href="#/gallery" data-view-link="gallery">Gallery</a>
+        <a href="#/comics" data-view-link="comics">Comics</a>
+        <a href="#/commissions" data-view-link="commissions">Commissions</a>
+        <a href="#/about" data-view-link="about">About</a>
+    </nav>
+
+    <div class="topbar-actions">
+        <button class="icon-btn" id="theme-btn" data-action="toggle-theme" aria-label="Switch to light mode">
+            <i class="fa-solid fa-sun" aria-hidden="true"></i>
+        </button>
+        <a class="icon-btn" href="#/admin" data-view-link="admin" aria-label="Admin">
+            <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        </a>
+        <button class="icon-btn menu-btn" id="menu-btn" data-action="toggle-menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+            <span class="menu-btn-words" aria-hidden="true"><span class="menu-btn-roll"><span>Menu</span><span>Close</span><span>Menu</span><span>Close</span></span></span>
+            <span class="menu-btn-plus" aria-hidden="true"></span>
+        </button>
+    </div>
+</header>
+
+<!-- Full screen mobile menu: two color layers sweep in, then the panel, then the links one by one -->
+<div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+    <div class="mm-layers" aria-hidden="true"><span></span><span></span></div>
+    <div class="mm-panel">
+        <nav class="mobile-menu-nav" aria-label="Mobile">
+            <ul>
+                <li style="--i:0"><a href="#/" data-view-link="home"><span class="mm-label">Home</span></a></li>
+                <li style="--i:1"><a href="#/gallery" data-view-link="gallery"><span class="mm-label">Gallery</span></a></li>
+                <li style="--i:2"><a href="#/comics" data-view-link="comics"><span class="mm-label">Comics</span></a></li>
+                <li style="--i:3"><a href="#/commissions" data-view-link="commissions"><span class="mm-label">Commissions</span></a></li>
+                <li style="--i:4"><a href="#/about" data-view-link="about"><span class="mm-label">About</span></a></li>
+                <li style="--i:5"><a href="#/admin" data-view-link="admin"><span class="mm-label">Admin</span></a></li>
+            </ul>
+        </nav>
+        <div class="mobile-menu-foot">
+            <button class="text-btn" data-action="toggle-theme"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i> <span class="theme-label">Light mode</span></button>
+            <div class="social-icons" id="menu-social"></div>
+        </div>
+    </div>
+</div>
+
+<main id="main">
+
+    <!-- ═══════════ HOME ═══════════ -->
+    <section class="view" data-view="home" id="view-home">
+
+        <div class="hero" id="hero">
+            <div class="hero-strip" id="hero-strip" aria-label="Latest work">
+                <div class="hero-panel is-empty" style="--i:0"></div>
+                <div class="hero-panel is-empty" style="--i:1"></div>
+                <div class="hero-panel is-empty" style="--i:2"></div>
+                <div class="hero-panel is-empty" style="--i:3"></div>
+            </div>
+            <div class="wrap wide hero-id">
+                <div class="ring ring-hero" id="hero-ring">
+                    <img class="ring-img" id="hero-pfp" alt="" hidden>
+                    <span class="ring-fallback" id="hero-fallback" aria-hidden="true">N</span>
+                </div>
+                <div class="hero-text">
+                    <h1 class="hero-name" id="hero-name">NEERG</h1>
+                    <p class="hero-tagline" id="hero-tagline"></p>
+                </div>
+                <div class="hero-side">
+                    <a class="status-pill" id="hero-status" href="#/commissions" hidden>
+                        <span class="status-dot" aria-hidden="true"></span>
+                        <span id="hero-status-text"></span>
+                    </a>
+                    <div class="social-icons" id="hero-social"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="marquee" id="marquee" hidden aria-hidden="true">
+            <div class="marquee-track" id="marquee-track"></div>
+        </div>
+
+        <!-- Below the header: the featured frame, Recent works between the side sliders, then the comic and commissions bar -->
+        <div class="ha">
+            <section class="ha-feat" id="featured" hidden aria-labelledby="feat-title">
+                <div class="ha-frame" id="feat-frame"></div>
+                <div class="ha-cap" id="feat-cap"></div>
+            </section>
+
+            <div class="ha-mid" id="ha-mid" data-rails="both">
+                <aside class="ha-rail ha-rail-l" id="rail-l" aria-label="More art"></aside>
+
+                <section class="feed" aria-labelledby="feed-title">
+                    <div class="ha-head">
+                        <h2 id="feed-title">Recent works</h2>
+                        <span class="ha-count" id="feed-count"></span>
+                    </div>
+                    <div class="feed-tools" id="feed-tools">
+                        <label class="search">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="feed-search" placeholder="Search posts and tags" aria-label="Search posts and tags" autocomplete="off">
+                        </label>
+                        <label class="select">
+                            <span class="select-label">Sort</span>
+                            <select id="feed-sort">
+                                <option value="newest">Newest</option>
+                                <option value="oldest">Oldest</option>
+                                <option value="popular">Most liked</option>
+                                <option value="discussed">Most discussed</option>
+                                <option value="unpopular">Least liked</option>
+                            </select>
+                        </label>
+                        <div class="chips" id="feed-tags" role="group" aria-label="Filter by tag"></div>
+                    </div>
+                    <div class="tiles" id="feed-grid">
+                        <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                        <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                        <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                        <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                        <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                        <div class="tile is-skeleton"><div class="tile-frame"></div></div>
+                    </div>
+                    <div class="feed-more">
+                        <button class="btn" id="feed-more" data-action="feed-more" hidden>Show more</button>
+                    </div>
+                </section>
+
+                <aside class="ha-rail ha-rail-r" id="rail-r" aria-label="More art"></aside>
+            </div>
+
+            <section class="ha-bar" aria-label="Comics and commissions">
+                <a class="ha-next" id="rec-comic" hidden></a>
+                <a class="ha-comm" id="feat-comm" href="#/commissions">
+                    <span class="ha-kicker">Commissions</span>
+                    <strong class="feat-comm-text"></strong>
+                    <span>See tiers and prices <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                </a>
+            </section>
+
+            <aside class="ha-rail ha-band" id="rail-band" aria-label="More art"></aside>
+        </div>
+    </section>
+
+    <!-- ═══════════ GALLERY ═══════════ -->
+    <section class="view" data-view="gallery" id="view-gallery" hidden>
+        <!-- Zine collage: an ID card up top, then one colored paper card per board ("All media" first) -->
+        <div class="zg">
+            <div class="wrap wide zg-inner">
+                <div class="zg-top">
+                    <section class="zg-id zg-paper" aria-label="About this gallery">
+                        <svg class="zg-flower" viewBox="0 0 100 100" aria-hidden="true"><g fill="#F2B530" stroke="#2B2B2B" stroke-width="3"><circle cx="50" cy="20" r="17"/><circle cx="78" cy="38" r="17"/><circle cx="70" cy="72" r="17"/><circle cx="30" cy="72" r="17"/><circle cx="22" cy="38" r="17"/></g><circle cx="50" cy="50" r="19" fill="#FFE27A" stroke="#2B2B2B" stroke-width="3"/><circle cx="44" cy="47" r="2.6" fill="#2B2B2B"/><circle cx="56" cy="47" r="2.6" fill="#2B2B2B"/><path d="M42 55q8 7 16 0" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round"/></svg>
+                        <div class="zg-pic">
+                            <img id="zg-pfp" alt="" hidden>
+                            <span class="zg-pic-fallback" id="zg-pfp-fallback" aria-hidden="true">N</span>
+                            <span class="zg-pic-tag" id="zg-tag"></span>
+                        </div>
+                        <div class="zg-id-body">
+                            <div class="zg-name-row">
+                                <p class="zg-name" id="zg-name">NEERG</p>
+                                <svg class="zg-smiley" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="#C9A7F5" stroke="#2B2B2B" stroke-width="2.5"/><circle cx="17" cy="20" r="2.5" fill="#2B2B2B"/><circle cx="31" cy="20" r="2.5" fill="#2B2B2B"/><path d="M15 29q9 9 18 0" fill="none" stroke="#2B2B2B" stroke-width="2.5" stroke-linecap="round"/></svg>
+                            </div>
+                            <p class="zg-desc">Every piece lives here, sorted into boards by tag, newest first.</p>
+                            <dl class="zg-stats">
+                                <div><dt>Boards</dt><dd id="zg-boards">0</dd></div>
+                                <div><dt>Pieces</dt><dd id="zg-pieces">0</dd></div>
+                                <div><dt>Media</dt><dd id="zg-media">Images</dd></div>
+                            </dl>
+                        </div>
+                    </section>
+                    <div class="zg-hello"><h1 class="zg-rainbow" id="gallery-title">Gal&shy;lery</h1></div>
+                </div>
+
+                <div class="zg-boards" id="gallery-boards"></div>
+
+                <div id="gallery-board" hidden>
+                    <section class="zg-card zg-paper zg-board-head" id="board-head">
+                        <button class="zg-back" data-action="close-board"><span aria-hidden="true">←</span> All boards</button>
+                        <h2 class="zg-card-title" id="board-title"></h2>
+                        <p class="zg-board-count" id="board-count"></p>
+                    </section>
+                    <div class="zg-polas" id="board-grid"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ COMICS ═══════════ -->
+    <section class="view" data-view="comics" id="view-comics" hidden>
+        <!-- Zine collage, like the Gallery: an intro card, a speech-bubble title, then one paper card per comic -->
+        <div class="zg">
+            <div class="wrap wide zg-inner">
+                <div class="zg-top">
+                    <section class="zg-id zg-paper zc-intro" aria-label="About the comics">
+                        <svg class="zg-flower zc-star" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 4l11 26 28-6-17 23 21 19-28 3 1 28-16-23-16 23 1-28-28-3 21-19-17-23 28 6z" fill="#E8752A" stroke="#2B2B2B" stroke-width="3" stroke-linejoin="round"/><circle cx="43" cy="47" r="3" fill="#2B2B2B"/><circle cx="57" cy="47" r="3" fill="#2B2B2B"/><path d="M42 56q8 7 16 0" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round"/></svg>
+                        <div class="zg-id-body">
+                            <p class="zg-name">Comics</p>
+                            <p class="zg-desc">Every comic, newest first. Open one to see its pages, or jump back in where you left off.</p>
+                            <dl class="zg-stats">
+                                <div><dt>Comics</dt><dd id="comics-count">0</dd></div>
+                                <div><dt>Pages</dt><dd id="zc-pages">0</dd></div>
+                                <div><dt>Reading</dt><dd id="zc-reading">Not started</dd></div>
+                            </dl>
+                            <a class="zc-continue" id="zc-continue" href="#/comics" hidden></a>
+                        </div>
+                    </section>
+                    <div class="zc-pow">
+                        <h1 class="zc-bubble">Comics</h1>
+                    </div>
+                </div>
+                <div class="zg-boards" id="comics-grid"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ COMMISSIONS ═══════════ -->
+    <section class="view" data-view="commissions" id="view-commissions" hidden>
+        <!-- A poster: paper, taped corners, big title, one card per tier. Everything is filled in from Admin, Commissions. -->
+        <div class="cm" id="cm">
+            <div class="cm-corner tl" aria-hidden="true"><div class="cm-band" id="cm-band-tl"></div></div>
+            <div class="cm-corner br" aria-hidden="true"><div class="cm-band" id="cm-band-br"></div></div>
+            <div class="cm-hazard" id="cm-hazard" aria-hidden="true" hidden></div>
+
+            <div class="cm-inner">
+                <h1 class="cm-title" id="cm-title">Commissions</h1>
+                <div class="cm-bar">
+                    <span class="cm-status" id="comm-status" hidden>
+                        <span class="status-dot" aria-hidden="true"></span>
+                        <span id="comm-status-text"></span>
+                    </span>
+                    <a class="cm-request" id="comm-request" href="#" target="_blank" rel="noopener" hidden>Request a commission</a>
+                    <span class="cm-request is-closed" id="comm-closed" hidden>Commissions closed</span>
+                </div>
+                <p class="cm-closed-note" id="cm-closed-note" hidden></p>
+
+                <div class="cm-board" id="cm-board">
+                    <div class="cm-tiers" id="cm-tiers"></div>
+                </div>
+
+                <section class="cm-terms" id="cm-terms" aria-labelledby="cm-terms-title" hidden>
+                    <div class="cm-terms-x" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                    <img class="cm-terms-pic" id="cm-terms-pic" alt="" hidden>
+                    <div class="cm-terms-body">
+                        <h2 class="cm-terms-head" id="cm-terms-title"><span class="cm-chevs" aria-hidden="true"><i></i><i></i></span>Terms</h2>
+                        <div class="cm-terms-text" id="cm-terms-text"></div>
+                    </div>
+                </section>
+
+                <div class="cm-note prose" id="comm-info" hidden></div>
+                <div class="comm-contact" id="comm-contact"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ ABOUT ═══════════ -->
+    <!-- One of three covers, picked in Admin › Site info › About page. about.js draws it here the first time About opens. -->
+    <section class="view" data-view="about" id="view-about" hidden>
+        <div id="about-root"></div>
+    </section>
+
+    <!-- ═══════════ ADMIN ═══════════ -->
+    <section class="view" data-view="admin" id="view-admin" hidden>
+        <div class="wrap">
+
+            <div class="login" id="admin-login">
+                <h1>Admin</h1>
+                <p>Log in to post new work and manage your site.</p>
+                <form id="login-form" autocomplete="on">
+                    <label class="field">
+                        <span>Password</span>
+                        <input type="password" id="admin-pass" autocomplete="current-password" required>
+                    </label>
+                    <button class="btn btn-primary btn-block" type="submit">Log in</button>
+                </form>
+            </div>
+
+            <div class="dash" id="admin-panel" hidden>
+                <div class="dash-head">
+                    <div class="dash-title">
+                        <h1>Dashboard</h1>
+                        <span class="sync-chip" id="sync-chip" data-state="idle">All changes synced</span>
+                    </div>
+                    <div class="dash-actions">
+                        <button class="btn" data-action="force-sync"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Sync everything</button>
+                        <button class="btn" data-action="open-cleanup"><i class="fa-solid fa-broom" aria-hidden="true"></i> Clean up</button>
+                        <button class="btn" data-action="download-backup"><i class="fa-solid fa-download" aria-hidden="true"></i> Back up</button>
+                        <button class="btn btn-ghost" data-action="logout">Log out</button>
+                    </div>
+                </div>
+
+                <div class="notice" id="recovery" hidden></div>
+
+                <div class="dash-tabs" role="tablist" aria-label="Admin sections">
+                    <button role="tab" data-action="admin-tab" data-tab="post" aria-selected="true">New post</button>
+                    <button role="tab" data-action="admin-tab" data-tab="posts" aria-selected="false">Posts</button>
+                    <button role="tab" data-action="admin-tab" data-tab="comics" aria-selected="false">Comics</button>
+                    <button role="tab" data-action="admin-tab" data-tab="comm" aria-selected="false">Commissions</button>
+                    <button role="tab" data-action="admin-tab" data-tab="site" aria-selected="false">Site info</button>
+                    <button role="tab" data-action="admin-tab" data-tab="look" aria-selected="false">Colors &amp; style</button>
+                    <button role="tab" data-action="admin-tab" data-tab="banner" aria-selected="false">Home page</button>
+                    <button role="tab" data-action="admin-tab" data-tab="links" aria-selected="false">Social links</button>
+                </div>
+
+                <!-- New post -->
+                <div class="dash-panel" data-tab-panel="post" role="tabpanel">
+                    <div class="compose">
+                        <div class="compose-main">
+                            <label class="field">
+                                <span>Caption</span>
+                                <textarea id="np-content" rows="7" placeholder="Say something about this piece. Markdown works: **bold**, *italic*, [link](https://...)"></textarea>
+                            </label>
+                            <div class="field">
+                                <span>Tags</span>
+                                <div class="chips chips-toggle" id="np-tags"></div>
+                                <input type="text" id="np-custom-tags" placeholder="More tags, separated by commas">
+                            </div>
+                            <label class="check"><input type="checkbox" id="np-pinned"> <span>Pin to the top of the feed</span></label>
+                        </div>
+                        <div class="compose-media">
+                            <div class="dropzone" id="np-drop" data-input="np-files" tabindex="0" role="button" aria-label="Add images, video or audio">
+                                <i class="fa-regular fa-image" aria-hidden="true"></i>
+                                <p><strong>Drop images or video here</strong><br>or click to browse. You can also paste an image.</p>
+                                <input type="file" id="np-files" accept="image/*,video/*,audio/*" multiple hidden>
+                            </div>
+                            <div class="inline-form">
+                                <input type="url" id="np-url" placeholder="Or paste a link to an image or video" aria-label="Media link">
+                                <button class="btn" data-action="np-add-url">Add</button>
+                            </div>
+                            <ol class="queue" id="np-queue"></ol>
+                        </div>
+                    </div>
+                    <div class="form-foot">
+                        <button class="btn btn-primary" data-action="publish-post"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publish post</button>
+                    </div>
+
+                    <details class="drawer">
+                        <summary>Upload many images as separate posts</summary>
+                        <div class="drawer-body">
+                            <p class="hint">Each image becomes its own post. The tags you picked above are added to all of them.</p>
+                            <div class="dropzone small" id="bulk-drop" data-input="bulk-files" tabindex="0" role="button" aria-label="Choose images for bulk upload">
+                                <p><strong>Choose images</strong> or drop them here</p>
+                                <input type="file" id="bulk-files" accept="image/*" multiple hidden>
+                            </div>
+                            <div class="thumb-row" id="bulk-preview"></div>
+                            <div class="progress" id="bulk-progress" hidden>
+                                <div class="progress-row"><span id="bulk-progress-text">Uploading</span><span id="bulk-progress-count"></span></div>
+                                <div class="progress-bar"><div class="progress-fill" id="bulk-progress-bar"></div></div>
+                            </div>
+                            <button class="btn btn-primary" data-action="bulk-upload" id="bulk-btn" disabled>Upload as separate posts</button>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Manage posts -->
+                <div class="dash-panel" data-tab-panel="posts" role="tabpanel" hidden>
+                    <div class="list-tools">
+                        <label class="search">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="mp-search" placeholder="Find a post" aria-label="Find a post">
+                        </label>
+                        <span class="section-count" id="mp-count"></span>
+                    </div>
+                    <div class="manage-list" id="mp-list"></div>
+                </div>
+
+                <!-- Comics -->
+                <div class="dash-panel" data-tab-panel="comics" role="tabpanel" hidden>
+                    <div class="form-card">
+                        <h2>New comic</h2>
+                        <div class="form-grid">
+                            <label class="field"><span>Title</span><input type="text" id="nc-title" placeholder="Comic title"></label>
+                            <label class="field"><span>Tags</span><input type="text" id="nc-tags" placeholder="fantasy, action"></label>
+                            <label class="field span-2"><span>Cover image link <em>(optional, page 1 is used if empty)</em></span><input type="url" id="nc-cover" placeholder="https://..."></label>
+                        </div>
+                        <div class="dropzone small" id="nc-drop" data-input="nc-files" tabindex="0" role="button" aria-label="Choose comic pages">
+                            <p><strong>Choose pages</strong> or drop them here, in reading order</p>
+                            <input type="file" id="nc-files" accept="image/*" multiple hidden>
+                        </div>
+                        <p class="hint">Drag thumbnails to reorder. Pages upload to img/comics/ on your site.</p>
+                        <div class="page-sorter" id="nc-pages"></div>
+                        <div class="progress" id="nc-progress" hidden>
+                            <div class="progress-row"><span id="nc-progress-text">Uploading</span></div>
+                            <div class="progress-bar"><div class="progress-fill" id="nc-progress-bar"></div></div>
+                        </div>
+                        <button class="btn btn-primary" data-action="comic-create">Create comic</button>
+                    </div>
+
+                    <div class="section-head">
+                        <h2>Your comics</h2>
+                        <div class="row-actions">
+                            <button class="btn small" data-action="comics-download"><i class="fa-solid fa-download" aria-hidden="true"></i> comics.js</button>
+                            <button class="btn small" data-action="comics-sync"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Sync comics</button>
+                        </div>
+                    </div>
+                    <div class="manage-list" id="mc-list"></div>
+                </div>
+
+                <!-- Commissions -->
+                <div class="dash-panel" data-tab-panel="comm" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Open or closed</legend>
+                        <button type="button" class="cm-switch" id="cm-switch" data-action="comm-toggle" aria-pressed="false">
+                            <span class="cm-switch-tapes" aria-hidden="true"><i></i><i></i><i></i></span>
+                            <span class="cm-switch-text">
+                                <strong id="cm-switch-label">Commissions are open</strong>
+                                <span id="cm-switch-sub">Click to close them and tape off your Commissions page.</span>
+                            </span>
+                        </button>
+                        <p class="hint">This button saves and syncs straight away. Your status badge flips between Open and Closed with it, unless you've written your own.</p>
+                        <div class="field">
+                            <span>Status badge</span>
+                            <div class="chips" id="status-presets"></div>
+                        </div>
+                        <div class="form-grid">
+                            <label class="field"><span>Status text</span><input type="text" id="s-status-text" placeholder="AVAILABLE FOR COMMISSIONS"></label>
+                            <label class="field field-color"><span>Status color</span><input type="color" id="s-status-color"></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Page text</legend>
+                        <div class="form-grid">
+                            <label class="field"><span>Big title</span><input type="text" id="cm-f-title" placeholder="COMMISSIONS" maxlength="24"></label>
+                            <label class="field"><span>Name on the blue tape</span><input type="text" id="cm-f-handle" placeholder="Your site name"></label>
+                            <label class="field span-2"><span>Contact line on the blue tape</span><input type="text" id="cm-f-contact" placeholder="DM or you@email.com"></label>
+                            <label class="field"><span>Request link <em>(a form, or mailto:you@site.com)</em></span><input type="text" id="s-comm-link" placeholder="https://..."></label>
+                            <label class="field"><span>Request button text</span><input type="text" id="cm-f-button" placeholder="Request a commission"></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Tiers</legend>
+                        <p class="hint">Each tier is a card with example art, its name running down the side, your notes and a price badge. Art with a see-through background (a PNG) can pop out of its frame like a sticker.</p>
+                        <div class="tier-list" id="cm-tier-list"></div>
+                        <button type="button" class="btn" data-action="tier-add" style="align-self:flex-start"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add tier</button>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Terms</legend>
+                        <label class="field"><span>Terms <em>(one per line; Markdown works)</em></span><textarea id="cm-f-terms" rows="6" placeholder="Payment upfront via PayPal or Ko-fi.&#10;No refunds once work has started."></textarea></label>
+                        <div class="field">
+                            <span>Picture beside the terms <em>(leave empty to use your profile picture)</em></span>
+                            <div class="inline-form">
+                                <input type="text" id="cm-f-termspic" placeholder="img/me.png or https://..." aria-label="Picture beside the terms">
+                                <button type="button" class="btn small" data-action="pick-image" data-target="cm-f-termspic">From posts</button>
+                                <label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="cm-f-termspic" hidden></label>
+                            </div>
+                        </div>
+                        <label class="field"><span>Extra details <em>(optional, shown under the terms; Markdown works)</em></span><textarea id="s-comm-info" rows="5"></textarea></label>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>When closed</legend>
+                        <div class="hz-sample" aria-hidden="true"><span id="cm-tape-sample">COMMISSIONS CLOSED</span></div>
+                        <label class="field"><span>Words on the hazard tape <em>(one per line)</em></span><textarea id="cm-f-tape" rows="3" placeholder="COMMISSIONS CLOSED&#10;CLOSED&#10;CHECK BACK SOON"></textarea></label>
+                        <label class="field"><span>Closed message <em>(optional, shown under the title)</em></span><input type="text" id="cm-f-closednote" placeholder="Back soon! Follow me to hear when slots open."></label>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Poster colors</legend>
+                        <div class="swatches compact">
+                            <label class="swatch"><input type="color" id="cm-f-paper"><span>Paper</span></label>
+                            <label class="swatch"><input type="color" id="cm-f-ink"><span>Ink</span></label>
+                            <label class="swatch"><input type="color" id="cm-f-tapecolor"><span>Corner tape</span></label>
+                        </div>
+                        <button type="button" class="btn small" data-action="comm-colors-reset" style="align-self:flex-start">Reset poster colors</button>
+                    </fieldset>
+
+                    <div class="form-foot sticky-foot">
+                        <a class="btn btn-ghost" href="#/commissions">View page</a>
+                        <button class="btn btn-primary" data-action="comm-save">Save &amp; sync</button>
+                    </div>
+                </div>
+
+                <!-- Site info -->
+                <div class="dash-panel" data-tab-panel="site" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Identity</legend>
+                        <div class="form-grid">
+                            <label class="field"><span>Site name</span><input type="text" id="s-sitename"></label>
+                            <label class="field"><span>Tagline</span><input type="text" id="s-tagline"></label>
+                            <label class="field"><span>Name for your posts</span><input type="text" id="s-feedname" placeholder="Works"></label>
+                            <label class="field"><span>Copyright line</span><input type="text" id="s-copyright" placeholder="2026 NEERG"></label>
+                            <div class="field span-2">
+                                <span>Profile picture</span>
+                                <div class="inline-form">
+                                    <input type="text" id="s-pfp" placeholder="img/me.png or https://..." aria-label="Profile picture link">
+                                    <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="s-pfp" hidden></label>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>About page</legend>
+                        <div class="field">
+                            <span>Cover design</span>
+                            <div class="ab-picks" role="radiogroup" aria-label="About page design">
+                                <label class="ab-pick"><input type="radio" name="about-style" value="broadcast"><span class="ab-mini is-broadcast" aria-hidden="true"><i></i><i></i><i></i></span><b>Broadcast</b><small>A VHS screen with your newest art and TV listings</small></label>
+                                <label class="ab-pick"><input type="radio" name="about-style" value="mixtape"><span class="ab-mini is-mixtape" aria-hidden="true"><i></i><i></i><i></i></span><b>Mixtape</b><small>A cassette label, a shelf of tapes and a label sheet</small></label>
+                                <label class="ab-pick"><input type="radio" name="about-style" value="spectrum"><span class="ab-mini is-spectrum" aria-hidden="true"><i></i><i></i><i></i></span><b>Spectrum</b><small>A rainbow label poster with your posts as tour dates</small></label>
+                            </div>
+                        </div>
+                        <label class="field"><span>Bio <em>(Markdown works)</em></span><textarea id="s-bio" rows="5" placeholder="Who you are, what you make, what you're into."></textarea></label>
+                    </fieldset>
+
+                    <p class="hint">Commission prices, status and terms now live in their own <a href="#/admin" data-action="goto-admin-tab" data-tab="comm">Commissions</a> tab.</p>
+
+                    <fieldset class="group">
+                        <legend>Visitors</legend>
+                        <label class="check"><input type="checkbox" id="s-agegate"> <span>Ask first-time visitors to confirm they're 18 or older</span></label>
+                        <label class="check"><input type="checkbox" id="s-blur"> <span>Blur posts tagged NSFW until a visitor taps to reveal</span></label>
+                        <label class="check"><input type="checkbox" id="s-comments"> <span>Allow comments</span></label>
+                        <label class="check"><input type="checkbox" id="s-reactions"> <span>Show like and dislike buttons</span></label>
+                        <div class="form-grid">
+                            <label class="field"><span>Reaction style</span>
+                                <select id="s-reaction-style">
+                                    <option value="thumb">Thumbs</option>
+                                    <option value="arrow">Arrows</option>
+                                    <option value="faces">Custom text</option>
+                                </select>
+                            </label>
+                            <label class="field"><span>Featured posts on Home</span>
+                                <select id="s-featured">
+                                    <option value="recent">Newest work</option>
+                                    <option value="popular">Most liked</option>
+                                    <option value="pinned">Pinned posts only</option>
+                                    <option value="off">Hide featured</option>
+                                </select>
+                            </label>
+                            <label class="field"><span>Recommended comic on Home</span>
+                                <select id="s-rec-comic">
+                                    <option value="">Newest comic</option>
+                                    <option value="off">Don't show one</option>
+                                </select>
+                            </label>
+                            <label class="field"><span>Like text <em>(custom text style)</em></span><input type="text" id="s-like-label"></label>
+                            <label class="field"><span>Dislike text <em>(custom text style)</em></span><input type="text" id="s-dislike-label"></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group aotd-admin">
+                        <legend>Art of Today pop-up</legend>
+                        <label class="check"><input type="checkbox" id="s-aotd"> <span>Show a pop-up with one piece from your archive the first time someone visits each day <em>(closing it hides it until tomorrow)</em></span></label>
+
+                        <div class="aotd-sec">
+                            <h3 class="aotd-h">Design</h3>
+                            <div class="aotd-modes" role="radiogroup" aria-label="How the design is picked">
+                                <label class="aotd-mode"><input type="radio" name="aotd-mode" value="random"> A different design every day</label>
+                                <label class="aotd-mode"><input type="radio" name="aotd-mode" value="one"> Always use one design</label>
+                            </div>
+                            <p class="hint" id="aotd-mode-help"></p>
+                            <div class="aotd-tiles" id="aotd-tiles"></div>
+                            <p class="hint">Some designs have a color to choose under their picture. The eye button previews that design.</p>
+                        </div>
+
+                        <div class="aotd-sec">
+                            <h3 class="aotd-h">Artwork</h3>
+                            <label class="check"><input type="radio" name="aotd-art" value="all"> <span>A random piece from all posts</span></label>
+                            <label class="check"><input type="radio" name="aotd-art" value="board"> <span>A random piece from one board</span></label>
+                            <label class="field aotd-indent" id="aotd-board-field"><span>Board</span><select id="s-aotd-board"></select></label>
+                            <label class="check"><input type="radio" name="aotd-art" value="pick"> <span>The same piece I pick</span></label>
+                            <div class="aotd-indent aotd-pick" id="aotd-pick-field">
+                                <span class="aotd-pick-show" id="aotd-pick-show"></span>
+                                <button type="button" class="btn small" data-action="aotd-choose">Choose a piece</button>
+                                <input type="hidden" id="s-aotd-post">
+                            </div>
+                            <label class="check"><input type="checkbox" id="s-aotd-nsfw"> <span>Skip posts tagged NSFW <em>(the pop-up can appear on top of any page, so this keeps it safe to open anywhere)</em></span></label>
+                        </div>
+
+                        <div class="aotd-sec">
+                            <h3 class="aotd-h">Words and timing</h3>
+                            <div class="form-grid">
+                                <label class="field"><span>Headline</span><input type="text" id="s-aotd-headline" maxlength="40" placeholder="Art of Today"></label>
+                                <label class="field"><span>Message <em>(leave empty for none)</em></span><input type="text" id="s-aotd-message" maxlength="80" placeholder="One piece a day, picked just for you."></label>
+                                <label class="field"><span>Show it after</span>
+                                    <select id="s-aotd-delay">
+                                        <option value="1">1 second</option>
+                                        <option value="2">2 seconds</option>
+                                        <option value="5">5 seconds</option>
+                                    </select>
+                                </label>
+                                <label class="field"><span>Animation</span>
+                                    <select id="s-aotd-anim">
+                                        <option value="design">Each design's own entrance and exit</option>
+                                        <option value="fade">Simple fade</option>
+                                        <option value="none">No animation</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <p class="hint">Visitors whose device asks for less motion always get a simple fade.</p>
+                            <label class="check"><input type="checkbox" id="s-aotd-phones"> <span>Also show it on phones</span></label>
+                            <p class="hint">Each visitor sees it once a day. Everyone gets the same piece and design on the same day.</p>
+                            <div><button type="button" class="btn" data-action="preview-aotd"><i class="fa-regular fa-eye" aria-hidden="true"></i> Preview today's pop-up</button></div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Search and sharing</legend>
+                        <div class="form-grid">
+                            <label class="field"><span>Browser tab title</span><input type="text" id="s-title"></label>
+                            <label class="field"><span>Description for search engines</span><input type="text" id="s-desc"></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Advanced</legend>
+                        <div class="field">
+                            <span>Page background image <em>(optional)</em></span>
+                            <div class="inline-form">
+                                <input type="text" id="s-bgimage" placeholder="https://..." aria-label="Background image link">
+                                <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="s-bgimage" hidden></label>
+                            </div>
+                        </div>
+                        <label class="check"><input type="checkbox" id="s-webp"> <span>Save uploaded PNG and JPG images as smaller WebP files <em>(saves Neocities space; animated images are left alone)</em></span></label>
+                        <label class="field"><span>Custom CSS</span><textarea id="s-css" rows="5" class="code" spellcheck="false"></textarea></label>
+                        <label class="field"><span>New Neocities API key <em>(only if you regenerated it)</em></span><input type="password" id="s-newkey" autocomplete="off" placeholder="Leave empty to keep your current key"></label>
+                    </fieldset>
+
+                    <div class="form-foot sticky-foot">
+                        <button class="btn btn-primary" data-action="site-save">Save &amp; sync</button>
+                    </div>
+                </div>
+
+                <!-- Colors & style -->
+                <div class="dash-panel" data-tab-panel="look" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Palette</legend>
+                        <p class="hint">Your site has a dark and a light palette. Visitors switch between them with the sun and moon button. Changes preview live on this page.</p>
+                        <div class="seg" role="group" aria-label="Palette to edit">
+                            <button data-action="studio-mode" data-mode="dark" aria-pressed="true"><i class="fa-solid fa-moon" aria-hidden="true"></i> Dark palette</button>
+                            <button data-action="studio-mode" data-mode="light" aria-pressed="false"><i class="fa-solid fa-sun" aria-hidden="true"></i> Light palette</button>
+                        </div>
+                        <div class="swatches" id="studio-swatches"></div>
+                        <p class="contrast" id="studio-contrast"></p>
+
+                        <div class="field">
+                            <span>Start from a preset</span>
+                            <div class="presets" id="studio-presets"></div>
+                        </div>
+
+                        <div class="generator">
+                            <label class="field field-color"><span>Build from one color</span><input type="color" id="gen-base" value="#fb3640"></label>
+                            <label class="field"><span>Color harmony</span>
+                                <select id="gen-harmony">
+                                    <option value="analogous">Analogous: neighbors, calm</option>
+                                    <option value="complementary">Complementary: opposites, punchy</option>
+                                    <option value="split">Split complementary: lively but balanced</option>
+                                    <option value="triadic">Triadic: playful</option>
+                                    <option value="tetradic">Tetradic: lots of variety</option>
+                                    <option value="mono">Monochrome: one hue</option>
+                                </select>
+                            </label>
+                            <button class="btn" data-action="studio-generate"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Generate</button>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Reaction buttons</legend>
+                        <div class="swatches compact">
+                            <label class="swatch"><input type="color" id="c-like"><span>Like</span></label>
+                            <label class="swatch"><input type="color" id="c-like-ink"><span>Like text</span></label>
+                            <label class="swatch"><input type="color" id="c-dislike"><span>Dislike</span></label>
+                            <label class="swatch"><input type="color" id="c-dislike-ink"><span>Dislike text</span></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Profile ring</legend>
+                        <div class="ring-editor">
+                            <div class="ring ring-preview" id="ring-preview"><span class="ring-fallback" aria-hidden="true">✦</span></div>
+                            <div class="ring-controls">
+                                <div class="field">
+                                    <span>Gradient colors</span>
+                                    <div class="color-row">
+                                        <input type="color" id="ring-c1" aria-label="Ring color 1">
+                                        <input type="color" id="ring-c2" aria-label="Ring color 2">
+                                        <input type="color" id="ring-c3" aria-label="Ring color 3">
+                                    </div>
+                                </div>
+                                <div class="presets ring-presets" id="ring-presets"></div>
+                                <div class="form-grid">
+                                    <label class="field"><span>Direction</span>
+                                        <select id="ring-dir">
+                                            <option value="135deg">Diagonal ↘</option>
+                                            <option value="to right">Horizontal →</option>
+                                            <option value="to bottom">Vertical ↓</option>
+                                            <option value="to top right">Diagonal ↗</option>
+                                            <option value="circle">Radial</option>
+                                        </select>
+                                    </label>
+                                    <label class="field"><span>Thickness <output id="ring-width-out">4px</output></span><input type="range" id="ring-width" min="2" max="12" value="4"></label>
+                                    <label class="field"><span>Glow <output id="ring-glow-out">8px</output></span><input type="range" id="ring-glow" min="0" max="30" value="8"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-foot sticky-foot">
+                        <span class="unsaved" id="studio-unsaved" hidden>Unsaved color changes</span>
+                        <button class="btn btn-ghost" data-action="studio-discard">Discard</button>
+                        <button class="btn btn-primary" data-action="studio-save">Save &amp; sync</button>
+                    </div>
+                </div>
+
+                <!-- Home page: header, text band and side sliders -->
+                <div class="dash-panel" data-tab-panel="banner" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Header panels</legend>
+                        <div class="seg" role="group" aria-label="Where header images come from">
+                            <button data-action="banner-mode" data-mode="auto" aria-pressed="true">Latest posts</button>
+                            <button data-action="banner-mode" data-mode="manual" aria-pressed="false">Pick my own</button>
+                        </div>
+                        <label class="field narrow"><span>Number of panels</span>
+                            <select id="bn-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+                        </label>
+                        <p class="hint" id="bn-auto-hint">Your newest image posts fill the header automatically.</p>
+                        <div class="banner-rows" id="bn-manual" hidden></div>
+                        <p class="hint" id="bn-manual-hint" hidden>Any panel you leave empty uses one of your newest posts.</p>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Scrolling text band</legend>
+                        <label class="check"><input type="checkbox" id="bn-marquee"> <span>Show a scrolling text band under the header</span></label>
+                        <div id="bn-marquee-fields" hidden>
+                            <label class="field"><span>Text, one item per line</span><textarea id="bn-items" rows="4" placeholder="NEW WORK EVERY WEEK&#10;COMMISSIONS OPEN"></textarea></label>
+                            <div class="form-grid">
+                                <label class="field"><span>Speed <output id="bn-speed-out">20s per loop</output></span><input type="range" id="bn-speed" min="5" max="60" value="20"></label>
+                                <label class="field narrow"><span>Separator</span><input type="text" id="bn-sep" maxlength="3" value="✦"></label>
+                                <label class="field field-color"><span>Band color</span><input type="color" id="bn-bg"></label>
+                                <label class="field field-color"><span>Text color</span><input type="color" id="bn-fg"></label>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group sl-admin">
+                        <legend>Side sliders</legend>
+                        <p class="hint">Tall sliders beside Recent works that show one picture at a time and keep moving to the next. Laptops show only the right one, and phones show one sideways under the comics bar.</p>
+                        <div class="sl-layout">
+                            <div class="sl-fields">
+                                <div class="form-grid">
+                                    <label class="field"><span>Where they sit</span>
+                                        <select id="sl-where">
+                                            <option value="both">Both sides</option>
+                                            <option value="right">Right only</option>
+                                            <option value="left">Left only</option>
+                                            <option value="off">Off</option>
+                                        </select>
+                                    </label>
+                                    <label class="field"><span>What they show</span>
+                                        <select id="sl-show">
+                                            <option value="random">Random art, a new mix every visit</option>
+                                            <option value="newest">Newest art</option>
+                                            <option value="pick">Pieces I pick</option>
+                                            <option value="comics">Comics</option>
+                                            <option value="mix">Art, comics and a commissions ad</option>
+                                            <option value="own">My own images</option>
+                                        </select>
+                                    </label>
+                                    <label class="field"><span>Change every <output id="sl-secs-out">3 seconds</output></span><input type="range" id="sl-secs" min="2" max="10" value="3"></label>
+                                    <label class="field"><span>Slide direction</span>
+                                        <select id="sl-dir">
+                                            <option value="up">Up</option>
+                                            <option value="down">Down</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div class="field" id="sl-pick-field">
+                                    <span>Pieces I pick <em id="sl-pick-count"></em></span>
+                                    <div class="sl-picks" id="sl-picks"></div>
+                                </div>
+                                <div class="field" id="sl-own-field">
+                                    <span>My own images <em>(each can link anywhere)</em></span>
+                                    <div class="sl-own" id="sl-own"></div>
+                                    <button type="button" class="btn small" data-action="sl-own-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add image</button>
+                                </div>
+                            </div>
+                            <div class="sl-preview">
+                                <span class="sl-preview-label">Preview</span>
+                                <div class="ha-rail" id="sl-preview"></div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-foot sticky-foot">
+                        <button class="btn btn-primary" data-action="banner-save">Save &amp; sync</button>
+                    </div>
+                </div>
+
+                <!-- Social links -->
+                <div class="dash-panel" data-tab-panel="links" role="tabpanel" hidden>
+                    <fieldset class="group">
+                        <legend>Social links</legend>
+                        <p class="hint">These show on your header, About page, Commissions page and footer.</p>
+                        <div class="links-editor" id="links-editor"></div>
+                        <button class="btn" data-action="link-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add link</button>
+                    </fieldset>
+                    <div class="form-foot sticky-foot">
+                        <button class="btn btn-primary" data-action="links-save">Save &amp; sync</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+    <div class="wrap wide footer-inner">
+        <div class="footer-brand">
+            <span class="footer-name" id="footer-name">NEERG</span>
+            <span class="footer-copy" id="footer-copy">© 2026 NEERG</span>
+        </div>
+        <nav class="footer-nav" aria-label="Footer">
+            <a href="#/">Home</a>
+            <a href="#/gallery">Gallery</a>
+            <a href="#/comics">Comics</a>
+            <a href="#/commissions">Commissions</a>
+            <a href="#/about">About</a>
+        </nav>
+        <div class="social-icons" id="footer-social"></div>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.15</a></p>
+    </div>
+</footer>
+
+<button class="to-top" id="to-top" data-action="to-top" aria-label="Back to top"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+
+<!-- ═══════════ POST VIEWER ═══════════ -->
+<div class="overlay post-overlay" id="post-overlay" role="dialog" aria-modal="true" aria-label="Post" hidden>
+    <button class="overlay-close" data-action="close-post" aria-label="Close post"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    <div class="post-stage" id="post-stage">
+        <div class="stage-media" id="post-media"></div>
+        <button class="stage-nav prev" data-action="post-prev" aria-label="Previous post"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+        <button class="stage-nav next" data-action="post-next" aria-label="Next post"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+        <div class="stage-pager" id="post-pager" hidden></div>
+    </div>
+    <aside class="post-info" id="post-info"></aside>
+</div>
+
+<!-- ═══════════ ART OF TODAY (once a day; filled in by logic.js) ═══════════ -->
+<div class="aotd" id="aotd" role="dialog" aria-modal="true" aria-labelledby="aotd-title" hidden>
+    <button class="aotd-dim" data-action="close-aotd" tabindex="-1" aria-hidden="true"></button>
+    <div class="aotd-card" tabindex="-1">
+        <button class="aotd-close" data-action="close-aotd" aria-label="Close until tomorrow"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        <div class="aotd-paper" id="aotd-paper"></div>
+    </div>
+</div>
+
+<!-- ═══════════ FULL SIZE MEDIA VIEWER ═══════════ -->
+<div class="overlay viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Media viewer" hidden>
+    <div class="viewer-top">
+        <span class="viewer-count" id="viewer-count"></span>
+        <div class="viewer-top-actions">
+            <button class="btn small on-dark" id="viewer-open-post" data-action="viewer-open-post" hidden>View post</button>
+            <button class="icon-btn on-dark" data-action="close-viewer" aria-label="Close viewer"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+    </div>
+    <div class="viewer-media" id="viewer-media"></div>
+    <button class="stage-nav prev" data-action="viewer-prev" aria-label="Previous"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+    <button class="stage-nav next" data-action="viewer-next" aria-label="Next"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+</div>
+
+<!-- ═══════════ COMIC PAGES ═══════════ -->
+<div class="overlay comic-overlay" id="comic-overlay" role="dialog" aria-modal="true" aria-labelledby="co-title" hidden>
+    <div class="comic-head">
+        <div class="wrap wide comic-head-inner">
+            <button class="back-btn" data-action="close-comic"><span aria-hidden="true">←</span> Comics</button>
+            <div class="comic-head-text">
+                <h2 id="co-title">Comic</h2>
+                <p class="comic-meta" id="co-meta"></p>
+                <div class="chips static" id="co-tags"></div>
+            </div>
+            <div class="comic-head-actions" id="co-actions"></div>
+        </div>
+    </div>
+    <div class="wrap wide">
+        <div class="comic-pages" id="co-grid"></div>
+    </div>
+</div>
+
+<!-- ═══════════ COMIC READER ═══════════ -->
+<div class="overlay reader" id="reader" role="dialog" aria-modal="true" aria-labelledby="rd-title" hidden>
+    <div class="reader-top">
+        <button class="icon-btn on-dark" data-action="close-reader" aria-label="Back to pages"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+        <span class="reader-title" id="rd-title">Comic</span>
+        <span class="reader-page" id="rd-page"></span>
+        <button class="btn small on-dark" data-action="reader-fit" id="rd-fit" aria-pressed="false">Fit width</button>
+    </div>
+    <div class="reader-stage" id="rd-stage">
+        <img id="rd-img" alt="">
+        <button class="reader-tap left" data-action="reader-prev" aria-label="Previous page"></button>
+        <button class="reader-tap right" data-action="reader-next" aria-label="Next page"></button>
+    </div>
+    <div class="reader-bottom">
+        <div class="reader-pages" id="rd-pages"></div>
+    </div>
+</div>
+
+<!-- ═══════════ ADD PAGES TO A COMIC ═══════════ -->
+<div class="overlay modal" id="ap-modal" role="dialog" aria-modal="true" aria-labelledby="ap-heading" hidden>
+    <div class="modal-card">
+        <div class="modal-head">
+            <div>
+                <h2 id="ap-heading">Add pages</h2>
+                <p class="modal-sub"><span id="ap-title"></span> <span id="ap-count"></span></p>
+            </div>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="dropzone small" id="ap-drop" data-input="ap-files" tabindex="0" role="button" aria-label="Choose new pages">
+            <p><strong>Choose new pages</strong> or drop them here</p>
+            <input type="file" id="ap-files" accept="image/*" multiple hidden>
+        </div>
+        <p class="hint">New pages go after the last page. Drag to reorder before uploading.</p>
+        <div class="page-sorter" id="ap-pages"></div>
+        <div class="progress" id="ap-progress" hidden>
+            <div class="progress-row"><span id="ap-progress-text">Uploading</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="ap-progress-bar"></div></div>
+        </div>
+        <div class="form-foot">
+            <button class="btn btn-ghost" data-action="modal-close">Cancel</button>
+            <button class="btn btn-primary" data-action="ap-submit">Upload &amp; add pages</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ CONNECTION REPAIR ═══════════ -->
+<div class="overlay modal" id="repair-modal" role="dialog" aria-modal="true" aria-labelledby="repair-heading" hidden>
+    <div class="modal-card narrow">
+        <div class="modal-head">
+            <h2 id="repair-heading">Reconnect to Neocities</h2>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <p>Neocities turned down your saved key, so changes can't sync. Paste your API key from <a href="https://neocities.org/settings" target="_blank" rel="noopener">Neocities settings</a> to reconnect.</p>
+        <label class="field"><span>Neocities API key</span><input type="password" id="repair-key" autocomplete="off"></label>
+        <div class="form-foot">
+            <button class="btn btn-ghost" data-action="modal-close">Cancel</button>
+            <button class="btn btn-primary" data-action="repair-run">Reconnect &amp; sync</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ CLEANUP ═══════════ -->
+<div class="overlay modal" id="cleanup-modal" role="dialog" aria-modal="true" aria-labelledby="cleanup-heading" hidden>
+    <div class="modal-card">
+        <div class="modal-head">
+            <h2 id="cleanup-heading">Clean up your data</h2>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <h3 class="mini-head">Storage</h3>
+        <div class="bars" id="cleanup-bars"></div>
+        <p class="hint" id="cleanup-total"></p>
+        <h3 class="mini-head">What we found</h3>
+        <div class="issues" id="cleanup-issues"></div>
+        <h3 class="mini-head">Tools</h3>
+        <div class="tool-grid">
+            <button class="btn small" data-action="cleanup" data-fn="trim"><i class="fa-solid fa-scissors" aria-hidden="true"></i> Trim extra spaces</button>
+            <button class="btn small" data-action="cleanup" data-fn="dupes"><i class="fa-solid fa-copy" aria-hidden="true"></i> Remove duplicates</button>
+            <button class="btn small" data-action="cleanup" data-fn="orphans"><i class="fa-solid fa-ghost" aria-hidden="true"></i> Clear orphaned likes</button>
+            <button class="btn small" data-action="cleanup" data-fn="empty"><i class="fa-solid fa-broom" aria-hidden="true"></i> Strip empty fields</button>
+            <button class="btn small" data-action="cleanup" data-fn="compact"><i class="fa-solid fa-compress" aria-hidden="true"></i> Compact data</button>
+            <button class="btn small" data-action="cleanup" data-fn="base64"><i class="fa-solid fa-image" aria-hidden="true"></i> Strip inline images</button>
+            <button class="btn small danger" data-action="cleanup" data-fn="old"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i> Delete old posts</button>
+            <button class="btn small danger" data-action="cleanup" data-fn="nuke"><i class="fa-solid fa-fire" aria-hidden="true"></i> Erase all likes &amp; comments</button>
+        </div>
+        <h3 class="mini-head">Shrink images</h3>
+        <div class="shrink">
+            <p class="hint" id="shrink-info">Makes smaller WebP copies of the PNG and JPG images on your site and switches your posts over to them.</p>
+            <div class="progress" id="shrink-progress" hidden>
+                <div class="progress-row"><span id="shrink-text">Shrinking</span><span id="shrink-count"></span></div>
+                <div class="progress-bar"><div class="progress-fill" id="shrink-bar"></div></div>
+            </div>
+            <div class="row-actions">
+                <button class="btn small" data-action="shrink-start" id="shrink-start"><i class="fa-solid fa-feather" aria-hidden="true"></i> Shrink images to WebP</button>
+                <button class="btn small btn-ghost" data-action="shrink-stop" id="shrink-stop" hidden>Stop after this one</button>
+            </div>
+            <div class="shrink-left" id="shrink-left" hidden>
+                <p><strong id="shrink-left-count"></strong> Your posts no longer use these, so delete them in your <a href="https://neocities.org/dashboard" target="_blank" rel="noopener">Neocities dashboard</a> to free up the space.</p>
+                <textarea id="shrink-list" class="code" rows="5" readonly aria-label="Old image files to delete"></textarea>
+                <div class="row-actions">
+                    <button class="btn small" data-action="shrink-copy"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy list</button>
+                    <button class="btn small" data-action="shrink-download"><i class="fa-solid fa-download" aria-hidden="true"></i> Download list</button>
+                    <button class="btn small btn-ghost" data-action="shrink-forget">I've deleted them</button>
+                </div>
+            </div>
+        </div>
+        <h3 class="mini-head">Activity</h3>
+        <div class="log" id="cleanup-log"><div class="log-entry dim">Nothing run yet.</div></div>
+        <div class="form-foot">
+            <button class="btn btn-primary btn-block" data-action="cleanup" data-fn="full">Run all safe cleanups &amp; sync</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ IMAGE PICKER ═══════════ -->
+<div class="overlay modal" id="picker-modal" role="dialog" aria-modal="true" aria-labelledby="picker-heading" hidden>
+    <div class="modal-card wide">
+        <div class="modal-head">
+            <h2 id="picker-heading">Choose an image</h2>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="picker-grid" id="picker-grid"></div>
+    </div>
+</div>
+
+<!-- ═══════════ ARE YOU SURE? (filled in by askConfirm in logic.js) ═══════════ -->
+<div class="overlay modal confirm-modal" id="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-heading" aria-describedby="confirm-text" hidden>
+    <div class="modal-card narrow">
+        <h2 id="confirm-heading">Are you sure?</h2>
+        <p class="confirm-text" id="confirm-text"></p>
+        <div class="form-foot">
+            <button class="btn btn-ghost" data-action="confirm-no">Cancel</button>
+            <button class="btn btn-primary" id="confirm-yes" data-action="confirm-yes">OK</button>
+            <button type="button" class="btn hold-btn" id="confirm-hold" aria-describedby="confirm-hint">
+                <span class="hold-label"></span>
+                <span class="hold-fill" aria-hidden="true"><span class="hold-label"></span></span>
+            </button>
+        </div>
+        <p class="hold-hint" id="confirm-hint" aria-live="polite"></p>
+    </div>
+</div>
+
+<!-- ═══════════ FIRST TIME SETUP ═══════════ -->
+<div class="setup" id="setup" hidden>
+    <div class="setup-card">
+        <h1>Let's get your site running</h1>
+        <p class="setup-lede">This only happens once. Your password and key stay on this device and are turned into a secure token before anything is saved.</p>
+
+        <div class="notice" id="su-restore-box" hidden>
+            <p>This browser has a saved copy of a site. Restore it instead of starting over?</p>
+            <button class="btn" data-action="setup-restore">Restore saved site</button>
+        </div>
+
+        <ol class="setup-steps">
+            <li>
+                <h2>Admin access</h2>
+                <div class="form-grid">
+                    <label class="field"><span>Admin password <em>(8+ characters)</em></span><input type="password" id="su-pass" autocomplete="new-password"></label>
+                    <label class="field"><span>Type it again</span><input type="password" id="su-pass2" autocomplete="new-password"></label>
+                    <label class="field span-2"><span>Neocities API key <em>(Neocities, then Settings, then API)</em></span><input type="password" id="su-key" autocomplete="off"></label>
+                </div>
+            </li>
+            <li>
+                <h2>Your site</h2>
+                <div class="form-grid">
+                    <label class="field"><span>Site name</span><input type="text" id="su-name" value="NEERG"></label>
+                    <label class="field"><span>Tagline</span><input type="text" id="su-tagline" value="Digital Art Archive"></label>
+                    <label class="field"><span>Name for your posts</span><input type="text" id="su-feedname" value="Works"></label>
+                    <label class="field"><span>Copyright line</span><input type="text" id="su-copyright" value="2026 NEERG"></label>
+                    <label class="field span-2"><span>Profile picture link <em>(optional)</em></span><input type="text" id="su-pfp" placeholder="https://..."></label>
+                </div>
+            </li>
+            <li>
+                <h2>Look and visitors</h2>
+                <div class="presets" id="su-presets"></div>
+                <label class="check"><input type="checkbox" id="su-agegate" checked> <span>Ask visitors to confirm they're 18 or older</span></label>
+                <label class="check"><input type="checkbox" id="su-reactions" checked> <span>Show like and dislike buttons</span></label>
+                <label class="check"><input type="checkbox" id="su-comments" checked> <span>Allow comments</span></label>
+            </li>
+        </ol>
+        <button class="btn btn-primary btn-block" data-action="setup-create">Create my site</button>
+    </div>
+</div>
+
+</body>
+</html>

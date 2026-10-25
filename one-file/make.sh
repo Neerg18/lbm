@@ -10,7 +10,7 @@ cdn="https://cdn.jsdelivr.net/gh/Neerg18/lbm@$sha/"
 ver=$(git show "$sha:logic.js" | sed -n "s/^const NEERG_VERSION = '\(.*\)';$/\1/p")
 
 git show "$sha:index.html" | sed \
-    -e "s#<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">#<link rel=\"preconnect\" href=\"https://cdn.jsdelivr.net\" crossorigin>\n    &#" \
+    -e "s#<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">#<link rel=\"preconnect\" href=\"https://cdn.jsdelivr.net\">\n    &#" \
     -e "s#<!-- The ?v= tag .*-->#<!-- One-file NEERG $ver: the code loads from github.com/Neerg18/lbm through jsDelivr. To update, upload the newest one-file/index.html over this file. -->#" \
     -e "s#href=\"style.css?v=[^\"]*\"#href=\"${cdn}style.css\"#" \
     -e "s#src=\"marked.min.js\"#src=\"${cdn}marked.min.js\"#" \
