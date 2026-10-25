@@ -4,11 +4,18 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 - **Where the number lives:** `NEERG_VERSION` in `logic.js`. The site's footer shows it, and the `?v=` tags in `index.html` and the header at the top of each file carry the same number.
 - **On GitHub:** each version below links to its pull request and to its code, so you can always open the site's files exactly as they were in that version.
+- **One-file copy:** after committing a release, run `sh one-file/make.sh` and commit `one-file/index.html`, so one-file sites can get the new version.
 
 ---
 
+## 7.0.15 · 2026-10-25
+**Make a site by uploading one file**
+- Anyone making their own NEERG site can now upload just one file, `one-file/index.html`, instead of 8 files and a folder. The rest of the code loads from this GitHub through jsDelivr, a free service that serves code to websites. Their posts, comics, pictures and settings still live on their own site.
+- To update a one-file site, upload the newest `one-file/index.html` over the old one. Until then it stays on the version it has.
+- Sites that upload every file, like this one, work exactly as before.
+
 ## 7.0.14 · 2026-10-25
-**New home page**
+**New home page** · [#16](https://github.com/Neerg18/lbm/pull/16) · [code](https://github.com/Neerg18/lbm/tree/9e6ddb9)
 - **Featured frame:** the top of the home page is now a dark animated screen that shows one featured piece at a time. The title scrolls along the edges, the picture floats, and a crosshair spins over it. It moves to the next piece every 7 seconds, with a timer bar and up/down arrows to flip through by hand.
 - **Side sliders:** tall picture strips run beside Recent works, from the top of the list down to the comics bar. They show one picture at a time and then slide to the next. Laptops show only the right strip. Phones show one sideways strip under the comics bar.
 - **Customize the sliders in Admin:** under Home page → Side sliders you choose where they show (both sides, left, right or off), what they show (random art, newest art, pieces you pick, comics, your own pictures with links, or a mix of art, comics and a Commissions ad), how many seconds each picture stays, and which way they slide. A live preview shows the result.

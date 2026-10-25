@@ -1,4 +1,4 @@
-# NEERG 7.0.14
+# NEERG 7.0.15
 ### A fork of [LBM — Leaflet Blog Manager](https://lbm-test.neocities.org) by applesaucy
 
 > Self-hosted digital art archive for Neocities. Post your art, comics and commission info, all managed from your browser. No code editing needed.
@@ -43,15 +43,20 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 
 ## Getting Started
 
-1. Upload `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder to your Neocities site
+1. Pick one way to put NEERG on your Neocities site:
+   - **One file (easiest):** download [`one-file/index.html`](one-file/index.html) and upload it to your site. The rest of the code loads from this GitHub through [jsDelivr](https://www.jsdelivr.com), a free service that serves code to websites.
+   - **Every file:** upload `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder. Your site then doesn't rely on jsDelivr.
 2. Open your site. A **Setup Wizard** appears automatically
 3. Enter a password (8+ characters) and your Neocities API key (Neocities → Settings → API). That's it, you're live
 
-No code editing required. Everything is managed from the **Admin** page (the ⚙️ gear icon).
+No code editing required. Everything is managed from the **Admin** page (the ⚙️ gear icon). Either way, your posts, comics, pictures and settings are saved on your own site.
 
 ### Upgrading from an earlier NEERG
 
-NEERG 7 stores your content in the same format as 6.0, so just replace `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder (and delete `sky.js` and `sky.css` if you have them). Your posts, comics, likes and settings stay where they are.
+NEERG 7 stores your content in the same format as 6.0, so your posts, comics, likes and settings stay where they are.
+
+- **One file:** upload the newest `one-file/index.html` over your `index.html`. If you used to upload every file, you can then delete the other code files: `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder.
+- **Every file:** replace `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder (and delete `sky.js` and `sky.css` if you have them).
 
 > Tip: hit **Back up** in the dashboard before upgrading, just in case.
 
@@ -77,7 +82,7 @@ your-neocities-site/
     └── comics/         ← comic pages stored here
 ```
 
-Only the files above `system.js` live in this repository. The rest are created on your Neocities site by the Admin page.
+Only the files above `system.js` live in this repository. The rest are created on your Neocities site by the Admin page. A one-file site has only `index.html` from the top part; its other code files load from jsDelivr.
 
 ### Icons
 
@@ -125,7 +130,7 @@ For deeper edits:
 ## Credits
 
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
-- **This fork:** NEERG 7.0.14 by [Neerg18](https://github.com/Neerg18)
+- **This fork:** NEERG 7.0.15 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
 - **Icons:** [Font Awesome Free 6.7.2](https://fontawesome.com) (icons CC BY 4.0, fonts SIL OFL 1.1, code MIT), trimmed to the icons this site uses
 - **Markdown:** [marked 15.0.12](https://github.com/markedjs/marked) (MIT)
