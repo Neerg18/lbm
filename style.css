@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.15 · style.css
+ NEERG 7.0.16 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -803,7 +803,7 @@ a.status-pill:hover { text-decoration: none; background: color-mix(in srgb, var(
    Everything inside is sized in cqw (1cqw = 1% of the frame's width) */
 .ha-frame { position: relative; aspect-ratio: 16 / 7; overflow: hidden; border-radius: 28px; background: #0F0D14; color: #F3EDE2; container-type: inline-size; box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--hud) 35%, transparent); }
 .ha-frame-bg { position: absolute; left: -4%; top: -4%; width: 108%; height: 108%; object-fit: cover; object-position: center 35%; filter: blur(4px) saturate(1.2) brightness(.5); animation: haKen 16s ease-in-out infinite alternate; }
-.ha-grid { position: absolute; inset: 0; background: linear-gradient(rgba(255,197,49,.09) 1px, transparent 1px) 0 0 / 3.4cqw 3.4cqw, linear-gradient(90deg, rgba(255,197,49,.09) 1px, transparent 1px) 0 0 / 3.4cqw 3.4cqw; animation: haGrid 6s linear infinite; }
+.ha-grid { position: absolute; inset: -3.4cqw 0 0 -3.4cqw; background: linear-gradient(rgba(255,197,49,.09) 1px, transparent 1px) 0 0 / 3.4cqw 3.4cqw, linear-gradient(90deg, rgba(255,197,49,.09) 1px, transparent 1px) 0 0 / 3.4cqw 3.4cqw; animation: haGrid 6s linear infinite; }
 .ha-kin { position: absolute; left: -2%; transform: rotate(-2deg); transform-origin: left top; pointer-events: none; }
 .ha-kin.is-top { top: -1.2cqw; }
 .ha-kin.is-bottom { bottom: -5.8cqw; }
@@ -837,7 +837,7 @@ a.status-pill:hover { text-decoration: none; background: color-mix(in srgb, var(
 .ha-plus i:nth-child(4) { animation-delay: 1.6s; }
 .ha-panel { position: absolute; right: 9cqw; top: 11cqw; width: 22cqw; min-width: 210px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 26px 18px 16px; border: 1.5px solid var(--hud); background: rgba(15,13,20,.62); }
 .ha-scan { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.ha-scan i { position: absolute; left: 0; right: 0; height: 26px; background: linear-gradient(rgba(255,197,49,0), rgba(255,197,49,.16), rgba(255,197,49,0)); animation: haScan 3.4s linear infinite; }
+.ha-scan i { position: absolute; left: 0; right: 0; top: 0; height: 100%; background: linear-gradient(rgba(255,197,49,0), rgba(255,197,49,.16), rgba(255,197,49,0)) 0 0 / 100% 26px no-repeat; animation: haScan 3.4s linear infinite; }
 .ha-tagname { position: absolute; left: -1.5px; top: -16px; max-width: calc(100% + 3px); box-sizing: border-box; padding: 4px 12px; background: var(--hud); color: #0F0D14; font-family: var(--font-wide); font-weight: 800; font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: haSlide .6s cubic-bezier(.2,.8,.2,1) .1s both; }
 .ha-panel h2 { font-family: var(--font-mono); font-weight: 500; font-size: .75rem; line-height: 1.7; letter-spacing: .04em; animation: haRise .7s cubic-bezier(.2,.8,.2,1) .25s both; }
 .ha-swatches { display: flex; gap: 6px; }
@@ -854,13 +854,14 @@ a.status-pill:hover { text-decoration: none; background: color-mix(in srgb, var(
 .ha-cap .ha-btn { background: var(--text); color: var(--bg); min-height: 44px; }
 
 @keyframes haKen { to { transform: scale(1.14) translate(-2%, -1.5%); } }
-@keyframes haGrid { to { background-position: 3.4cqw 3.4cqw, 3.4cqw 3.4cqw; } }
+/* The grid and the scan bar move with transform, which the graphics card does without redrawing them */
+@keyframes haGrid { to { transform: translate(3.4cqw, 3.4cqw); } }
 @keyframes haRunL { to { transform: translateX(-50%); } }
 @keyframes haRunR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 @keyframes haFloat { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-2.5%) rotate(1deg); } }
 @keyframes haSpin { to { transform: rotate(360deg); } }
 @keyframes haPulse { 50% { transform: translate(-50%, -50%) scale(1.9); opacity: .35; } }
-@keyframes haScan { from { top: -30px; } to { top: 100%; } }
+@keyframes haScan { from { transform: translateY(-30px); } to { transform: translateY(100%); } }
 @keyframes haTwinkle { 50% { opacity: .2; transform: scale(.55); } }
 @keyframes haFlicker { 46% { opacity: .5; } 50% { opacity: 1; } 53% { opacity: .35; } 56% { opacity: 1; } }
 @keyframes haPop { from { opacity: 0; transform: translateY(8%) scale(.9) rotate(-5deg); filter: brightness(2.2); } }
@@ -1134,11 +1135,15 @@ html[data-theme="light"] .zg-id { box-shadow: 0 14px 30px -20px rgba(0,0,0,.5); 
 .zg-card {
     position: relative; flex: 1 1 460px; min-width: 0;
     display: flex; flex-direction: column; gap: 18px;
-    padding: clamp(24px, 2.6vw, 36px); overflow: hidden;
+    padding: clamp(24px, 2.6vw, 36px);
     border-radius: 26px; background-color: var(--zc); color: var(--zg-ink); text-align: left;
-    transition: transform .25s var(--ease-out), box-shadow .25s var(--ease-out);
 }
-button.zg-card:hover { transform: translateY(-4px) rotate(-.4deg); box-shadow: 0 18px 30px -18px rgba(0,0,0,.8); }
+/* A card sits on its own layer and its hover shadow is drawn once and faded in, so lifting it moves
+   pixels already drawn instead of redrawing the card, its dotted paper and its pictures every frame */
+button.zg-card, a.zg-card { will-change: transform; transition: transform .25s var(--ease-out); }
+button.zg-card::after, a.zg-card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 18px 30px -18px rgba(0,0,0,.8); opacity: 0; transition: opacity .25s var(--ease-out); pointer-events: none; }
+button.zg-card:hover { transform: translateY(-4px) rotate(-.4deg); }
+button.zg-card:hover::after, a.zg-card:hover::after { opacity: 1; }
 .zg-card.is-wide { flex-basis: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 30px; }
 .zg-card-text { flex: none; min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
 .zg-card.is-wide .zg-card-text { flex: 1 1 380px; }
@@ -1155,7 +1160,7 @@ button.zg-card:hover { transform: translateY(-4px) rotate(-.4deg); box-shadow: 0
 .zg-sticker { position: absolute; width: 44%; height: 85%; overflow: hidden; border: 8px solid var(--zg-white); border-radius: 6px; background: var(--zg-white); box-shadow: 0 14px 24px -12px rgba(0,0,0,.5); transition: transform .3s var(--ease-out); }
 .zg-sticker img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
 .zg-sticker:nth-child(1) { left: 2%; top: 8%; transform: rotate(-5deg); }
-.zg-sticker:nth-child(2) { left: 30%; top: 0; z-index: 1; transform: rotate(4deg); }
+.zg-sticker:nth-child(2) { left: 30%; top: 0; z-index: 1; transform: rotate(4deg); will-change: transform; }
 .zg-sticker:nth-child(3) { left: 56%; top: 12%; transform: rotate(-2deg); }
 .zg-stickers.n1 .zg-sticker { left: 22%; width: 56%; }
 .zg-stickers.n2 .zg-sticker:nth-child(2) { left: 46%; }
@@ -1174,6 +1179,7 @@ button.zg-card:hover .zg-sticker:nth-child(2) { transform: rotate(7deg) translat
     border-radius: 3px; background: var(--zg-white); color: var(--zg-ink); text-align: left;
     box-shadow: 0 10px 20px -12px rgba(0,0,0,.7);
     transform: rotate(var(--r)); transition: transform .25s var(--ease-out);
+    will-change: transform; /* its own layer, so straightening it on hover doesn't redraw the board around it */
 }
 .zg-pola:hover { z-index: 1; transform: rotate(0) scale(1.03); }
 .zg-tape { position: absolute; left: 50%; top: -11px; z-index: 1; width: 84px; height: 22px; margin-left: -42px; background: var(--tape); transform: rotate(calc(var(--r) * -2)); }
@@ -1227,7 +1233,7 @@ button.zg-card:hover .zg-sticker:nth-child(2) { transform: rotate(7deg) translat
 .zc-bubble::before, .zc-bubble::after { content: ""; position: absolute; top: 100%; width: 0; height: 0; transform: skewX(-24deg); }
 .zc-bubble::before { left: 26%; margin-top: 1px; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 42px solid var(--zg-ink); }
 .zc-bubble::after { left: calc(26% + 9px); margin-top: -4px; border-left: 11px solid transparent; border-right: 11px solid transparent; border-top: 30px solid var(--zg-white); }
-a.zg-card:hover { text-decoration: none; transform: translateY(-4px) rotate(-.4deg); box-shadow: 0 18px 30px -18px rgba(0,0,0,.8); }
+a.zg-card:hover { text-decoration: none; transform: translateY(-4px) rotate(-.4deg); }
 .zc-card { container: zc-card / inline-size; flex-direction: row; align-items: flex-start; gap: clamp(20px, 2.4vw, 32px); }
 .zc-card.is-wide { align-items: center; }
 .zc-card .zg-card-text { flex: 1 1 240px; }
