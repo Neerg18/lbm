@@ -11,7 +11,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    NEERG 7.0.17 · index.html
+    NEERG 7.0.18 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
     Upload index.html, style.css, logic.js, admin.js, marked.min.js, about.js,
@@ -26,7 +26,9 @@
         (function () {
             try {
                 var root = document.documentElement;
-                var mode = localStorage.getItem('neerg_theme') === 'light' ? 'light' : 'dark';
+                var saved = localStorage.getItem('neerg_theme'), start = localStorage.getItem('neerg_start_theme');
+                var mode = saved === 'light' || saved === 'dark' ? saved
+                    : start === 'light' || (start === 'device' && window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
                 root.setAttribute('data-theme', mode);
                 var cache = JSON.parse(localStorage.getItem('neerg_palette_cache') || 'null');
                 if (cache && cache[mode]) { for (var k in cache[mode]) root.style.setProperty(k, cache[mode][k]); }
@@ -40,10 +42,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
     <!-- The ?v= tag makes browsers fetch fresh copies after an update. Set it to the new version (NEERG_VERSION in logic.js) with every update. -->
-    <link rel="stylesheet" href="style.css?v=7.0.17">
+    <link rel="stylesheet" href="style.css?v=7.0.18">
 
     <script defer src="marked.min.js"></script>
-    <script defer src="logic.js?v=7.0.17"></script>
+    <script defer src="logic.js?v=7.0.18"></script>
 </head>
 <body>
 
@@ -391,12 +393,18 @@
                                 <span>Caption</span>
                                 <textarea id="np-content" rows="7" placeholder="Say something about this piece. Markdown works: **bold**, *italic*, [link](https://...)"></textarea>
                             </label>
+                            <label class="field">
+                                <span>Picture description <em>(optional: read aloud to people who use screen readers)</em></span>
+                                <input type="text" id="np-alt" placeholder="For example: a girl in a red coat walking a fox through snow">
+                            </label>
                             <div class="field">
                                 <span>Tags</span>
                                 <div class="chips chips-toggle" id="np-tags"></div>
                                 <input type="text" id="np-custom-tags" placeholder="More tags, separated by commas">
                             </div>
                             <label class="check"><input type="checkbox" id="np-pinned"> <span>Pin to the top of the feed</span></label>
+                            <label class="check"><input type="checkbox" id="np-later"> <span>Schedule it to go up later</span></label>
+                            <label class="field" id="np-at-field" hidden><span>Goes up at <em>(your time; until then only you can see it, in Posts)</em></span><input type="datetime-local" id="np-at"></label>
                         </div>
                         <div class="compose-media">
                             <div class="dropzone" id="np-drop" data-input="np-files" tabindex="0" role="button" aria-label="Add images, video or audio">
@@ -412,7 +420,7 @@
                         </div>
                     </div>
                     <div class="form-foot">
-                        <button class="btn btn-primary" data-action="publish-post"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publish post</button>
+                        <button class="btn btn-primary" data-action="publish-post" id="np-publish"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publish post</button>
                     </div>
 
                     <details class="drawer">
@@ -591,6 +599,9 @@
                     <fieldset class="group">
                         <legend>Visitors</legend>
                         <label class="check"><input type="checkbox" id="s-agegate"> <span>Ask first-time visitors to confirm they're 18 or older</span></label>
+                        <label class="field"><span>Theme for first-time visitors <em>(they can still switch with the sun/moon button)</em></span>
+                            <select id="s-start-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="device">Match their phone or computer</option></select>
+                        </label>
                         <label class="check"><input type="checkbox" id="s-blur"> <span>Blur posts tagged NSFW until a visitor taps to reveal</span></label>
                         <label class="check"><input type="checkbox" id="s-comments"> <span>Allow comments</span></label>
                         <label class="check"><input type="checkbox" id="s-reactions"> <span>Show like and dislike buttons</span></label>
@@ -718,6 +729,8 @@
                             </div>
                         </div>
                         <p class="lp-status" id="lp-status" role="status"></p>
+                        <label class="check"><input type="checkbox" id="s-feed"> <span>Keep an RSS feed, so people can follow your new posts in a feed reader <em>(feed.xml, updated whenever you save a post)</em></span></label>
+                        <p class="lp-status" id="feed-status" role="status"></p>
                         <div class="row-actions">
                             <button class="btn" data-action="lp-update" id="lp-update"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Update link preview</button>
                             <button class="btn btn-ghost" data-action="lp-download" id="lp-download" hidden><i class="fa-solid fa-download" aria-hidden="true"></i> Download index.html</button>
@@ -940,7 +953,7 @@
             <a href="#/about">About</a>
         </nav>
         <div class="social-icons" id="footer-social"></div>
-        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.17</a></p>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.18</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
     </div>
 </footer>
 
