@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.16 · admin.js                                         ║
+ ║  NEERG 7.0.17 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home page, links and cleanup.    ║
  ║  logic.js loads this the first time Admin opens, so visitors     ║
@@ -142,7 +142,7 @@ function renderManagePosts() {
         const title = excerpt(p.content, 90);
         const editing = editingPostId === p.id;
         return '<div class="m-row" data-id="' + p.id + '">'
-            + '<div class="m-thumb">' + (thumb ? '<img src="' + esc(thumb) + '" alt="" loading="lazy">' : '<i class="fa-solid fa-align-left" aria-hidden="true"></i>') + '</div>'
+            + '<div class="m-thumb">' + (thumb ? '<img src="' + esc(thumbOf(thumb)) + '" alt="" loading="lazy">' : '<i class="fa-solid fa-align-left" aria-hidden="true"></i>') + '</div>'
             + '<div class="m-body"><span class="m-title' + (title ? '' : ' is-muted') + '">' + (title ? esc(title) : 'No caption') + '</span>'
             + '<span class="m-meta"><span>' + esc(formatDate(p)) + '</span>' + (p.pinned ? '<span class="pin">Pinned</span>' : '')
             + '<span><i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' + (ints.likes || 0) + '</span><span><i class="fa-solid fa-thumbs-down" aria-hidden="true"></i> ' + (ints.dislikes || 0) + '</span>'
@@ -251,7 +251,7 @@ function renderComicsAdmin() {
         const cover = comicCover(c);
         const editing = editingComicId === c.id;
         return '<div class="m-row" data-id="' + c.id + '">'
-            + '<div class="m-thumb">' + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy">' : '<i class="fa-solid fa-book" aria-hidden="true"></i>') + '</div>'
+            + '<div class="m-thumb">' + (cover ? '<img src="' + esc(thumbOf(cover)) + '" alt="" loading="lazy">' : '<i class="fa-solid fa-book" aria-hidden="true"></i>') + '</div>'
             + '<div class="m-body"><span class="m-title">' + esc(c.title || 'Untitled') + '</span><span class="m-meta"><span>' + plural((c.pages || []).length, 'page') + '</span>' + (c.date ? '<span>' + esc(c.date) + '</span>' : '') + '</span>'
             + ((c.tags || []).length ? '<span class="m-tags">' + c.tags.map(t => '<span>' + esc(t) + '</span>').join('') + '</span>' : '') + '</div>'
             + '<div class="m-actions"><button class="btn small" data-action="open-add-pages" data-id="' + c.id + '"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add pages</button>'
@@ -405,6 +405,9 @@ function populateSiteForm() {
     populateAotdForm();
     set('s-like-label', c.likeLabel); set('s-dislike-label', c.dislikeLabel);
     set('s-title', c.metaTitle); set('s-desc', c.metaDescription);
+    const lp = lpSettings();
+    set('lp-pic', lp.pic); set('lp-pic-url', lp.picUrl); set('lp-icon', lp.icon); set('lp-icon-url', lp.iconUrl);
+    linkPreviewSoon();
     set('s-bgimage', c.bgImage); set('s-css', c.customCss); set('s-newkey', '');
     chk('s-webp', c.webpUploads !== false);
 }
@@ -423,6 +426,7 @@ async function saveSiteSettings() {
     if (byId('aotd-tiles') && Aotd.draft) { c.artOfToday = byId('s-aotd').checked; c.aotd = aotdFormSettings(); delete c.aotdColor; Aotd.draft = clone(c.aotd); }
     c.likeLabel = byId('s-like-label').value; c.dislikeLabel = byId('s-dislike-label').value;
     c.metaTitle = val('s-title'); c.metaDescription = val('s-desc');
+    c.linkPreview = Object.assign({}, c.linkPreview, lpFormSettings());
     c.bgImage = val('s-bgimage'); c.customCss = byId('s-css').value;
     c.webpUploads = byId('s-webp').checked;
     if (c.aboutBio) try { localStorage.setItem(KEYS.bio, c.aboutBio); } catch (e) {}
@@ -432,10 +436,11 @@ async function saveSiteSettings() {
         const token = await requestTokenGeneration(newKey, sessionPassword);
         dismissToast(t);
         if (token) { globalAuthToken = token; byId('s-newkey').value = ''; showToast('Neocities key updated'); }
-        else { showToast('That key didn\'t work, so nothing was saved.', 'error'); return; }
+        else { showToast('That key didn\'t work, so nothing was saved.', 'error'); return false; }
     }
     applyVisualConfig(); renderHome();
     saveSystem();
+    return true;
 }
 
 async function uploadIntoField(input) {
@@ -540,7 +545,7 @@ function refreshTierThumb(row) {
     const img = safeUrl($('[name="image"]', row).value.trim());
     const name = $('[name="name"]', row).value.trim();
     row.style.setProperty('--tc', $('[name="color"]', row).value);
-    $('.tier-thumb', row).innerHTML = img ? '<img src="' + esc(img) + '" alt="">' : '<span>' + esc(name.charAt(0).toUpperCase() || '?') + '</span>';
+    $('.tier-thumb', row).innerHTML = img ? '<img src="' + esc(thumbOf(img)) + '" alt="">' : '<span>' + esc(name.charAt(0).toUpperCase() || '?') + '</span>';
 }
 function addTier() {
     const tiers = readTierRows();
@@ -790,7 +795,7 @@ function populateSliderForm() {
     (s.own.length ? s.own : [{ img: '', link: '' }]).forEach(o => addSliderOwnRow(o.img, o.link));
     const art = sortPosts(postsCache, 'newest').filter(p => firstImage(p));
     byId('sl-picks').innerHTML = art.length
-        ? art.map(p => '<button type="button" data-action="sl-pick" data-id="' + p.id + '" aria-pressed="' + sliderPicks.includes(String(p.id)) + '" aria-label="' + esc(postTitle(p)) + '"><img src="' + esc(firstImage(p)) + '" alt="" loading="lazy"></button>').join('')
+        ? art.map(p => '<button type="button" data-action="sl-pick" data-id="' + p.id + '" aria-pressed="' + sliderPicks.includes(String(p.id)) + '" aria-label="' + esc(postTitle(p)) + '"><img src="' + esc(thumbOf(firstImage(p))) + '" alt="" loading="lazy"></button>').join('')
         : '<p class="hint">No image posts yet.</p>';
     syncSliderForm();
 }
@@ -834,7 +839,7 @@ function openPicker(targetId) {
     byId('picker-heading').textContent = 'Choose an image';
     const imgs = [];
     sortPosts(postsCache, 'oldest').reverse().forEach(p => mediaList(p).forEach(u => { if (getMediaType(u) === 'image') imgs.push(u); }));
-    byId('picker-grid').innerHTML = imgs.length ? imgs.map(u => '<button type="button" data-action="pick-this" data-url="' + esc(u) + '"><img src="' + esc(u) + '" alt="" loading="lazy"></button>').join('') : '<p class="hint">No image posts yet.</p>';
+    byId('picker-grid').innerHTML = imgs.length ? imgs.map(u => '<button type="button" data-action="pick-this" data-url="' + esc(u) + '"><img src="' + esc(thumbOf(u)) + '" alt="" loading="lazy"></button>').join('') : '<p class="hint">No image posts yet.</p>';
     Modals.open(byId('picker-modal'));
 }
 
@@ -890,7 +895,7 @@ function openCleanupPanel() {
     byId('cleanup-log').innerHTML = '<div class="log-entry dim">Nothing run yet.</div>';
     $$('#cleanup-modal .tool-grid .btn').forEach(b => b.classList.remove('is-done', 'is-running'));
     refreshCleanupStats();
-    renderShrink();
+    renderShrink(); renderPreviews();
     Modals.open(byId('cleanup-modal'));
 }
 function refreshCleanupStats() {
@@ -1027,6 +1032,13 @@ function swapImageRefs(map) {
         if (p.content) olds.forEach(o => { if (p.content.includes(o)) p.content = p.content.split(o).join(map[o]); });
     });
     comicsCache.forEach(cm => { if (cm.pages) cm.pages = cm.pages.map(sw); if (cm.cover) cm.cover = sw(cm.cover); });
+    // A picture's small copy still shows the same picture, so it moves to the new name
+    const swKeys = m => Object.fromEntries(Object.entries(m).map(([k, v]) => [sw(k), v]));
+    postsCache.forEach(p => { if (p.previews) p.previews = swKeys(p.previews); });
+    comicsCache.forEach(cm => { if (cm.previews) cm.previews = swKeys(cm.previews); });
+    if (currentConfig.previews) currentConfig.previews = swKeys(currentConfig.previews);
+    olds.forEach(o => { if (freshPreviews.has(o)) { freshPreviews.set(map[o], freshPreviews.get(o)); freshPreviews.delete(o); } });
+    previewIndex = null;
     const c = currentConfig;
     ['pfpImage', 'bgImage', 'bannerImage'].forEach(k => { if (c[k]) c[k] = sw(c[k]); });
     const b = bannerSettings();
@@ -1101,6 +1113,288 @@ async function runShrink() {
     Shrink.running = false;
     byId('shrink-progress').hidden = true; byId('shrink-stop').hidden = true;
     renderShrink(); refreshCleanupStats();
+}
+
+
+/* ═════════════════════════════════════════════
+   CLEAN UP: SMALL PREVIEWS
+   Makes the small copies (see PREVIEWS in logic.js) for pictures uploaded before
+   previews existed. The full pictures are left as they are.
+   ═════════════════════════════════════════════ */
+
+const Previews = { running: false, stop: false };
+
+// Where a picture lives on the site, as an upload path: "img/a.png" as stored (minus any ?query), or the path of a full link to this site
+function uploadPathOf(u) {
+    const s = String(u || '').trim();
+    return /^[a-z][a-z0-9+.-]*:|^\/\//i.test(s) ? siteImagePath(s) : s.split(/[?#]/)[0].replace(/^\.?\//, '');
+}
+// Pictures stored on this site that could have a small copy but don't yet (minus ones an earlier run couldn't do)
+function previewlessRefs() {
+    const skipped = readJSON(KEYS.previewSkipped, []) || [], refs = new Set();
+    const add = u => { if (typeof u === 'string' && PREVIEWABLE.test(uploadPathOf(u)) && thumbOf(u) === u && !skipped.includes(u)) refs.add(u); };
+    postsCache.forEach(p => mediaList(p).forEach(add));
+    comicsCache.forEach(c => { (c.pages || []).forEach(add); add(c.cover); });
+    configImageRefs().forEach(add);
+    return [...refs];
+}
+
+function renderPreviews() {
+    const refs = previewlessRefs();
+    byId('pv-info').textContent = refs.length
+        ? plural(refs.length, 'picture') + ' on your site ' + (refs.length === 1 ? 'has' : 'have') + ' no small preview yet. This makes small copies for cards, boards and sliders, so pages load faster. Your full pictures stay exactly as they are.'
+        : 'Every picture that can have a small preview has one.';
+    byId('pv-start').disabled = !refs.length || Previews.running;
+}
+
+async function runPreviews() {
+    if (Previews.running) return;
+    if (isLocalMode()) { showToast('Connect your site to Neocities first, so the copies can be uploaded.', 'error'); return; }
+    const refs = previewlessRefs();
+    if (!refs.length) return;
+    if (!await askConfirm('Your full pictures stay as they are. Keep this tab open until it finishes.', { title: 'Make small previews of ' + plural(refs.length, 'picture') + '?', yes: 'Make previews' })) return;
+    Previews.running = true; Previews.stop = false;
+    const bar = byId('pv-bar'), txt = byId('pv-text'), count = byId('pv-count');
+    byId('pv-progress').hidden = false; byId('pv-stop').hidden = false; byId('pv-start').disabled = true;
+    cleanupLog('Making previews for ' + plural(refs.length, 'picture'), 'info');
+    const small = [], byPath = new Map();
+    let made = 0, failed = 0, missing = 0;
+    for (let i = 0; i < refs.length && !Previews.stop; i++) {
+        const ref = refs[i], path = uploadPathOf(ref);
+        txt.textContent = 'Making a preview of ' + path.split('/').pop();
+        count.textContent = (i + 1) + ' of ' + refs.length;
+        bar.style.width = (i / refs.length * 100) + '%';
+        // Posts that share a file share its copy
+        if (byPath.has(path)) { const r = byPath.get(path); if (r === 'ok') freshPreviews.set(ref, previewPath(path)); else if (r !== 'fail') small.push(ref); continue; }
+        try {
+            const res = await fetch(new URL(ref, location.href), { cache: 'no-store' });
+            if (!res.ok) { missing++; small.push(ref); byPath.set(path, 'missing'); continue; }
+            const r = await addPreview(await res.blob(), path, ref);
+            byPath.set(path, r);
+            if (r === 'ok') made++;
+            else if (r === 'skip') small.push(ref);
+            else if (++failed >= 3 && !made) { cleanupLog('Stopped: the first few uploads failed. Check your connection, then try again.', 'error'); break; }
+        } catch (e) { failed++; }
+    }
+    bar.style.width = '100%';
+    if (made) {
+        txt.textContent = 'Saving your posts';
+        renderHome(); renderComics(); renderGallery();
+        await savePosts(); await saveComics(); await saveSystem();
+        cleanupLog('Made ' + plural(made, 'small preview'), 'success');
+    }
+    if (small.length) {
+        writeJSON(KEYS.previewSkipped, (readJSON(KEYS.previewSkipped, []) || []).concat(small));
+        if (small.length > missing) cleanupLog('Left ' + plural(small.length - missing, 'picture') + ' without a preview because ' + (small.length - missing === 1 ? 'it is' : 'they are') + ' small already or animated', 'info');
+    }
+    if (missing) cleanupLog('Skipped ' + plural(missing, 'picture') + ' not found on your site', 'info');
+    if (failed) cleanupLog(plural(failed, 'preview') + ' didn\'t upload. Run it again to try those again.', 'error');
+    if (Previews.stop) cleanupLog('Stopped early. Run it again any time to finish the rest.', 'info');
+    Previews.running = false;
+    byId('pv-progress').hidden = true; byId('pv-stop').hidden = true;
+    renderPreviews();
+}
+
+
+/* ═════════════════════════════════════════════
+   ADMIN: LINK PREVIEW AND TAB ICON
+   Discord, Bluesky, X and message apps read a link's title, text and picture from the page's own HTML,
+   and browsers read the tab icon from it too, so these live in index.html between the Link preview
+   markers. Updating draws a preview card and icons, uploads them to img/, and rewrites only the lines
+   between the markers on your site. Installing a newer index.html puts the plain lines back, so the
+   dashboard offers to write them again after an update.
+   ═════════════════════════════════════════════ */
+
+const LP_START = '<!-- Link preview:', LP_END = '<!-- /Link preview -->';
+const LP_FILES = { card: 'img/link-preview.jpg', icon: 'img/favicon.png', touch: 'img/apple-touch-icon.png' };
+let lpPage = '', lpTimer = 0, lpDraw = 0, lpWarned = false;
+const lpBitmaps = new Map(); // pictures already read, so typing in the form doesn't read them again
+
+function lpSettings() { return Object.assign({ pic: 'newest', picUrl: '', icon: 'pfp', iconUrl: '' }, currentConfig.linkPreview || {}); }
+function lpFormSettings() {
+    const v = id => byId(id) ? (byId(id).value || '').trim() : '';
+    return { pic: v('lp-pic') || 'newest', picUrl: v('lp-pic-url'), icon: v('lp-icon') || 'pfp', iconUrl: v('lp-icon-url') };
+}
+// The newest piece skips sensitive ones, so a shared link never shows them
+function lpPicture(s) {
+    if (s.pic === 'pfp') return safeUrl(currentConfig.pfpImage);
+    if (s.pic === 'own') return safeUrl(s.picUrl);
+    const p = sortPosts(postsCache.filter(x => firstImage(x) && !isNsfw(x)), 'newest')[0];
+    return p ? safeUrl(firstImage(p)) : safeUrl(currentConfig.pfpImage);
+}
+function lpIconPicture(s) { return s.icon === 'pic' ? lpPicture(s) : s.icon === 'own' ? safeUrl(s.iconUrl) : safeUrl(currentConfig.pfpImage); }
+function lpText() { const c = currentConfig; return { title: c.metaTitle || siteName(), desc: c.metaDescription || c.tagline || '' }; }
+function siteBase() { return location.origin + location.pathname.replace(/[^/]*$/, ''); }
+// What the preview shows, to tell when the live one is out of date
+function lpSignature(s) { const t = lpText(); return JSON.stringify([t.title, t.desc, siteName(), lpPicture(s), lpIconPicture(s)]); }
+function lpLiveStamp() { const m = $('meta[name="neerg-preview"]'); return m ? m.getAttribute('content') : ''; }
+// This page was loaded before the update, so it learns the new stamp here
+function lpMarkLive(v) {
+    let m = $('meta[name="neerg-preview"]');
+    if (!m) { m = document.createElement('meta'); m.name = 'neerg-preview'; document.head.appendChild(m); }
+    m.content = String(v);
+}
+
+function lpBitmap(url) {
+    if (!url) return Promise.resolve(null);
+    if (!lpBitmaps.has(url)) {
+        if (lpBitmaps.size > 6) lpBitmaps.clear();
+        lpBitmaps.set(url, fetch(new URL(url, location.href)).then(res => {
+            if (!res.ok) throw new Error('missing');
+            return res.blob();
+        }).then(b => createImageBitmap(b, { imageOrientation: 'from-image' })).catch(e => { lpBitmaps.delete(url); throw e; }));
+    }
+    return lpBitmaps.get(url);
+}
+function lpCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function drawCover(cx, bmp, x, y, w, h) {
+    const s = Math.max(w / bmp.width, h / bmp.height), dw = bmp.width * s, dh = bmp.height * s;
+    cx.drawImage(bmp, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+}
+function canvasBlob(c, type, q) { return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('draw')), type, q)); }
+// 1200 x 630, the size link previews use: the picture whole, on a blurred and dimmed copy of itself
+function lpCard(bmp) {
+    const c = lpCanvas(1200, 630), cx = c.getContext('2d'), pal = paletteFor('dark');
+    cx.imageSmoothingQuality = 'high';
+    if (bmp) {
+        // A soft blurred copy fills the card: a real blur where the browser has one, else a tiny copy enlarged in steps
+        if ('filter' in cx) { cx.filter = 'blur(40px)'; drawCover(cx, bmp, -80, -80, 1360, 790); cx.filter = 'none'; }
+        else {
+            const src = lpCanvas(30, 16);
+            drawCover(src.getContext('2d'), bmp, 0, 0, 30, 16);
+            const mid = lpCanvas(150, 79), mx = mid.getContext('2d');
+            mx.imageSmoothingQuality = 'high'; mx.drawImage(src, 0, 0, 150, 79);
+            cx.drawImage(mid, -40, -40, 1280, 710);
+        }
+        cx.fillStyle = 'rgba(0,0,0,.45)'; cx.fillRect(0, 0, 1200, 630);
+        const s = Math.min(1080 / bmp.width, 550 / bmp.height), w = bmp.width * s, h = bmp.height * s;
+        cx.shadowColor = 'rgba(0,0,0,.55)'; cx.shadowBlur = 40; cx.shadowOffsetY = 14;
+        cx.drawImage(bmp, (1200 - w) / 2, (630 - h) / 2, w, h);
+    } else {
+        cx.fillStyle = pal.bg; cx.fillRect(0, 0, 1200, 630);
+        cx.fillStyle = pal.accent; cx.font = '800 120px system-ui, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+        cx.fillText(siteName(), 600, 315, 1080);
+    }
+    return c;
+}
+// A square icon cut from the middle of the picture, round for the tab; the first letter of the site name without one
+function lpIcon(bmp, size, round) {
+    const c = lpCanvas(size, size), cx = c.getContext('2d'), accent = paletteFor('dark').accent;
+    if (round) { cx.beginPath(); cx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2); cx.clip(); }
+    cx.imageSmoothingQuality = 'high';
+    if (bmp) drawCover(cx, bmp, 0, 0, size, size);
+    else {
+        cx.fillStyle = accent; cx.fillRect(0, 0, size, size);
+        cx.fillStyle = inkFor(accent); cx.font = '800 ' + Math.round(size * .6) + 'px system-ui, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+        cx.fillText(siteName().trim().charAt(0).toUpperCase() || 'N', size / 2, size / 2 + size * .04);
+    }
+    return c;
+}
+async function lpPictures(s) {
+    const load = async url => { try { return await lpBitmap(url); } catch (e) { return url ? 'blocked' : null; } };
+    return { pic: await load(lpPicture(s)), icon: await load(lpIconPicture(s)) };
+}
+
+function linkPreviewSoon() { clearTimeout(lpTimer); lpTimer = setTimeout(renderLinkPreview, 250); }
+async function renderLinkPreview() {
+    if (!byId('lp-pic')) return;
+    const s = lpFormSettings(), draw = ++lpDraw;
+    byId('lp-pic-field').hidden = s.pic !== 'own';
+    byId('lp-icon-field').hidden = s.icon !== 'own';
+    // The form's title and description, as they would be saved
+    const title = (byId('s-title').value || '').trim() || (byId('s-sitename').value || '').trim() || siteName();
+    const desc = (byId('s-desc').value || '').trim() || (byId('s-tagline').value || '').trim();
+    byId('lp-tab-title').textContent = title;
+    byId('lp-card-site').textContent = location.host || siteName();
+    byId('lp-card-title').textContent = title;
+    byId('lp-card-desc').textContent = desc;
+    const pics = await lpPictures(s);
+    if (draw !== lpDraw) return;
+    const bad = pics.pic === 'blocked' || pics.icon === 'blocked';
+    byId('lp-card-img').src = lpCard(pics.pic === 'blocked' ? null : pics.pic).toDataURL('image/jpeg', .8);
+    byId('lp-tab-icon').src = lpIcon(pics.icon === 'blocked' ? null : pics.icon, 64, true).toDataURL('image/png');
+    renderLinkPreviewStatus(bad ? 'That picture is on another website, so it can\'t be used here. Upload it instead.' : '');
+}
+function renderLinkPreviewStatus(note) {
+    const lp = lpSettings(), st = byId('lp-status'); if (!st) return;
+    let text;
+    if (note) text = note;
+    else if (!lp.v) text = 'Not set up yet: links to your site show no picture.';
+    else if (lpLiveStamp() !== String(lp.v)) text = 'Your link preview isn\'t on your site right now. Installing an update does this. Press Update link preview to put it back.';
+    else if (lp.sig !== lpSignature(Object.assign({}, lp, lpFormSettings()))) text = 'Your link preview shows older details. Press Update link preview to use these.';
+    else text = 'Live on your site since ' + new Date(lp.v).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + '. Sites like Discord can take a while to notice a change.';
+    st.textContent = text;
+    byId('lp-download').hidden = !lpPage;
+}
+
+// The lines between the markers, for this site's address
+function lpBlock(v) {
+    const t = lpText(), base = siteBase(), q = '?v=' + v;
+    const m = (key, val, attr) => '    <meta ' + (attr || 'property') + '="' + key + '" content="' + esc(val) + '">';
+    return [LP_START + ' Admin › Site info › Search and sharing rewrites the lines from here to the end marker on your site -->',
+        '    <title>' + esc(t.title) + '</title>',
+        m('description', t.desc, 'name'),
+        m('og:type', 'website'), m('og:site_name', siteName()), m('og:title', t.title), m('og:description', t.desc), m('og:url', base),
+        m('og:image', base + LP_FILES.card + q), m('og:image:width', '1200'), m('og:image:height', '630'), m('og:image:alt', 'Art from ' + siteName()),
+        m('twitter:card', 'summary_large_image', 'name'),
+        '    <link rel="icon" type="image/png" href="' + LP_FILES.icon + q + '">',
+        '    <link rel="apple-touch-icon" href="' + LP_FILES.touch + q + '">',
+        m('neerg-preview', String(v), 'name'),
+        '    ' + LP_END].join('\n');
+}
+// The site's own address, not /index.html, which Neocities redirects (dropping the ?tag that skips its cache)
+const freshPage = tag => fetch(siteBase() + '?' + tag + '=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').catch(() => '');
+// Rewrites the lines between the markers in the site's index.html, then reads it back to be sure
+async function lpWritePage(v) {
+    const html = await freshPage('read');
+    const a = html.indexOf(LP_START), b = html.indexOf(LP_END);
+    if (a < 0 || b < a || html.indexOf(LP_START, a + 1) >= 0 || html.indexOf(LP_END, b + 1) >= 0 || !/logic\.js/.test(html) || !/<\/html>\s*$/i.test(html)) return 'old';
+    lpPage = html.slice(0, a) + lpBlock(v) + html.slice(b + LP_END.length);
+    const r = await uploadToBridge('page', { content: lpPage, quiet: true });
+    if (!r.success) return 'refused';
+    const stamp = 'name="neerg-preview" content="' + v + '"';
+    for (let i = 0; i < 3; i++) { await wait(1200 * i); if ((await freshPage('check')).includes(stamp)) { lpPage = ''; return 'ok'; } }
+    return 'unchecked';
+}
+
+let lpBusy = false;
+async function updateLinkPreview() {
+    if (lpBusy) return;
+    if (isLocalMode()) { showToast('Connect your site to Neocities first, so the files can be uploaded.', 'error'); return; }
+    lpBusy = true; byId('lp-update').disabled = true;
+    const t = showToast('Updating your link preview', 'loading');
+    try {
+        // The preview uses what the form shows, so save the form first
+        if (!await saveSiteSettings()) return;
+        const s = lpSettings();
+        const pics = await lpPictures(s);
+        if (pics.pic === 'blocked' || pics.icon === 'blocked') { renderLinkPreviewStatus('That picture is on another website, so it can\'t be used here. Upload it instead.'); return; }
+        const files = [[LP_FILES.card, await canvasBlob(lpCard(pics.pic), 'image/jpeg', .88)], [LP_FILES.icon, await canvasBlob(lpIcon(pics.icon, 64, true), 'image/png')], [LP_FILES.touch, await canvasBlob(lpIcon(pics.icon, 180, false), 'image/png')]];
+        for (const [path, blob] of files) {
+            const r = await uploadToBridge('media_only', { mediaFile: new File([blob], path.split('/').pop(), { type: blob.type }), mediaPath: path, quiet: true });
+            if (!r.success) { showToast('Couldn\'t upload the preview pictures. ' + (r.message || 'Try again.'), 'error'); return; }
+        }
+        const v = Date.now(), result = await lpWritePage(v);
+        if (result === 'old') { renderLinkPreviewStatus('Your index.html is from an older NEERG, so it has no place for a link preview. Install the newest index.html first.'); return; }
+        currentConfig.linkPreview = Object.assign({}, s, { v, sig: lpSignature(s) });
+        await saveSystem();
+        if (result !== 'refused') lpMarkLive(v);
+        if (result === 'ok') { showToast('Link preview updated'); renderLinkPreviewStatus(''); }
+        else renderLinkPreviewStatus(result === 'refused'
+            ? 'Your site didn\'t let Admin change index.html. Download it here and upload it to your Neocities dashboard to finish.'
+            : 'Your site hasn\'t shown the new index.html yet. If links still show no picture in a few minutes, download it here and upload it to your Neocities dashboard.');
+    } finally {
+        dismissToast(t); lpBusy = false; byId('lp-update').disabled = false;
+    }
+}
+function downloadLinkPreviewPage() { if (lpPage) downloadFile(lpPage, 'index.html'); }
+
+// After logging in: an index.html update puts the plain lines back, so say how to restore the preview
+function checkLinkPreview() {
+    const lp = lpSettings();
+    if (lpWarned) return;
+    lpWarned = true;
+    if (lp.v && lpLiveStamp() !== String(lp.v)) showToast('Your link preview isn\'t on your site right now. Put it back in Site info › Search and sharing.', 'info');
 }
 
 

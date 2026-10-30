@@ -1,4 +1,4 @@
-# NEERG 7.0.16
+# NEERG 7.0.17
 ### A fork of [LBM — Leaflet Blog Manager](https://lbm-test.neocities.org) by applesaucy
 
 > Self-hosted digital art archive for Neocities. Post your art, comics and commission info, all managed from your browser. No code editing needed.
@@ -32,6 +32,9 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Clean Up Tool:** Storage overview plus tools to trim, de-duplicate and compact your data
 - **Smaller Images:** PNG and JPG uploads are saved as WebP automatically, and **Clean up → Shrink images** converts the ones already on your site (then lists the old files to delete on Neocities)
 - **Faster Posting:** Paste an image straight into the post editor, or bulk upload many images as separate posts
+- **Small Previews:** Every picture you upload also gets a small copy (in `img/p/`) that cards, tiles, boards, sliders and covers show, so pages load much faster; opening a piece shows the full picture. **Clean up → Small previews** makes them for pictures posted before. If a copy is ever missing, the full picture shows instead
+- **Boards in Batches:** Big boards show 48 pictures at a time with a **Show more** button, and the pictures already on screen stay where they are
+- **Link Previews and Tab Icon:** In **Site info → Search and sharing**, pick the picture that shows when someone shares your link on Discord, Bluesky, X or in a text message, and the icon in the browser tab, with a live mock-up. **Update link preview** writes them into your site's `index.html`; if your site won't let Admin change that file, it hands you the finished file to upload yourself. Installing an update resets it, and the dashboard reminds you to put it back
 - **Accessibility:** Keyboard navigation, screen reader labels and a skip-to-content link
 - **Hold to Delete:** Deleting a post, comic, comment or commission tier (and the big Clean up erases) takes a one-second press and hold, by mouse, finger or the Enter key, so nothing goes by accident. Other questions use the same pop-up with a normal button
 - **Button Tooltips:** Icon-only buttons show their name when you hover over them or tab to them. The first one waits a moment, then the next ones appear right away
@@ -78,8 +81,9 @@ your-neocities-site/
 ├── posts.js            ← auto-generated when you post
 ├── comics.js           ← auto-generated when you add a comic
 ├── interactions.js     ← auto-generated on first like/comment
-└── img/                ← uploaded images stored here
-    └── comics/         ← comic pages stored here
+└── img/                ← uploaded images stored here (plus link-preview.jpg, favicon.png and apple-touch-icon.png)
+    ├── p/              ← small preview copies
+    └── comics/         ← comic pages stored here (small copies in comics/p/)
 ```
 
 Only the files above `system.js` live in this repository. The rest are created on your Neocities site by the Admin page. A one-file site has only `index.html` from the top part; its other code files load from jsDelivr.
@@ -100,7 +104,7 @@ All visual customization is done through the **Admin** dashboard. No code editin
 | **Posts** | Find, edit, pin and delete existing posts |
 | **Comics** | Create comics, reorder pages by dragging, add new pages later |
 | **Commissions** | The open/closed switch, status badge, tiers (example art, price, notes, color), terms, request link, hazard-tape words and poster colors |
-| **Site info** | Site name, tagline, profile picture, About page cover design, bio, age check, comments, reactions, featured posts, recommended comic, Art of Today pop-up, search engine description |
+| **Site info** | Site name, tagline, profile picture, About page cover design, bio, age check, comments, reactions, featured posts, recommended comic, Art of Today pop-up, search engine description, link preview picture and tab icon |
 | **Colors & style** | Dark and light palettes, presets, color generator, reaction button colors, profile ring |
 | **Home page** | Header images (latest posts or your own picks), the scrolling text band and the side sliders |
 | **Social links** | Links shown on the header, About page, Commissions page and footer |
@@ -130,7 +134,7 @@ For deeper edits:
 ## Credits
 
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
-- **This fork:** NEERG 7.0.16 by [Neerg18](https://github.com/Neerg18)
+- **This fork:** NEERG 7.0.17 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
 - **Icons:** [Font Awesome Free 6.7.2](https://fontawesome.com) (icons CC BY 4.0, fonts SIL OFL 1.1, code MIT), trimmed to the icons this site uses
 - **Markdown:** [marked 15.0.12](https://github.com/markedjs/marked) (MIT)

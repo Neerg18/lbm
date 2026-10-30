@@ -8,8 +8,14 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.17 · 2026-10-30
+**Faster pictures, big boards in batches, and link previews**
+- **Small previews:** every picture you upload now also gets a small copy, about a quarter of the size. Cards, Recent works, boards, sliders, comic covers and profile pictures show the small copy, so pages load much faster. Opening a piece still shows the full picture. For pictures you posted before, press **Clean up → Make small previews** once. If a small copy is ever missing, the full picture shows instead.
+- **Boards in batches:** big boards show 48 pictures at a time, with a **Show more** button for the rest. The pictures already on screen stay where they are.
+- **Link previews and tab icon:** in **Site info → Search and sharing**, choose the picture that shows when someone shares a link to your site (Discord, Bluesky, X, text messages) and the little icon in the browser tab. A mock-up shows how both will look. **Update link preview** puts them on your site. If your site doesn't let Admin change `index.html`, it gives you the finished file to upload in your Neocities dashboard. Installing a NEERG update resets the link preview, and the dashboard reminds you to put it back.
+
 ## 7.0.16 · 2026-10-25
-**Smoother hovering and a lighter home page**
+**Smoother hovering and a lighter home page** · [#18](https://github.com/Neerg18/lbm/pull/18) · [code](https://github.com/Neerg18/lbm/tree/9aabc06)
 - Pointing at Gallery boards, Comics and the pictures inside a board no longer makes the page stutter. The cards and pictures still lift, tilt and cast a shadow the same way, but the computer now moves them in one piece instead of redrawing them for every frame. In tests that cut the drawing work by about 8 times on Gallery boards and by over 100 times inside a board.
 - The moving grid lines and the scanning light in the home page's featured frame work the same way now. The home page uses about a tenth of the drawing work it did while you're just looking at it.
 - Nothing looks different.

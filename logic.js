@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.16 · logic.js                                         ║
+ ║  NEERG 7.0.17 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.16';
+const NEERG_VERSION = '7.0.17';
 // Where the code files live: beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // admin.js, about.js and about.css load from the same place as this file.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
@@ -47,11 +47,13 @@ const KEYS = {
     comicProgress: 'neerg_comic_progress',
     shrinkLeftovers: 'neerg_shrink_leftovers',
     shrinkSkipped: 'neerg_shrink_skipped',
+    previewSkipped: 'neerg_preview_skipped',
     aotdSeen: 'neerg_aotd_seen'
 };
 
 const AGE_OK_DAYS = 30;
 const FEED_STEP = 12;
+const BOARD_STEP = 48;
 const PRESET_TAGS = ['SFW', 'NSFW', 'Sketch', 'Commissions', 'Animation', 'Fanart', 'OC', 'WIP'];
 const VIEWS = ['home', 'gallery', 'comics', 'commissions', 'about', 'admin'];
 
@@ -197,7 +199,7 @@ let currentConfig = {
 const ui = {
     view: null,
     feed: { tag: 'all', q: '', sort: 'newest', limit: FEED_STEP, cols: 1 },
-    gallery: { mode: 'boards', board: null },
+    gallery: { mode: 'boards', board: null, limit: BOARD_STEP },
     revealed: new Set(),
     post: { id: null, img: 0, list: [], pushed: false },
     viewer: { list: [], i: 0 },
@@ -821,7 +823,7 @@ function applyVisualConfig() {
         const fb = fbId ? byId(fbId) : null;
         if (pfp) {
             img.onerror = () => { img.hidden = true; if (fb) fb.hidden = false; };
-            img.src = pfp; img.hidden = false; if (fb) fb.hidden = true;
+            img.src = thumbOf(pfp); img.hidden = false; if (fb) fb.hidden = true;
         } else { img.hidden = true; img.removeAttribute('src'); if (fb) fb.hidden = false; }
     });
 
@@ -906,7 +908,7 @@ function renderCommissions() {
     byId('cm-terms-text').innerHTML = terms ? md(terms) : '';
     const pic = safeUrl(cp.termsImage || currentConfig.pfpImage || '');
     const pi = byId('cm-terms-pic');
-    if (pic) { pi.onerror = () => { pi.hidden = true; }; pi.src = pic; pi.hidden = false; }
+    if (pic) { pi.onerror = () => { pi.hidden = true; }; pi.src = thumbOf(pic); pi.hidden = false; }
     else { pi.hidden = true; pi.removeAttribute('src'); }
 }
 
@@ -930,7 +932,7 @@ function tierCardHTML(t, i) {
     if (img) {
         galleryLists.tiers.push({ url: img, type: 'image', postId: null });
         art = '<button type="button" class="cm-art" data-action="open-viewer" data-list="tiers" data-index="' + (galleryLists.tiers.length - 1) + '" aria-label="See the ' + esc(name) + ' example full size">'
-            + '<img src="' + esc(img) + '" alt="" loading="lazy" decoding="async"></button>';
+            + '<img src="' + esc(thumbOf(img)) + '" alt="" loading="lazy" decoding="async"></button>';
     } else {
         art = '<div class="cm-art is-empty" aria-hidden="true"><span>' + esc(name.charAt(0).toUpperCase()) + '</span></div>';
     }
@@ -1175,7 +1177,7 @@ function aboutData() {
     const dated = p => Number(p.id) > 1e12 ? new Date(Number(p.id)) : null;
     const posts = postsCache.filter(p => firstImage(p) && !(cfg.blurNsfw && isNsfw(p))).sort((a, b) => b.id - a.id).slice(0, 6).map(p => {
         const d = dated(p), no = nos.get(p.id);
-        return { id: p.id, img: safeUrl(firstImage(p)), no, label: excerpt(p.content, 48) || 'No.' + no, tag: stampTag(p), date: formatDate(p), md: d ? two(d.getMonth() + 1) + '.' + two(d.getDate()) : '', year: d ? String(d.getFullYear()) : '' };
+        return { id: p.id, img: safeUrl(thumbOf(firstImage(p))), no, label: excerpt(p.content, 48) || 'No.' + no, tag: stampTag(p), date: formatDate(p), md: d ? two(d.getMonth() + 1) + '.' + two(d.getDate()) : '', year: d ? String(d.getFullYear()) : '' };
     });
     const years = postsCache.map(dated).filter(Boolean).map(d => d.getFullYear());
     const newest = postsCache.map(dated).filter(Boolean).sort((a, b) => b - a)[0];
@@ -1364,7 +1366,7 @@ function renderHero() {
     }
     strip.innerHTML = panels.map((p, i) => {
         if (!p.url) return '<div class="hero-panel is-empty" style="--i:' + i + '"></div>';
-        const img = '<img src="' + esc(p.url) + '" alt="" decoding="async"' + (i > 1 ? ' loading="lazy"' : '') + '>';
+        const img = '<img src="' + esc(thumbOf(p.url)) + '" alt="" decoding="async"' + (i > 1 ? ' loading="lazy"' : '') + '>';
         if (p.id == null) return '<div class="hero-panel" style="--i:' + i + '">' + img + '</div>';
         return '<a class="hero-panel" style="--i:' + i + '" href="#/post/' + p.id + '" data-action="open-post" data-id="' + p.id + '" aria-label="Open recent work ' + (i + 1) + '">' + img + '</a>';
     }).join('');
@@ -1406,7 +1408,7 @@ function showFeatured() {
     const run = esc(Array(reps).fill(title.toUpperCase() + ' ✦ ').join(''));
     const line = cls => '<span class="ha-kin ' + cls + '" aria-hidden="true"><span style="--dur:' + (reps * unit * 0.9).toFixed(1) + 's">' + run + run + '</span></span>';
     const likes = currentConfig.reactionsEnabled ? '<br>' + plural(getInteractions(p.id).likes || 0, 'like') : '';
-    byId('feat-frame').innerHTML = '<img class="ha-frame-bg" src="' + img + '" alt="">'
+    byId('feat-frame').innerHTML = '<img class="ha-frame-bg" src="' + esc(thumbOf(firstImage(p))) + '" alt="">'
         + '<span class="ha-grid" aria-hidden="true"></span>' + line('is-top') + line('is-bottom')
         + '<a class="ha-art" ' + open + '><img src="' + img + '" alt="' + esc(title) + '"><span class="ha-shine" aria-hidden="true"></span></a>'
         + '<span class="ha-reticle" aria-hidden="true"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="62"/><path d="M100 0v62M100 138v62M0 100h62M138 100h62"/><path class="thick" d="M100 30v10M100 160v10M30 100h10M160 100h10"/></svg><svg class="ha-spin" viewBox="0 0 200 200"><circle class="dash" cx="100" cy="100" r="80"/></svg><i></i></span>'
@@ -1465,7 +1467,7 @@ function paletteOf(url) {
                 resolve(Array.from(counts.entries()).sort((x, y) => y[1] - x[1]).slice(0, 5).map(([key]) => '#' + hex(key >> 6) + hex(key >> 3 & 7) + hex(key & 7)));
             } catch (e) { resolve([]); }
         };
-        im.src = url;
+        im.src = thumbOf(url);
     }));
     return paletteJobs.get(url);
 }
@@ -1499,7 +1501,7 @@ function tileHTML(post, no, low) {
     const cap = excerpt(post.content, 140);
     const tag = stampTag(post);
     let visual = '';
-    if (type === 'image') visual = '<img src="' + esc(first) + '" alt="' + esc(cap || 'Artwork from ' + date) + '" loading="lazy" decoding="async" class="is-loading">';
+    if (type === 'image') visual = '<img src="' + esc(thumbOf(first)) + '" alt="' + esc(cap || 'Artwork from ' + date) + '" loading="lazy" decoding="async" class="is-loading">';
     else if (type === 'video') visual = '<video src="' + esc(first) + '" muted loop playsinline preload="metadata" data-hoverplay></video>';
     else if (type === 'audio') visual = '<div class="tile-audio"><i class="fa-solid fa-music" aria-hidden="true"></i></div>';
     else visual = '<div class="tile-text"><p>' + esc(excerpt(post.content, 320)) + '</p></div>';
@@ -1576,7 +1578,7 @@ function renderComicBar() {
     const midway = p != null && p > 0 && p < n - 1;
     const pct = midway ? Math.round((p + 1) / n * 100) : 0;
     box.href = '#/comics/' + c.id + '/' + (midway ? p + 1 : 1);
-    box.innerHTML = (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="ha-next-empty" aria-hidden="true">' + esc(title.charAt(0).toUpperCase()) + '</span>')
+    box.innerHTML = (cover ? '<img src="' + esc(thumbOf(cover)) + '" alt="" loading="lazy" decoding="async">' : '<span class="ha-next-empty" aria-hidden="true">' + esc(title.charAt(0).toUpperCase()) + '</span>')
         + '<span class="ha-next-text"><span class="ha-kicker">' + (midway ? 'Keep reading' : 'Next stop') + ' · Comics</span><strong>' + esc(title) + '</strong><span>' + (midway ? 'Page ' + (p + 1) + ' of ' + n : plural(n, 'page')) + '</span></span>'
         + '<span class="ha-lines" aria-hidden="true" style="--pct:' + pct + '%"><i></i><i></i><i></i></span>'
         + '<span class="ha-btn">' + (midway ? 'Keep reading' : 'Start reading') + ' <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>';
@@ -1618,8 +1620,8 @@ function sliderSlides(s, side) {
 function slideHTML(sl, on) {
     const attrs = sl.href ? 'href="' + esc(sl.href) + '"' + (sl.post ? ' data-action="open-post" data-id="' + sl.post + '"' : '') + (sl.external ? ' target="_blank" rel="noopener"' : '') : '';
     const text = sl.title || sl.kicker ? '<span class="ha-slide-text">' + (sl.kicker ? '<span class="ha-kicker">' + esc(sl.kicker) + '</span>' : '') + (sl.title ? '<b>' + esc(sl.title) + '</b>' : '') + (sl.cta ? '<span class="ha-cta">' + sl.cta + ' <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>' : '') + '</span>' : '';
-    return '<' + (sl.href ? 'a' : 'span') + ' class="ha-slide' + (on ? ' is-on' : '') + (sl.promo ? ' is-promo' : '') + '" ' + attrs + '><img class="ha-slide-bg" src="' + esc(sl.img) + '" alt="" loading="lazy" decoding="async">'
-        + '<span class="ha-slide-body"><img class="ha-slide-art" src="' + esc(sl.img) + '" alt="' + esc(sl.title || '') + '" loading="lazy" decoding="async">' + text + '</span></' + (sl.href ? 'a' : 'span') + '>';
+    return '<' + (sl.href ? 'a' : 'span') + ' class="ha-slide' + (on ? ' is-on' : '') + (sl.promo ? ' is-promo' : '') + '" ' + attrs + '><img class="ha-slide-bg" src="' + esc(thumbOf(sl.img)) + '" alt="" loading="lazy" decoding="async">'
+        + '<span class="ha-slide-body"><img class="ha-slide-art" src="' + esc(thumbOf(sl.img)) + '" alt="' + esc(sl.title || '') + '" loading="lazy" decoding="async">' + text + '</span></' + (sl.href ? 'a' : 'span') + '>';
 }
 function fillRail(rail, slides, s) {
     if (!rail) return;
@@ -1698,20 +1700,34 @@ const ZINE_TILTS = [-1.5, 1.2, -0.8, 1.8, 1, -1.6, 0.8, -1.2];
 const ZINE_TAPES = ['rgba(242,194,48,.75)', 'rgba(125,180,108,.75)', 'rgba(232,117,42,.7)', 'rgba(58,166,242,.6)', 'rgba(201,167,245,.75)'];
 const ALL_BOARD = '__all';
 
-function polaHTML(items, listName) {
+// Polaroids for items[from..to); each keeps its place in the whole list for numbering, tilt and the viewer
+function polaHTML(items, listName, from = 0, to = items.length) {
     if (!items.length) return '<div class="empty"><h3>No images here yet</h3></div>';
-    return items.map((m, i) => {
+    return items.slice(from, to).map((m, j) => {
+        const i = from + j;
         const veil = currentConfig.blurNsfw && m.nsfw && !ui.revealed.has(m.postId);
         let inner;
         if (m.type === 'video') inner = '<video src="' + esc(m.url) + '" muted loop playsinline preload="metadata" data-hoverplay></video><span class="badge"><i class="fa-solid fa-play" aria-hidden="true"></i></span>';
         else if (m.type === 'audio') inner = '<span class="tile-audio" style="position:relative;aspect-ratio:1"><i class="fa-solid fa-music" aria-hidden="true"></i></span>';
-        else inner = '<img src="' + esc(m.url) + '" alt="" loading="lazy" decoding="async" class="is-loading">';
+        else inner = '<img src="' + esc(thumbOf(m.url)) + '" alt="" loading="lazy" decoding="async" class="is-loading">';
         const n = items.length - i;
         return '<button class="zg-pola' + (veil ? ' is-veiled' : '') + '" style="--r:' + ZINE_TILTS[i % ZINE_TILTS.length] + 'deg;--tape:' + ZINE_TAPES[i % ZINE_TAPES.length] + '" data-action="open-viewer" data-list="' + listName + '" data-index="' + i + '" aria-label="View piece ' + n + ' full size">'
             + '<span class="zg-tape" aria-hidden="true"></span>'
             + '<span class="zg-pola-img">' + inner + (veil ? '<span class="veil"><i class="fa-regular fa-eye-slash" aria-hidden="true"></i>Sensitive</span>' : '') + '</span>'
             + '<span class="zg-pola-cap">No. ' + n + '</span></button>';
     }).join('');
+}
+
+/* A board shows its pictures in batches of BOARD_STEP, with Show more for the rest. Each batch is its own block
+   of columns, so the pictures already on screen stay put when the next batch comes in below them */
+function renderBoardGrid(items, from) {
+    const grid = byId('board-grid'), shown = Math.min(items.length, ui.gallery.limit);
+    let html = '';
+    for (let k = from; k < Math.max(shown, 1); k += BOARD_STEP) html += '<div class="zg-polas">' + polaHTML(items, 'board', k, Math.min(k + BOARD_STEP, shown)) + '</div>';
+    if (from) grid.insertAdjacentHTML('beforeend', html); else grid.innerHTML = html;
+    const more = byId('board-more'), left = items.length - shown;
+    more.hidden = left <= 0;
+    more.textContent = 'Show more (' + left + ' left)';
 }
 
 // "All media" is a board of its own, ahead of the tag boards
@@ -1757,7 +1773,7 @@ function fitTitles(root) {
 function zineCardHTML(b, i, pics) {
     const blur = currentConfig.blurNsfw;
     const newest = postsCache.find(p => p.id === (b.items[0] || {}).postId);
-    const stickers = pics.map(m => '<span class="zg-sticker' + (blur && m.nsfw ? ' is-veiled' : '') + '"><img src="' + esc(m.url) + '" alt="" loading="lazy" decoding="async"></span>').join('');
+    const stickers = pics.map(m => '<span class="zg-sticker' + (blur && m.nsfw ? ' is-veiled' : '') + '"><img src="' + esc(thumbOf(m.url)) + '" alt="" loading="lazy" decoding="async"></span>').join('');
     return '<button class="zg-card zg-paper' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" data-action="open-board" data-key="' + esc(b.key) + '">'
         + '<span class="zg-card-text">'
         + '<span class="zg-card-title">' + esc(b.name) + '</span>'
@@ -1778,7 +1794,7 @@ function renderGalleryId(tagBoards) {
     byId('zg-media').textContent = allMediaItems().some(m => m.type === 'video') ? 'Images & video' : 'Images';
     const pfp = safeUrl(currentConfig.pfpImage), img = byId('zg-pfp'), fb = byId('zg-pfp-fallback');
     fb.textContent = siteName().trim().charAt(0).toUpperCase() || '✦';
-    if (pfp) { img.onerror = () => { img.hidden = true; fb.hidden = false; }; img.src = pfp; img.hidden = false; fb.hidden = true; }
+    if (pfp) { img.onerror = () => { img.hidden = true; fb.hidden = false; }; img.src = thumbOf(pfp); img.hidden = false; fb.hidden = true; }
     else { img.hidden = true; img.removeAttribute('src'); fb.hidden = false; }
 }
 
@@ -1798,7 +1814,7 @@ function renderGallery() {
         byId('board-title').textContent = open.name;
         byId('board-count').textContent = plural(open.items.length, 'piece');
         galleryLists.board = open.items;
-        byId('board-grid').innerHTML = polaHTML(open.items, 'board');
+        renderBoardGrid(open.items, 0);
         fitTitles(byId('board-head'));
         return;
     }
@@ -1838,9 +1854,9 @@ function renderComics() {
         const p = progress[c.id];
         const started = p != null && pages > 1;
         // Pages 2-4 fanned out; always shown on the top card, and on any card left with a wide row to itself
-        const strip = (c.pages || []).slice(1, 4).map(u => '<span class="zg-sticker"><img src="' + esc(safeUrl(u)) + '" alt="" loading="lazy" decoding="async"></span>').join('');
+        const strip = (c.pages || []).slice(1, 4).map(u => '<span class="zg-sticker"><img src="' + esc(safeUrl(thumbOf(u))) + '" alt="" loading="lazy" decoding="async"></span>').join('');
         return '<a class="zg-card zg-paper zc-card' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '">'
-            + '<span class="zc-cover">' + (cover ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="zc-cover-empty" aria-hidden="true">' + esc((c.title || '?').charAt(0).toUpperCase()) + '</span>') + '</span>'
+            + '<span class="zc-cover">' + (cover ? '<img src="' + esc(thumbOf(cover)) + '" alt="" loading="lazy" decoding="async">' : '<span class="zc-cover-empty" aria-hidden="true">' + esc((c.title || '?').charAt(0).toUpperCase()) + '</span>') + '</span>'
             + '<span class="zg-card-text">'
             + '<span class="zg-card-title">' + esc(c.title || 'Untitled') + '</span>'
             + '<span class="zg-card-meta"><span><strong>' + plural(pages, 'page') + '</strong>Comic ' + String(list.length - i).padStart(2, '0') + '</span><span><strong>Posted</strong>' + esc(formatDate(c)) + '</span></span>'
@@ -1961,7 +1977,7 @@ function renderPostOverlay() {
         : '';
     const tags = postTags(post);
     byId('post-info').innerHTML = textNav
-        + '<div class="info-head">' + (pfp ? '<img src="' + esc(pfp) + '" alt="">' : '')
+        + '<div class="info-head">' + (pfp ? '<img src="' + esc(thumbOf(pfp)) + '" alt="">' : '')
         + '<div class="info-who"><strong>' + esc(siteName()) + '</strong><time>' + esc(formatDate(post)) + '</time></div>'
         + (post.pinned ? '<span class="badge pin"><i class="fa-solid fa-thumbtack" aria-hidden="true"></i>Pinned</span>' : '')
         + '</div>'
@@ -2262,7 +2278,7 @@ function openComicGallery(id, opts = {}) {
     byId('co-actions').innerHTML = (prog != null && prog > 0 && prog < pages.length
         ? '<button class="btn" data-action="read-comic" data-id="' + comic.id + '" data-page="0">From the start</button><button class="btn btn-primary" data-action="read-comic" data-id="' + comic.id + '" data-page="' + prog + '">Continue on page ' + (prog + 1) + '</button>'
         : '<button class="btn btn-primary" data-action="read-comic" data-id="' + comic.id + '" data-page="0"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Start reading</button>');
-    byId('co-grid').innerHTML = pages.map((url, i) => '<button class="page-thumb' + (prog === i ? ' is-last' : '') + '" data-action="read-comic" data-id="' + comic.id + '" data-page="' + i + '"><span class="frame"><img src="' + esc(url) + '" alt="" loading="lazy" decoding="async"></span>Page ' + (i + 1) + (prog === i ? ', last read' : '') + '</button>').join('');
+    byId('co-grid').innerHTML = pages.map((url, i) => '<button class="page-thumb' + (prog === i ? ' is-last' : '') + '" data-action="read-comic" data-id="' + comic.id + '" data-page="' + i + '"><span class="frame"><img src="' + esc(thumbOf(url)) + '" alt="" loading="lazy" decoding="async"></span>Page ' + (i + 1) + (prog === i ? ', last read' : '') + '</button>').join('');
     overlay.scrollTop = 0;
     if (!Modals.isOpen(overlay)) Modals.open(overlay, { onRequestClose: () => closeComicGallery(), focus: '.back-btn' });
 }
@@ -2481,7 +2497,7 @@ async function uploadToBridge(target, opts = {}) {
         return { success: false, message: 'load failed' };
     }
     let passwordCheck = null;
-    if (['system', 'posts', 'comics', 'media_only'].includes(target)) {
+    if (['system', 'posts', 'comics', 'media_only', 'page'].includes(target)) {
         if (!sessionPassword) {
             if (!opts.quiet) showToast('Your admin session ended. Log in again to save.', 'error');
             return { success: false, message: 'no session' };
@@ -2489,6 +2505,7 @@ async function uploadToBridge(target, opts = {}) {
         passwordCheck = sessionPassword;
     }
     let fileContent = '', filename = '', mediaName = null;
+    if (['system', 'posts', 'comics'].includes(target)) attachPreviews();
     if (target === 'system') {
         fileContent = 'window.AZUMINT_SYSTEM = "' + unicodeToBase64(JSON.stringify(systemPayload(token))) + '";';
         filename = 'system.js';
@@ -2502,6 +2519,8 @@ async function uploadToBridge(target, opts = {}) {
     } else if (target === 'interactions') {
         fileContent = 'window.AZUMINT_INTERACTIONS = "' + unicodeToBase64(JSON.stringify(opts.data || interactionsCache)) + '";';
         filename = 'interactions.js';
+    } else if (target === 'page') {
+        fileContent = opts.content || ''; filename = 'index.html';
     } else if (target === 'media_only') {
         if (!opts.mediaFile) return { success: false, message: 'no file' };
         const raw = opts.mediaPath || 'img/' + safeFileName(opts.mediaFile.name, opts.mediaFile.type);
@@ -2513,7 +2532,8 @@ async function uploadToBridge(target, opts = {}) {
     }, target === 'media_only' ? 120000 : 45000);
     if (!result.success) {
         const msg = result.message || '';
-        if (isAdminLoggedIn && /invalid|403|credential|corrupt/i.test(msg)) openRepair();
+        // A refused index.html is about the file, not the connection (see the link preview in admin.js)
+        if (isAdminLoggedIn && target !== 'page' && /invalid|403|credential|corrupt/i.test(msg)) openRepair();
         else if (isAdminLoggedIn && !opts.quiet) showToast('Couldn\'t sync ' + (filename || 'that file') + '. ' + (msg || 'Try again.'), 'error');
     }
     return result;
@@ -2640,6 +2660,87 @@ async function toWebp(blob, name) {
 }
 function webpName(name) { return String(name || 'image').replace(/\.[^./]*$/, '') + '.webp'; }
 
+/* ═════════════════════════════════════════════
+   PREVIEWS
+   Each uploaded picture also gets a small WebP copy in a p/ folder beside it (img/p/, img/comics/p/).
+   Cards, tiles, boards, sliders and covers show the copy; opening a piece shows the full picture.
+   Posts and comics list their copies in previews ({ picture: copy }), and the site settings do the same
+   for their own pictures (profile picture, header images, tier examples, slider images).
+   ═════════════════════════════════════════════ */
+
+const PREVIEW_SIDE = 800, PREVIEW_MAX = 2400, PREVIEW_QUALITY = 0.82;
+const PREVIEWABLE = /\.(png|jpe?g|webp|bmp)$/i;
+const freshPreviews = new Map(); // made this visit and not saved yet
+let previewIndex = null, previewFrom = [];
+function previewMap() {
+    const from = [postsCache, comicsCache, currentConfig];
+    if (!previewIndex || from.some((x, i) => x !== previewFrom[i])) {
+        previewIndex = new Map(); previewFrom = from;
+        const add = m => { if (m && typeof m === 'object') Object.entries(m).forEach(([k, v]) => { if (typeof v === 'string') previewIndex.set(k, v); }); };
+        postsCache.forEach(p => add(p.previews)); comicsCache.forEach(c => add(c.previews)); add(currentConfig.previews);
+    }
+    return previewIndex;
+}
+// The small copy of a picture, or the picture itself when it has none
+function thumbOf(url) { return (url && (freshPreviews.get(url) || previewMap().get(url))) || url; }
+// The picture a small copy was made from, so a copy that fails to load can fall back to it
+function fullOf(thumb) {
+    for (const m of [freshPreviews, previewMap()]) for (const [k, v] of m) if (v === thumb) return k;
+    return '';
+}
+// img/ab12.png → img/p/ab12-png.webp (the old type stays in the name, so two pictures never share a copy)
+function previewPath(path) { return path.replace(/([^/]+)\.([a-z0-9]+)$/i, 'p/$1-$2.webp'); }
+function isAnimatedWebp(buf) {
+    const b = new Uint8Array(buf), tag = i => String.fromCharCode(b[i], b[i + 1], b[i + 2], b[i + 3]);
+    return b.length > 21 && tag(8) === 'WEBP' && tag(12) === 'VP8X' && (b[20] & 2) === 2;
+}
+// A small WebP copy, or null when the picture is already small, animated or can't be read
+async function makePreview(blob, name) {
+    if (!PREVIEWABLE.test(String(name || '').split(/[?#]/)[0]) && !/^image\/(png|jpeg|webp|bmp)$/.test(blob.type || '')) return null;
+    try {
+        const buf = await blob.arrayBuffer();
+        if (isAnimatedPng(buf) || isAnimatedWebp(buf)) return null;
+        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+        const s = Math.min(PREVIEW_SIDE / Math.min(bmp.width, bmp.height), PREVIEW_MAX / Math.max(bmp.width, bmp.height));
+        if (s > 0.75) { if (bmp.close) bmp.close(); return null; }
+        const c = document.createElement('canvas');
+        c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+        const cx = c.getContext('2d'); cx.imageSmoothingQuality = 'high';
+        cx.drawImage(bmp, 0, 0, c.width, c.height);
+        if (bmp.close) bmp.close();
+        const out = await new Promise(res => c.toBlob(res, 'image/webp', PREVIEW_QUALITY));
+        return out && out.type === 'image/webp' && out.size < blob.size * 0.7 ? out : null;
+    } catch (e) { return null; }
+}
+// Makes and uploads the small copy of a picture stored at path (ref is how posts refer to it). Quietly skips when it can't
+async function addPreview(blob, path, ref) {
+    const small = await makePreview(blob, path);
+    if (!small) return 'skip';
+    const to = previewPath(path);
+    const r = await uploadToBridge('media_only', { mediaFile: new File([small], to.split('/').pop(), { type: 'image/webp' }), mediaPath: to, quiet: true });
+    if (!r.success) return 'fail';
+    freshPreviews.set(ref || path, to);
+    return 'ok';
+}
+// Every picture the site settings use (posts and comics list their own)
+function configImageRefs() {
+    const c = currentConfig, cp = commPage();
+    return [c.pfpImage, c.bgImage, c.bannerImage, cp.termsImage]
+        .concat(bannerSettings().bannerImages || [], (cp.tiers || []).map(t => t.image), (sliderSettings().own || []).map(o => o.img))
+        .filter(u => typeof u === 'string' && u);
+}
+// Writes the small copies into the posts, comics and settings that use them, and drops ones they no longer use
+function attachPreviews() {
+    const put = (o, urls) => {
+        const m = {};
+        urls.forEach(u => { const t = thumbOf(u); if (t && t !== u) m[u] = t; });
+        if (Object.keys(m).length) o.previews = m; else delete o.previews;
+    };
+    postsCache.forEach(p => put(p, mediaList(p)));
+    comicsCache.forEach(c => put(c, (c.pages || []).concat(c.cover || [])));
+    put(currentConfig, configImageRefs());
+}
+
 /* Uploads a list of files one by one. onStep(i, total, file) reports progress. Returns paths, or null on failure. */
 async function uploadFiles(files, folder, onStep) {
     const out = [];
@@ -2658,6 +2759,7 @@ async function uploadFiles(files, folder, onStep) {
             const path = folder + safeFileName(f.name, f.type);
             try { await promisifiedUpload(f, path); out.push(path); }
             catch (err) { showToast('Upload failed for ' + f.name + '. ' + err, 'error'); return null; }
+            await addPreview(f, path);
         }
     }
     if (onStep) onStep(files.length, files.length, null);
@@ -2759,6 +2861,7 @@ function renderAdminView() {
         renderRecovery();
         renderNewPostTags();
         showAdminTab(ui.adminTab || 'post');
+        checkLinkPreview();
     });
 }
 
@@ -3301,7 +3404,7 @@ function renderAotdPicked() {
     const id = byId('s-aotd-post').value;
     const p = postsCache.find(x => String(x.id) === String(id));
     byId('aotd-pick-show').innerHTML = p && firstImage(p)
-        ? '<img src="' + esc(firstImage(p)) + '" alt=""><span>No.' + postNumbers().get(p.id) + ' · ' + esc(excerpt(p.content, 40) || 'Untitled piece') + '</span>'
+        ? '<img src="' + esc(thumbOf(firstImage(p))) + '" alt=""><span>No.' + postNumbers().get(p.id) + ' · ' + esc(excerpt(p.content, 40) || 'Untitled piece') + '</span>'
         : '<span class="hint">No piece chosen yet</span>';
 }
 function populateAotdForm() {
@@ -3354,7 +3457,7 @@ function openAotdPostPicker() {
     const nums = postNumbers();
     byId('picker-heading').textContent = 'Choose a piece';
     byId('picker-grid').innerHTML = list.length
-        ? list.map(p => '<button type="button" data-action="aotd-pick-post" data-id="' + p.id + '" aria-label="No.' + nums.get(p.id) + ' ' + esc(excerpt(p.content, 40)) + '"><img src="' + esc(firstImage(p)) + '" alt="" loading="lazy"></button>').join('')
+        ? list.map(p => '<button type="button" data-action="aotd-pick-post" data-id="' + p.id + '" aria-label="No.' + nums.get(p.id) + ' ' + esc(excerpt(p.content, 40)) + '"><img src="' + esc(thumbOf(firstImage(p))) + '" alt="" loading="lazy"></button>').join('')
         : '<p class="hint">No image posts yet.</p>';
     Modals.open(byId('picker-modal'));
 }
@@ -3448,8 +3551,9 @@ const actions = {
     'featured-prev': () => featuredGo(ui.featured.i - 1),
     'featured-next': () => featuredGo(ui.featured.i + 1),
 
-    'open-board': el => { ui.gallery.board = el.dataset.key; renderGallery(); window.scrollTo(0, 0); },
+    'open-board': el => { ui.gallery.board = el.dataset.key; ui.gallery.limit = BOARD_STEP; renderGallery(); window.scrollTo(0, 0); },
     'close-board': () => { ui.gallery.board = null; renderGallery(); },
+    'board-more': () => { const from = ui.gallery.limit; ui.gallery.limit += BOARD_STEP; renderBoardGrid(galleryLists.board, from); },
     'open-viewer': el => {
         const list = galleryLists[el.dataset.list] || [];
         const i = Number(el.dataset.index);
@@ -3537,6 +3641,10 @@ const actions = {
     'links-save': () => saveSocialLinks(),
     'cleanup': el => runCleanup(el.dataset.fn, el),
     'shrink-start': () => runShrink(),
+    'pv-start': () => runPreviews(),
+    'lp-update': () => updateLinkPreview(),
+    'lp-download': () => downloadLinkPreviewPage(),
+    'pv-stop': el => { Previews.stop = true; el.disabled = true; el.textContent = 'Stopping'; setTimeout(() => { el.disabled = false; el.textContent = 'Stop after this one'; }, 1500); },
     'shrink-stop': el => { Shrink.stop = true; el.disabled = true; el.textContent = 'Stopping'; setTimeout(() => { el.disabled = false; el.textContent = 'Stop after this one'; }, 1500); },
     'shrink-copy': () => { const t = byId('shrink-list').value; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('List copied'), () => { byId('shrink-list').select(); showToast('Press Ctrl+C to copy the selected list'); }); },
     'shrink-download': () => downloadFile(byId('shrink-list').value + '\n', 'old-images-to-delete.txt'),
@@ -3625,6 +3733,8 @@ function bindEvents() {
     document.addEventListener('load', e => { if (e.target.tagName === 'IMG') e.target.classList.remove('is-loading'); }, true);
     document.addEventListener('error', e => {
         if (e.target.tagName !== 'IMG') return;
+        const full = fullOf(e.target.getAttribute('src'));
+        if (full) { e.target.src = full; return; }
         e.target.classList.remove('is-loading');
         if (e.target.closest('.tile-media, .ha-frame, .ha-slide, .ha-next, .hero-panel, .zg-pola-img, .zg-sticker, .zc-cover, .cm-art, .page-thumb, .m-thumb')) e.target.classList.add('is-broken');
     }, true);
@@ -3643,6 +3753,7 @@ function bindEvents() {
         else if (t.id === 'c-dislike-ink') Studio.setShared('dislikeBtn', t.value);
         else if (/^ring-/.test(t.id)) Studio.readRing();
         else if (t.id === 'bn-speed') byId('bn-speed-out').textContent = t.value + 's per loop';
+        else if (/^lp-|^s-(title|desc|sitename|tagline|pfp)$/.test(t.id)) linkPreviewSoon();
         else if (/^sl-/.test(t.id) || t.closest('.sl-own')) syncSliderForm();
         else if (/^bn-img-\d$/.test(t.id)) { const prev = t.parentElement.querySelector('.prev'); if (prev) prev.style.backgroundImage = 'url("' + safeUrl(t.value).replace(/"/g, '%22') + '")'; }
         else if (t.id === 's-status-color') document.documentElement.style.setProperty('--status', t.value);
