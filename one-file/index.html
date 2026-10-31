@@ -11,11 +11,11 @@
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    NEERG 7.0.19 · index.html
+    NEERG 7.0.20 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
     Upload index.html, style.css, logic.js, admin.js, marked.min.js, about.js,
-    about.css, vfx.min.js and the fonts folder to your Neocities root.
+    about.css, comm.js, comm.css, vfx.min.js and the fonts folder to your Neocities root.
     Your content lives in system.js, posts.js, comics.js and interactions.js,
     which the site writes for you. Everything else is managed from the
     Admin page (the gear icon). No code editing needed.
@@ -42,11 +42,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
-    <!-- One-file NEERG 7.0.19: the code loads from github.com/Neerg18/lbm through jsDelivr. To update, upload the newest one-file/index.html over this file. -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Neerg18/lbm@caa7f2ac3aecbdc8beecd658039610b1d920b3cf/style.css">
+    <!-- One-file NEERG 7.0.20: the code loads from github.com/Neerg18/lbm through jsDelivr. To update, upload the newest one-file/index.html over this file. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Neerg18/lbm@394b970d515d94c80fd9e873ea1664b44e00cca2/style.css">
 
-    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@caa7f2ac3aecbdc8beecd658039610b1d920b3cf/marked.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@caa7f2ac3aecbdc8beecd658039610b1d920b3cf/logic.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@394b970d515d94c80fd9e873ea1664b44e00cca2/marked.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@394b970d515d94c80fd9e873ea1664b44e00cca2/logic.js"></script>
 </head>
 <body>
 
@@ -335,6 +335,8 @@
                 <div class="comm-contact" id="comm-contact"></div>
             </div>
         </div>
+        <!-- The other designs, picked in Admin › Commissions › Page design. comm.js draws them here. -->
+        <div id="cm-alt" hidden></div>
     </section>
 
     <!-- ═══════════ ABOUT ═══════════ -->
@@ -490,6 +492,17 @@
                 <!-- Commissions -->
                 <div class="dash-panel" data-tab-panel="comm" role="tabpanel" hidden>
                     <fieldset class="group">
+                        <legend>Page design</legend>
+                        <p class="hint">How your Commissions page looks. In the three new designs the page shows only your tiers; picking one opens its own page with your add-ons, terms of service and the request button. Press Save to switch.</p>
+                        <div class="ab-picks" role="radiogroup" aria-label="Commissions page design">
+                            <label class="ab-pick"><input type="radio" name="comm-design" value="original"><span class="ab-mini cmx-mini is-original" aria-hidden="true"><i></i><i></i><i></i></span><b>Original poster</b><small>Your taped poster with a card for each tier</small></label>
+                            <label class="ab-pick"><input type="radio" name="comm-design" value="event"><span class="ab-mini cmx-mini is-event" aria-hidden="true"><i></i><i></i><i></i></span><b>Rounded panels</b><small>Bright panels with a white star, and art-tool stickers</small></label>
+                            <label class="ab-pick"><input type="radio" name="comm-design" value="signal"><span class="ab-mini cmx-mini is-signal" aria-hidden="true"><i></i><i></i><i></i></span><b>Poster frame</b><small>A sky poster with orbit rings over a yellow strip of tiers</small></label>
+                            <label class="ab-pick"><input type="radio" name="comm-design" value="strips"><span class="ab-mini cmx-mini is-strips" aria-hidden="true"><i></i><i></i><i></i></span><b>Character strips</b><small>Tall slanted posters; the one you pick slides left</small></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="group">
                         <legend>Open or closed</legend>
                         <button type="button" class="cm-switch" id="cm-switch" data-action="comm-toggle" aria-pressed="false">
                             <span class="cm-switch-tapes" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -522,14 +535,29 @@
 
                     <fieldset class="group">
                         <legend>Tiers</legend>
-                        <p class="hint">Each tier is a card with example art, its name running down the side, your notes and a price badge. Art with a see-through background (a PNG) can pop out of its frame like a sticker.</p>
+                        <p class="hint">Each tier is a card with example art, its name running down the side, your notes and a price badge. Art with a see-through background (a PNG) can pop out of its frame like a sticker. <strong>Spots</strong> is how many of that tier you take at a time: when they're all filled, the new designs show "Full right now" and turn off its request button.</p>
                         <div class="tier-list" id="cm-tier-list"></div>
                         <button type="button" class="btn" data-action="tier-add" style="align-self:flex-start"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add tier</button>
                     </fieldset>
 
                     <fieldset class="group">
-                        <legend>Terms</legend>
-                        <label class="field"><span>Terms <em>(one per line; Markdown works)</em></span><textarea id="cm-f-terms" rows="6" placeholder="Payment upfront via PayPal or Ko-fi.&#10;No refunds once work has started."></textarea></label>
+                        <legend>Add-ons</legend>
+                        <p class="hint">Extras buyers can add on a tier's page, like an extra character. The new designs add them to the total.</p>
+                        <div class="addon-list" id="cm-addon-list"></div>
+                        <button type="button" class="btn" data-action="addon-add" style="align-self:flex-start"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add an add-on</button>
+                    </fieldset>
+
+                    <fieldset class="group">
+                        <legend>Terms of service</legend>
+                        <p class="hint">Sections like Ordering, Payment or Refunds. Each one opens and closes on the page.</p>
+                        <div class="tier-list" id="cm-tsec-list"></div>
+                        <button type="button" class="btn" data-action="tsec-add" style="align-self:flex-start"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add a section</button>
+                        <div class="form-grid">
+                            <label class="field"><span>Will draw <em>(one per line)</em></span><textarea id="cm-f-will" rows="3" placeholder="Original characters&#10;Fan art"></textarea></label>
+                            <label class="field"><span>Won't draw <em>(one per line; shown in red)</em></span><textarea id="cm-f-wont" rows="3" placeholder="Gore&#10;Hateful content"></textarea></label>
+                        </div>
+                        <label class="check"><input type="checkbox" id="cm-f-agree"> <span>Buyers must tick "I've read the terms" before the request button works <em>(new designs)</em></span></label>
+                        <label class="field"><span>Simple terms <em>(one per line; Markdown works; used only when you have no sections above)</em></span><textarea id="cm-f-terms" rows="4" placeholder="Payment upfront via PayPal or Ko-fi.&#10;No refunds once work has started."></textarea></label>
                         <div class="field">
                             <span>Picture beside the terms <em>(leave empty to use your profile picture)</em></span>
                             <div class="inline-form">
@@ -955,7 +983,7 @@
             <a href="#/about">About</a>
         </nav>
         <div class="social-icons" id="footer-social"></div>
-        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.19</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.20</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
     </div>
 </footer>
 
