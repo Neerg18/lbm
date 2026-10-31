@@ -8,6 +8,11 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.19 · 2026-10-31
+**Backup reminder and tidier terms**
+- **Backup reminder:** your posts, comics, likes and settings live only in a few files on Neocities, so Admin now reminds you to press **Back up** when your last backup from that computer or phone is two weeks old, or you haven't made one there yet. **Back up now** saves everything in one click, and **Remind me in a week** puts it off.
+- **Commissions terms:** a short terms box (a line or two) now reads as one column, instead of splitting a sentence across two columns. Longer terms still use two columns on wide screens.
+
 ## 7.0.18 · 2026-10-31
 **Scheduled posts, steady boards, picture descriptions, an RSS feed and more**
 - **Schedule posts:** in New post, tick **Schedule it to go up later** and pick a date and time. Until then only you can see the post (in **Posts**, marked "Goes up …"). Visitors don't see it anywhere, even with a direct link, and it appears on its own at that time, as your newest piece. To change the time or put it up now, use Edit. The post sits in your site's data file until then, so someone digging through that file could find it early.

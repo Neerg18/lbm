@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.18 · logic.js                                         ║
+ ║  NEERG 7.0.19 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.18';
+const NEERG_VERSION = '7.0.19';
 // Where the code files live: beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // admin.js, about.js and about.css load from the same place as this file.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
@@ -49,6 +49,8 @@ const KEYS = {
     shrinkLeftovers: 'neerg_shrink_leftovers',
     shrinkSkipped: 'neerg_shrink_skipped',
     previewSkipped: 'neerg_preview_skipped',
+    lastBackup: 'neerg_last_backup',
+    backupSnooze: 'neerg_backup_snooze',
     sizeSkipped: 'neerg_size_skipped',
     aotdSeen: 'neerg_aotd_seen'
 };
@@ -935,7 +937,10 @@ function renderCommissions() {
 
     const terms = String(cp.terms || '').trim();
     byId('cm-terms').hidden = !terms;
-    byId('cm-terms-text').innerHTML = terms ? md(terms) : '';
+    const tt = byId('cm-terms-text');
+    tt.innerHTML = terms ? md(terms) : '';
+    // Two columns only when there are enough terms to fill them; a line or two reads as one sentence
+    tt.classList.toggle('is-short', $$('li, p', tt).length < 4);
     const pic = safeUrl(cp.termsImage || currentConfig.pfpImage || '');
     const pi = byId('cm-terms-pic');
     if (pic) { pi.onerror = () => { pi.hidden = true; }; pi.src = thumbOf(pic); pi.hidden = false; }
@@ -2652,6 +2657,8 @@ function downloadBackup() {
     setTimeout(downloadComicsJS, 600);
     setTimeout(downloadInteractionsJS, 900);
     showToast('Downloading system.js, posts.js, comics.js and interactions.js');
+    writeJSON(KEYS.lastBackup, Date.now());
+    if (typeof renderBackupNudge === 'function') renderBackupNudge();
 }
 
 /* Image compression, used when running the site from your computer without uploads */
@@ -2932,6 +2939,7 @@ function renderAdminView() {
         renderRecovery();
         renderNewPostTags();
         showAdminTab(ui.adminTab || 'post');
+        renderBackupNudge();
         adminArrived();
     });
 }
@@ -3659,6 +3667,7 @@ const actions = {
     'force-sync': () => forceSyncAll(),
     'open-cleanup': () => openCleanupPanel(),
     'download-backup': () => downloadBackup(),
+    'backup-snooze': () => { writeJSON(KEYS.backupSnooze, Date.now() + 7 * 864e5); renderBackupNudge(); },
     'recovery-restore': () => recoveryRestore(),
     'recovery-dismiss': () => recoveryDismiss(),
     'repair-run': () => runRepair(),

@@ -1,4 +1,4 @@
-# NEERG 7.0.18
+# NEERG 7.0.19
 ### A fork of [LBM — Leaflet Blog Manager](https://lbm-test.neocities.org) by applesaucy
 
 > Self-hosted digital art archive for Neocities. Post your art, comics and commission info, all managed from your browser. No code editing needed.
@@ -30,6 +30,7 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Commissions Poster:** A zine-style Commissions page with a tier card for each kind of commission (example art, price badge, notes) and a terms box, plus a one-click switch that tapes the whole page off with hazard tape when you're closed
 - **One-Click Backup:** Download all four data files from the dashboard
 - **Clean Up Tool:** Storage overview plus tools to trim, de-duplicate and compact your data
+- **Backup Reminder:** When this device's last **Back up** is two weeks old (or there isn't one), the dashboard reminds you, with a one-click Back up now
 - **Smaller Images:** PNG and JPG uploads are saved as WebP automatically, and **Clean up → Shrink images** converts the ones already on your site (then lists the old files to delete on Neocities)
 - **Faster Posting:** Paste an image straight into the post editor, or bulk upload many images as separate posts
 - **Small Previews:** Every picture you upload also gets a small copy (in `img/p/`) that cards, tiles, boards, sliders and covers show, so pages load much faster; opening a piece shows the full picture. **Clean up → Small previews** makes them for pictures posted before. If a copy is ever missing, the full picture shows instead
@@ -140,7 +141,7 @@ For deeper edits:
 ## Credits
 
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
-- **This fork:** NEERG 7.0.18 by [Neerg18](https://github.com/Neerg18)
+- **This fork:** NEERG 7.0.19 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
 - **Icons:** [Font Awesome Free 6.7.2](https://fontawesome.com) (icons CC BY 4.0, fonts SIL OFL 1.1, code MIT), trimmed to the icons this site uses
 - **Markdown:** [marked 15.0.12](https://github.com/markedjs/marked) (MIT)

@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.18 · admin.js                                         ║
+ ║  NEERG 7.0.19 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home page, links and cleanup.    ║
  ║  logic.js loads this the first time Admin opens, so visitors     ║
@@ -1445,6 +1445,26 @@ async function updateLinkPreview() {
     }
 }
 function downloadLinkPreviewPage() { if (lpPage) downloadFile(lpPage, 'index.html'); }
+
+/* ═════════════════════════════════════════════
+   ADMIN: BACKUP REMINDER
+   Your posts, comics, likes and settings live only in four files on Neocities, so the dashboard asks
+   for a fresh backup when this device's last one is two weeks old, or there isn't one yet.
+   ═════════════════════════════════════════════ */
+
+const BACKUP_EVERY = 14 * 864e5;
+function renderBackupNudge() {
+    const box = byId('backup-nudge'); if (!box) return;
+    const now = Date.now(), last = Number(readJSON(KEYS.lastBackup, 0)) || 0, snooze = Number(readJSON(KEYS.backupSnooze, 0)) || 0;
+    const due = (postsCache.length || comicsCache.length) && now - last > BACKUP_EVERY && now > snooze;
+    box.hidden = !due;
+    if (!due) return;
+    const days = Math.floor((now - last) / 864e5);
+    box.innerHTML = '<span><strong>' + (last ? 'Your last backup from this device was ' + plural(days, 'day') + ' ago.' : 'You haven\'t backed up your site from this device yet.') + '</strong>'
+        + ' A backup saves your posts, comics, likes and settings to your computer, in case anything ever goes wrong on Neocities.</span>'
+        + '<span class="row-actions"><button class="btn small btn-primary" data-action="download-backup"><i class="fa-solid fa-download" aria-hidden="true"></i> Back up now</button>'
+        + '<button class="btn small btn-ghost" data-action="backup-snooze">Remind me in a week</button></span>';
+}
 
 /* ═════════════════════════════════════════════
    ADMIN: RSS FEED

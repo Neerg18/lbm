@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.18 · style.css
+ NEERG 7.0.19 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -1546,6 +1546,7 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .cm-chevs { display: inline-flex; gap: .06em; }
 .cm-chevs i { display: block; width: .42em; height: .62em; background: var(--cm-ink); clip-path: polygon(0 0, 48% 0, 100% 50%, 48% 100%, 0 100%, 52% 50%); }
 .cm-terms-text { padding: clamp(14px, 1.5vw, 30px) clamp(18px, 1.8vw, 34px) clamp(18px, 1.8vw, 34px); columns: 2 240px; column-gap: clamp(40px, 4vw, 80px); font-size: clamp(.92rem, 1vw, 1.35rem); line-height: 1.6; color: var(--text-2); }
+.cm-terms-text.is-short { columns: 1; }
 .cm-terms-text li { break-inside: avoid; }
 .cm-terms-text > * + * { margin-top: .6em; }
 .cm-terms-text strong { color: var(--cm-ink); }
