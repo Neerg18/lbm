@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.19 · style.css
+ NEERG 7.0.20 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -315,7 +315,7 @@ a.chip { pointer-events: auto; }
 .field output { font-weight: 400; color: var(--text-3); margin-left: 4px; }
 .field.narrow { max-width: 180px; }
 
-input[type="text"], input[type="url"], input[type="password"], input[type="search"], input[type="email"], select, textarea {
+input[type="text"], input[type="url"], input[type="password"], input[type="search"], input[type="email"], input[type="number"], select, textarea {
     width: 100%;
     min-height: 42px;
     padding: 9px 14px;
@@ -2803,6 +2803,31 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .ab-mini.is-mixtape i:nth-child(1) { left: 6%; top: 16%; width: 58%; height: 58%; border: 4px solid #2A2420; border-radius: 9px; background: #F2762E; }
 .ab-mini.is-mixtape i:nth-child(2) { right: 8%; top: 12%; width: 26%; height: 70%; border-right: 6px solid #221C17; background: #F6C9D3; transform: rotate(4deg); }
 .ab-mini.is-mixtape i:nth-child(3) { left: 0; right: 0; bottom: 6%; height: 10%; background: linear-gradient(#E8412F 0 20%, #F2892B 0 40%, #F5C33B 0 60%, #5DAE5B 0 80%, #2E86C8 0); }
+/* Commissions page design picker (Admin › Commissions) */
+.cmx-mini.is-original { background: #DFDAD0; }
+.cmx-mini.is-original i:nth-child(1) { left: -6%; top: 8%; width: 40%; height: 14%; background: #3AA6F2; transform: rotate(-24deg); }
+.cmx-mini.is-original i:nth-child(2) { left: 14%; top: 30%; width: 32%; height: 56%; border: 3px solid #161616; background: #35E04A; }
+.cmx-mini.is-original i:nth-child(3) { right: 14%; top: 30%; width: 32%; height: 56%; border: 3px solid #161616; background: #C04BFF; }
+.cmx-mini.is-event { background: #111; }
+.cmx-mini.is-event i:nth-child(1) { left: 6%; top: 8%; width: 54%; height: 30%; border-radius: 12px 3px 3px 3px; background: #2E5BD6; }
+.cmx-mini.is-event i:nth-child(2) { left: 6%; top: 44%; width: 54%; height: 48%; border-radius: 3px 3px 3px 12px; background: #F3D23C; box-shadow: 52px 0 0 -6px #D8453A; }
+.cmx-mini.is-event i:nth-child(3) { right: 6%; top: 8%; width: 30%; height: 30%; border: 2px solid #fff; border-radius: 3px 3px 3px 10px; background: #111; }
+.cmx-mini.is-signal { background: #111; }
+.cmx-mini.is-signal i:nth-child(1) { left: 6%; right: 6%; top: 6%; height: 60%; border: 2px solid #F3D23C; border-radius: 6px 18px 6px 6px; background: linear-gradient(#2E5BD6, #2F9C8F 60%, #F3D23C); }
+.cmx-mini.is-signal i:nth-child(2) { left: 38%; top: 14%; width: 16%; height: 34%; border: 2px solid #F3D23C; border-radius: 50%; }
+.cmx-mini.is-signal i:nth-child(3) { left: 6%; right: 6%; bottom: 8%; height: 18%; border-radius: 8px; background: #F3D23C; }
+.cmx-mini.is-strips { background: #111; }
+.cmx-mini.is-strips i { top: 0; bottom: 0; width: 30%; transform: skewX(-8deg); }
+.cmx-mini.is-strips i:nth-child(1) { left: 2%; background: #F08A24; }
+.cmx-mini.is-strips i:nth-child(2) { left: 35%; background: #8A5CF0; }
+.cmx-mini.is-strips i:nth-child(3) { left: 68%; background: #3DBE6C; }
+.addon-list { display: flex; flex-direction: column; gap: 10px; }
+.addon-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px auto; align-items: end; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface); }
+.addon-row .q-btn { margin-bottom: 6px; }
+.tsec-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface); }
+.tsec-fields { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tier-spots { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 560px) { .addon-row { grid-template-columns: minmax(0, 1fr) 90px auto; } }
 .ab-mini.is-spectrum { background: #C9C1F1; }
 .ab-mini.is-spectrum i:nth-child(1) { left: 6%; top: 10%; width: 14%; height: 80%; background: #121212; }
 .ab-mini.is-spectrum i:nth-child(2) { right: 7%; top: 14%; width: 38%; height: 58%; border-radius: 12px; background: #FF5B1F; }

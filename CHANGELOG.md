@@ -8,6 +8,15 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.20 · 2026-10-31
+**Pick a design for your Commissions page, with a page for each tier, add-ons, terms and spots**
+- **Page design:** in **Commissions → Page design**, choose your original taped poster or one of three new designs: **Rounded panels**, **Poster frame** or **Character strips**. Your page stays the same until you pick one and press Save. The new designs only load when picked, so the original stays as quick as before.
+- **A page for each tier:** in the new designs the main page shows only your tiers. Picking one opens its own page with what's included, your add-ons with − and + buttons and a running total, your terms of service, and the request button.
+- **Spots:** give each tier a number of **Spots** and how many are **Filled**. Visitors see "2 of 3 spots left", and when every spot is filled the tier says "Full right now" and its request button turns off.
+- **Add-ons:** list extras like an extra character with their price. A tier's page adds them to the total.
+- **Terms of service in sections:** write your terms as sections, like Ordering or Payment, that open and close on the page, plus **Will draw** and **Won't draw** lists (Won't draw shows in red). The original poster shows them too. You can ask buyers to tick "I've read the terms" before the request button works.
+- **Two new files:** if you upload every file yourself, add `comm.js` and `comm.css`.
+
 ## 7.0.19 · 2026-10-31
 **Backup reminder and tidier terms**
 - **Backup reminder:** your posts, comics, likes and settings live only in a few files on Neocities, so Admin now reminds you to press **Back up** when your last backup from that computer or phone is two weeks old, or you haven't made one there yet. **Back up now** saves everything in one click, and **Remind me in a week** puts it off.

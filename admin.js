@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.19 · admin.js                                         ║
+ ║  NEERG 7.0.20 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home page, links and cleanup.    ║
  ║  logic.js loads this the first time Admin opens, so visitors     ║
@@ -504,6 +504,12 @@ function populateCommForm() {
     setCommColors(cp);
     byId('status-presets').innerHTML = STATUS_PRESETS.map(p => '<button type="button" class="chip" data-action="status-preset" data-text="' + esc(p.text) + '" data-color="' + p.color + '"><span class="status-dot" style="background:' + p.color + ';animation:none"></span>' + esc(p.label) + '</button>').join('');
     renderTierEditor(cp.tiers || []);
+    const design = COMM_DESIGNS.includes(cp.design) ? cp.design : 'original';
+    $$('input[name="comm-design"]').forEach(r => { r.checked = r.value === design; });
+    renderAddonEditor(cp.addons || []);
+    renderTermSections(cp.termSections || []);
+    set('cm-f-will', (cp.willDraw || []).join('\n')); set('cm-f-wont', (cp.wontDraw || []).join('\n'));
+    byId('cm-f-agree').checked = cp.agreeCheck !== false;
     syncCommSwitch(cp.open !== false);
     syncTapeSample();
 }
@@ -553,6 +559,8 @@ function tierRowHTML(t, i, n) {
         + '<button type="button" class="btn small" data-action="pick-image" data-target="' + id + '">From posts</button>'
         + '<label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="' + id + '" hidden></label>'
         + '</div></div>'
+        + '<div class="tier-pair span-2 tier-spots"><label class="field"><span>Spots <em>(how many you take; empty means no limit)</em></span><input type="number" name="limit" min="0" max="99" inputmode="numeric" value="' + esc(t.limit || '') + '" placeholder="No limit"></label>'
+        + '<label class="field"><span>Filled</span><input type="number" name="taken" min="0" max="99" inputmode="numeric" value="' + esc(t.taken || '') + '" placeholder="0"></label></div>'
         + '<label class="check span-2"><input type="checkbox" name="pop"' + (t.pop ? ' checked' : '') + '> <span>Let the art pop out of its frame <em>(for art with a see-through background)</em></span></label>'
         + '<label class="field span-2"><span>Details <em>(one per line; **bold** works)</em></span><textarea name="notes" rows="4" placeholder="Flat colors, one character.&#10;**Extra characters:** +$20 each.">' + esc(t.notes || '') + '</textarea></label>'
         + '</div>'
@@ -570,7 +578,8 @@ function renderTierEditor(tiers) {
 function readTierRows() {
     return $$('#cm-tier-list .tier-row').map(r => {
         const v = name => $('[name="' + name + '"]', r).value.trim();
-        return { name: v('name'), price: v('price'), color: v('color'), image: v('image'), pop: $('[name="pop"]', r).checked, notes: v('notes') };
+        const num = name => { const n = parseInt(v(name), 10); return n > 0 ? Math.min(n, 99) : 0; };
+        return { name: v('name'), price: v('price'), color: v('color'), image: v('image'), pop: $('[name="pop"]', r).checked, notes: v('notes'), limit: num('limit'), taken: num('taken') };
     });
 }
 // Keeps the little preview beside each tier in step with its art, color and name
@@ -582,7 +591,7 @@ function refreshTierThumb(row) {
 }
 function addTier() {
     const tiers = readTierRows();
-    tiers.push({ name: '', price: '', color: TIER_COLORS[tiers.length % TIER_COLORS.length], image: '', pop: false, notes: '' });
+    tiers.push({ name: '', price: '', color: TIER_COLORS[tiers.length % TIER_COLORS.length], image: '', pop: false, notes: '', limit: 0, taken: 0 });
     renderTierEditor(tiers);
     const rows = $$('#cm-tier-list .tier-row');
     $('[name="name"]', rows[rows.length - 1]).focus();
@@ -608,6 +617,68 @@ async function removeTier(btn) {
     renderTierEditor(tiers);
 }
 
+// Add-ons: extras buyers can add on a tier's page (the new designs add them to the total)
+function addonRowHTML(a) {
+    return '<div class="addon-row">'
+        + '<label class="field"><span>Add-on</span><input type="text" name="name" value="' + esc(a.name || '') + '" placeholder="Extra character" maxlength="40"></label>'
+        + '<label class="field"><span>Price</span><input type="text" name="price" value="' + esc(a.price || '') + '" placeholder="$15" maxlength="12"></label>'
+        + '<button type="button" class="q-btn del" data-action="addon-remove" aria-label="Remove add-on"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>';
+}
+function renderAddonEditor(list) { byId('cm-addon-list').innerHTML = list.map(addonRowHTML).join(''); }
+function readAddonRows() {
+    return $$('#cm-addon-list .addon-row').map(r => ({ name: $('[name="name"]', r).value.trim(), price: $('[name="price"]', r).value.trim() })).filter(a => a.name);
+}
+function addAddon() {
+    byId('cm-addon-list').insertAdjacentHTML('beforeend', addonRowHTML({}));
+    const rows = $$('#cm-addon-list .addon-row');
+    $('[name="name"]', rows[rows.length - 1]).focus();
+}
+
+// Terms of service, in sections that open and close on the page (each rule on its own line)
+function termSectionHTML(sec, i, n) {
+    return '<div class="tsec-row">'
+        + '<div class="tsec-fields"><label class="field"><span>Section</span><input type="text" name="title" value="' + esc(sec.title || '') + '" placeholder="Payment" maxlength="40"></label>'
+        + '<label class="field"><span>Rules <em>(one per line; **bold** works)</em></span><textarea name="rules" rows="3" placeholder="Full payment is due before I start.">' + esc((sec.rules || []).join('\n')) + '</textarea></label></div>'
+        + '<div class="tier-actions">'
+        + '<button type="button" class="q-btn" data-action="tsec-move" data-dir="-1" aria-label="Move section up"' + (i === 0 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>'
+        + '<button type="button" class="q-btn" data-action="tsec-move" data-dir="1" aria-label="Move section down"' + (i === n - 1 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>'
+        + '<button type="button" class="q-btn del" data-action="tsec-remove" aria-label="Remove section"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>'
+        + '</div></div>';
+}
+function renderTermSections(list) {
+    byId('cm-tsec-list').innerHTML = list.map((sec, i) => termSectionHTML(sec, i, list.length)).join('');
+}
+function readTermSections() {
+    return $$('#cm-tsec-list .tsec-row').map(r => ({
+        title: $('[name="title"]', r).value.trim(),
+        rules: $('[name="rules"]', r).value.split('\n').map(x => x.trim()).filter(Boolean)
+    })).filter(sec => sec.title || sec.rules.length);
+}
+function addTermSection() {
+    const list = readTermSections();
+    list.push({ title: '', rules: [] });
+    renderTermSections(list);
+    const rows = $$('#cm-tsec-list .tsec-row');
+    $('[name="title"]', rows[rows.length - 1]).focus();
+}
+function moveTermSection(btn) {
+    const rows = $$('#cm-tsec-list .tsec-row');
+    const i = rows.indexOf(btn.closest('.tsec-row')), j = i + Number(btn.dataset.dir);
+    const list = $$('#cm-tsec-list .tsec-row').map(r => ({ title: $('[name="title"]', r).value, rules: $('[name="rules"]', r).value.split('\n') }));
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    renderTermSections(list);
+    const again = $('[data-action="tsec-move"][data-dir="' + btn.dataset.dir + '"]', $$('#cm-tsec-list .tsec-row')[j]);
+    if (again && !again.disabled) again.focus();
+}
+async function removeTermSection(btn) {
+    const row = btn.closest('.tsec-row');
+    const title = $('[name="title"]', row).value.trim();
+    if ((title || $('[name="rules"]', row).value.trim()) && !await askConfirm('Its rules leave your page when you save.', { hold: true, title: 'Remove the ' + (title || 'untitled') + ' section?', yes: 'Hold to remove' })) return;
+    row.remove();
+    renderTermSections(readTermSections());
+}
+
 function saveCommSettings() {
     const c = currentConfig;
     const val = id => (byId(id).value || '').trim();
@@ -621,10 +692,16 @@ function saveCommSettings() {
         tiers, terms: byId('cm-f-terms').value.trim(), termsImage: val('cm-f-termspic'),
         tapeWords: byId('cm-f-tape').value.split('\n').map(w => w.trim()).filter(Boolean),
         closedNote: val('cm-f-closednote'),
+        design: ($('input[name="comm-design"]:checked') || { value: 'original' }).value,
+        addons: readAddonRows(), termSections: readTermSections(),
+        willDraw: byId('cm-f-will').value.split('\n').map(w => w.trim()).filter(Boolean),
+        wontDraw: byId('cm-f-wont').value.split('\n').map(w => w.trim()).filter(Boolean),
+        agreeCheck: byId('cm-f-agree').checked,
         paper: byId('cm-f-paper').value, ink: byId('cm-f-ink').value, tape: byId('cm-f-tapecolor').value
     });
     byId('s-comm-link').value = link;
     renderTierEditor(tiers);
+    renderAddonEditor(c.commPage.addons); renderTermSections(c.commPage.termSections);
     renderStatus(); renderCommissions();
     saveSystem();
 }

@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.19 · logic.js                                         ║
+ ║  NEERG 7.0.20 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.19';
+const NEERG_VERSION = '7.0.20';
 // Where the code files live: beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // admin.js, about.js and about.css load from the same place as this file.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
@@ -141,7 +141,7 @@ const STATUS_PRESETS = [
 // Commissions poster (Admin, Commissions). New tiers take these colors in turn.
 const TIER_COLORS = ['#35E04A', '#5B2EE8', '#C04BFF', '#FF6B2C', '#00B8F5', '#FF3D7F'];
 const HAZARD_WORDS = ['COMMISSIONS CLOSED', 'CLOSED', 'CHECK BACK SOON'];
-const COMM_DEFAULTS = { open: true, title: '', handle: '', contact: '', button: '', tiers: [], terms: '', termsImage: '', tapeWords: [], closedNote: '', paper: '#DFDAD0', ink: '#161616', tape: '#3AA6F2' };
+const COMM_DEFAULTS = { open: true, design: 'original', title: '', handle: '', contact: '', button: '', tiers: [], addons: [], terms: '', termSections: [], willDraw: [], wontDraw: [], agreeCheck: true, termsImage: '', tapeWords: [], closedNote: '', paper: '#DFDAD0', ink: '#161616', tape: '#3AA6F2' };
 // Hazard tapes all over the page while closed: [kind (y yellow, k black, s stripes), distance down the page in %, tilt in degrees]
 const HAZARD_LAYOUT = [['y', 5, -6], ['s', 13, 10], ['k', 21, 3], ['y', 30, -9], ['s', 38, 6], ['k', 46, -4], ['y', 55, 8], ['s', 63, -11], ['k', 71, 4], ['y', 79, -6], ['s', 87, 9], ['k', 94, -3]];
 // Comic "POW" burst behind each price, tinted with the tier's color (viewBox 0 0 220 150)
@@ -890,6 +890,10 @@ function renderStatus() {
 function renderCommissions() {
     const root = byId('cm'); if (!root) return;
     const cp = commPage();
+    const alt = commDesign() !== 'original';
+    root.hidden = alt;
+    byId('cm-alt').hidden = !alt;
+    if (alt) { if (ui.view === 'commissions') startComm(); } else stopComm();
     const closed = cp.open === false;
     root.classList.toggle('is-closed', closed);
     root.style.setProperty('--cm-paper', normalizeHex(cp.paper, COMM_DEFAULTS.paper));
@@ -935,7 +939,7 @@ function renderCommissions() {
     hz.innerHTML = closed ? hazardHTML(cp.tapeWords) : '';
     hz.classList.toggle('is-in', closed);
 
-    const terms = String(cp.terms || '').trim();
+    const terms = commTermsText(cp);
     byId('cm-terms').hidden = !terms;
     const tt = byId('cm-terms-text');
     tt.innerHTML = terms ? md(terms) : '';
@@ -946,6 +950,89 @@ function renderCommissions() {
     if (pic) { pi.onerror = () => { pi.hidden = true; }; pi.src = thumbOf(pic); pi.hidden = false; }
     else { pi.hidden = true; pi.removeAttribute('src'); }
 }
+
+// The terms as Markdown: the sections from Admin (with what you will and won't draw), or the simple terms box
+function commTermsText(cp) {
+    const lines = list => (list || []).join('\n').split('\n').map(x => x.trim()).filter(Boolean);
+    const parts = (cp.termSections || []).filter(s => s && (String(s.title || '').trim() || lines(s.rules).length))
+        .map(s => '**' + (String(s.title || '').trim() || 'Terms') + '**\n' + lines(s.rules).map(r => '- ' + r).join('\n'));
+    const will = lines(cp.willDraw), wont = lines(cp.wontDraw);
+    if (parts.length && (will.length || wont.length)) parts.push('**What I will and won\'t draw**\n' + (will.length ? '- **Will draw:** ' + will.join(', ') + '\n' : '') + (wont.length ? '- **Won\'t draw:** ' + wont.join(', ') : ''));
+    return parts.length ? parts.join('\n\n') : String(cp.terms || '').trim();
+}
+
+/* ═════════════════════════════════════════════
+   COMMISSIONS: OTHER DESIGNS
+   The design picked in Admin › Commissions › Page design (comm.js, comm.css and their fonts) loads the
+   first time Commissions opens with it. The original taped poster above needs neither file.
+   ═════════════════════════════════════════════ */
+
+const COMM_DESIGNS = ['original', 'event', 'signal', 'strips'];
+function commDesign() { const d = commPage().design; return COMM_DESIGNS.includes(d) ? d : 'original'; }
+// The number in a price like "$35" or "From 20€"; null for "CUSTOM"
+function commAmount(text) { const m = String(text || '').replace(/,/g, '').match(/\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; }
+let commLoading = null, commShown = '';
+function loadComm() {
+    if (window.NeergComm) return Promise.resolve(window.NeergComm);
+    if (commLoading) return commLoading;
+    const css = new Promise(resolve => {
+        const l = document.createElement('link');
+        l.rel = 'stylesheet'; l.href = CODE_BASE + 'comm.css?v=' + NEERG_VERSION;
+        l.onload = l.onerror = resolve;
+        document.head.appendChild(l);
+    });
+    const js = new Promise(resolve => {
+        const s = document.createElement('script');
+        s.src = CODE_BASE + 'comm.js?v=' + NEERG_VERSION;
+        s.onload = resolve;
+        s.onerror = () => { commLoading = null; resolve(); };
+        document.head.appendChild(s);
+    });
+    commLoading = Promise.all([css, js]).then(() => window.NeergComm || null);
+    return commLoading;
+}
+// Everything the page shows, as plain values
+function commData() {
+    const cfg = currentConfig, cp = commPage();
+    const lines = list => (Array.isArray(list) ? list.join('\n') : String(list || '')).split('\n').map(x => x.trim()).filter(Boolean);
+    const tiers = (cp.tiers || []).filter(t => t && (t.name || t.price || t.image || t.notes)).map((t, i) => {
+        const notes = String(t.notes || '').trim(), img = safeUrl(t.image), price = String(t.price || '').trim();
+        const limit = Math.max(0, parseInt(t.limit, 10) || 0), left = Math.max(0, limit - Math.max(0, parseInt(t.taken, 10) || 0));
+        return {
+            name: String(t.name || '').trim() || 'Tier ' + (i + 1), price: price || 'Ask', amount: commAmount(price),
+            notes: notes ? md(notes) : '', short: notes.split('\n')[0].replace(/[*_`#>]|\[|\]\([^)]*\)/g, '').trim().slice(0, 70),
+            img: img ? thumbOf(img) : '', full: img,
+            spots: limit ? { full: left === 0, text: left ? left + ' of ' + limit + (limit === 1 ? ' spot' : ' spots') + ' left' : 'Full right now' } : null
+        };
+    });
+    const priced = tiers.find(t => /\d/.test(t.price));
+    const sections = (cp.termSections || []).filter(s => s && (String(s.title || '').trim() || lines(s.rules).length))
+        .map(s => ({ title: String(s.title || '').trim() || 'Terms', rules: lines(s.rules).map(r => ({ html: md(r) })) }));
+    if (!sections.length && String(cp.terms || '').trim()) sections.push({ title: 'Terms', rules: lines(cp.terms).map(r => ({ html: md(r.replace(/^[-*]\s+/, '')) })) });
+    const will = lines(cp.willDraw), wont = lines(cp.wontDraw);
+    if (will.length || wont.length) sections.push({ title: 'What I will and won\'t draw', rules: (will.length ? [{ lead: 'Will draw:', html: esc(will.join(', ')) }] : []).concat(wont.length ? [{ lead: 'Won\'t draw:', html: esc(wont.join(', ')), wont: true }] : []) });
+    return {
+        design: commDesign(), name: siteName(), title: String(cp.title || '').trim() || 'Commissions',
+        open: cp.open !== false, status: (cfg.commissionStatus || '').trim() || (cp.open !== false ? 'Open now' : 'Closed for now'),
+        closedNote: String(cp.closedNote || '').trim(), contact: String(cp.contact || '').trim(),
+        request: { url: safeUrl(cfg.commissionsLink), text: String(cp.button || '').trim() || 'Make a request' },
+        currency: (priced ? priced.price.replace(/[\d.,\s].*$/, '') : '') || '$',
+        tiers,
+        addons: (cp.addons || []).filter(a => a && String(a.name || '').trim()).map(a => ({ name: String(a.name).trim(), price: String(a.price || '').trim(), amount: commAmount(a.price) })),
+        sections, agree: cp.agreeCheck !== false
+    };
+}
+function startComm() {
+    if (commDesign() === 'original') return;
+    loadComm().then(c => {
+        if (!c || ui.view !== 'commissions' || commDesign() === 'original') return;
+        const data = commData(), key = JSON.stringify(data);
+        if (c.shown && key === commShown) return;
+        commShown = key;
+        c.show(byId('cm-alt'), data);
+    });
+}
+function stopComm() { commShown = ''; if (window.NeergComm) window.NeergComm.hide(); }
 
 // The blue tape across each corner: your name repeated, with the contact line in the middle
 function bandHTML(handle, contact) {
@@ -1269,7 +1356,7 @@ function showView(view) {
     if (view === 'home') { renderComicBar(); fitHome(); scheduleFeatured(); } else stopFeatured();
     if (view === 'gallery') renderGallery();
     if (view === 'comics') renderComics();
-    if (view === 'commissions') replayTapes();
+    if (view === 'commissions') { replayTapes(); startComm(); } else if (leaving === 'commissions') stopComm();
     if (view === 'about') startAbout(); else if (leaving === 'about') stopAbout();
     if (view === 'admin') renderAdminView();
 }
@@ -3700,6 +3787,11 @@ const actions = {
     'tier-add': () => addTier(),
     'tier-move': el => moveTier(el),
     'tier-remove': el => removeTier(el),
+    'addon-add': () => addAddon(),
+    'addon-remove': el => el.closest('.addon-row').remove(),
+    'tsec-add': () => addTermSection(),
+    'tsec-move': el => moveTermSection(el),
+    'tsec-remove': el => removeTermSection(el),
     'studio-mode': el => Studio.switchMode(el.dataset.mode),
     'studio-preset': el => Studio.applyPreset(Number(el.dataset.index)),
     'studio-generate': () => Studio.generate(),
