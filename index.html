@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <!-- Link preview: Admin › Site info › Search and sharing rewrites the lines from here to the end marker on your site -->
     <title>NEERG</title>
     <meta name="description" content="Digital art archive">
+    <!-- /Link preview -->
     <meta name="theme-color" content="#000F08">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    NEERG 7.0.16 · index.html
+    NEERG 7.0.17 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
     Upload index.html, style.css, logic.js, admin.js, marked.min.js, about.js,
@@ -38,10 +40,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
     <!-- The ?v= tag makes browsers fetch fresh copies after an update. Set it to the new version (NEERG_VERSION in logic.js) with every update. -->
-    <link rel="stylesheet" href="style.css?v=7.0.16">
+    <link rel="stylesheet" href="style.css?v=7.0.17">
 
     <script defer src="marked.min.js"></script>
-    <script defer src="logic.js?v=7.0.16"></script>
+    <script defer src="logic.js?v=7.0.17"></script>
 </head>
 <body>
 
@@ -256,7 +258,10 @@
                         <h2 class="zg-card-title" id="board-title"></h2>
                         <p class="zg-board-count" id="board-count"></p>
                     </section>
-                    <div class="zg-polas" id="board-grid"></div>
+                    <div id="board-grid"></div>
+                    <div class="feed-more">
+                        <button class="btn" id="board-more" data-action="board-more" hidden>Show more</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -678,6 +683,45 @@
                             <label class="field"><span>Browser tab title</span><input type="text" id="s-title"></label>
                             <label class="field"><span>Description for search engines</span><input type="text" id="s-desc"></label>
                         </div>
+                        <p class="hint">When someone shares a link to your site on Discord, Bluesky, X or in a text message, it shows this title and description with a picture. Browsers show the tab icon next to the title.</p>
+                        <div class="form-grid">
+                            <label class="field"><span>Link picture</span>
+                                <select id="lp-pic"><option value="newest">My newest piece</option><option value="pfp">My profile picture</option><option value="own">A picture I choose</option></select>
+                            </label>
+                            <label class="field"><span>Tab icon</span>
+                                <select id="lp-icon"><option value="pfp">My profile picture</option><option value="pic">Same as the link picture</option><option value="own">A picture I choose</option></select>
+                            </label>
+                        </div>
+                        <div class="field" id="lp-pic-field" hidden>
+                            <span>Picture for links</span>
+                            <div class="inline-form">
+                                <input type="text" id="lp-pic-url" placeholder="img/..." aria-label="Picture for links">
+                                <button type="button" class="btn small" data-action="pick-image" data-target="lp-pic-url">From posts</button>
+                                <label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="lp-pic-url" hidden></label>
+                            </div>
+                        </div>
+                        <div class="field" id="lp-icon-field" hidden>
+                            <span>Picture for the tab icon <em>(a square one works best)</em></span>
+                            <div class="inline-form">
+                                <input type="text" id="lp-icon-url" placeholder="img/..." aria-label="Picture for the tab icon">
+                                <button type="button" class="btn small" data-action="pick-image" data-target="lp-icon-url">From posts</button>
+                                <label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="lp-icon-url" hidden></label>
+                            </div>
+                        </div>
+                        <div class="lp-preview" aria-hidden="true">
+                            <div class="lp-tab"><img id="lp-tab-icon" alt=""><span id="lp-tab-title"></span><i class="fa-solid fa-xmark"></i></div>
+                            <div class="lp-card">
+                                <small id="lp-card-site"></small>
+                                <strong id="lp-card-title"></strong>
+                                <span id="lp-card-desc"></span>
+                                <img id="lp-card-img" alt="">
+                            </div>
+                        </div>
+                        <p class="lp-status" id="lp-status" role="status"></p>
+                        <div class="row-actions">
+                            <button class="btn" data-action="lp-update" id="lp-update"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Update link preview</button>
+                            <button class="btn btn-ghost" data-action="lp-download" id="lp-download" hidden><i class="fa-solid fa-download" aria-hidden="true"></i> Download index.html</button>
+                        </div>
                     </fieldset>
 
                     <fieldset class="group">
@@ -896,7 +940,7 @@
             <a href="#/about">About</a>
         </nav>
         <div class="social-icons" id="footer-social"></div>
-        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.16</a></p>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.17</a></p>
     </div>
 </footer>
 
@@ -1058,6 +1102,18 @@
                     <button class="btn small" data-action="shrink-download"><i class="fa-solid fa-download" aria-hidden="true"></i> Download list</button>
                     <button class="btn small btn-ghost" data-action="shrink-forget">I've deleted them</button>
                 </div>
+            </div>
+        </div>
+        <h3 class="mini-head">Small previews</h3>
+        <div class="shrink">
+            <p class="hint" id="pv-info">Makes small copies of your pictures for cards, boards and sliders, so pages load faster.</p>
+            <div class="progress" id="pv-progress" hidden>
+                <div class="progress-row"><span id="pv-text">Making previews</span><span id="pv-count"></span></div>
+                <div class="progress-bar"><div class="progress-fill" id="pv-bar"></div></div>
+            </div>
+            <div class="row-actions">
+                <button class="btn small" data-action="pv-start" id="pv-start"><i class="fa-solid fa-image" aria-hidden="true"></i> Make small previews</button>
+                <button class="btn small btn-ghost" data-action="pv-stop" id="pv-stop" hidden>Stop after this one</button>
             </div>
         </div>
         <h3 class="mini-head">Activity</h3>

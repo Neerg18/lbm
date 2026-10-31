@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.16 · style.css
+ NEERG 7.0.17 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -1999,6 +1999,19 @@ a.cm-request:hover { text-decoration: none; transform: rotate(0) translate(-2px,
 .sl-picks img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
 .sl-own { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .sl-own-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+/* Site info › Search and sharing: a browser tab and a shared link, drawn from the form */
+.lp-preview { display: flex; flex-direction: column; gap: 14px; max-width: 520px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface); }
+.lp-tab { display: flex; align-items: center; gap: 8px; align-self: flex-start; max-width: 280px; padding: 8px 12px; border-radius: 10px 10px 0 0; background: var(--raise); font-size: .82rem; }
+.lp-tab img { flex: none; width: 16px; height: 16px; }
+.lp-tab span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.lp-tab i { flex: none; font-size: .7rem; color: var(--text-3); }
+.lp-card { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px 14px; border-left: 4px solid var(--accent); border-radius: 6px; background: var(--raise); font-size: .86rem; }
+.lp-card small { color: var(--text-3); }
+.lp-card strong { color: var(--hl); }
+.lp-card span { color: var(--text-2); }
+.lp-card span:empty { display: none; }
+.lp-card img { width: 100%; aspect-ratio: 1200 / 630; margin-top: 8px; border-radius: 6px; object-fit: cover; background: var(--post-bg); }
+.lp-status { font-size: .88rem; color: var(--text-2); }
 
 .links-editor { display: flex; flex-direction: column; gap: 10px; }
 .link-row { display: grid; grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 8px; align-items: center; }
