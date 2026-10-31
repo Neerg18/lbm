@@ -11,7 +11,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    NEERG 7.0.18 · index.html
+    NEERG 7.0.19 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
     Upload index.html, style.css, logic.js, admin.js, marked.min.js, about.js,
@@ -42,11 +42,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
-    <!-- One-file NEERG 7.0.18: the code loads from github.com/Neerg18/lbm through jsDelivr. To update, upload the newest one-file/index.html over this file. -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Neerg18/lbm@d15b3346d92793bb7789dc68470b76edc4548777/style.css">
+    <!-- One-file NEERG 7.0.19: the code loads from github.com/Neerg18/lbm through jsDelivr. To update, upload the newest one-file/index.html over this file. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Neerg18/lbm@caa7f2ac3aecbdc8beecd658039610b1d920b3cf/style.css">
 
-    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@d15b3346d92793bb7789dc68470b76edc4548777/marked.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@d15b3346d92793bb7789dc68470b76edc4548777/logic.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@caa7f2ac3aecbdc8beecd658039610b1d920b3cf/marked.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@caa7f2ac3aecbdc8beecd658039610b1d920b3cf/logic.js"></script>
 </head>
 <body>
 
@@ -374,6 +374,7 @@
                 </div>
 
                 <div class="notice" id="recovery" hidden></div>
+                <div class="notice" id="backup-nudge" role="status" hidden></div>
 
                 <div class="dash-tabs" role="tablist" aria-label="Admin sections">
                     <button role="tab" data-action="admin-tab" data-tab="post" aria-selected="true">New post</button>
@@ -954,7 +955,7 @@
             <a href="#/about">About</a>
         </nav>
         <div class="social-icons" id="footer-social"></div>
-        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.18</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.19</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
     </div>
 </footer>
 
