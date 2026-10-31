@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.17 · admin.js                                         ║
+ ║  NEERG 7.0.20 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home page, links and cleanup.    ║
  ║  logic.js loads this the first time Admin opens, so visitors     ║
@@ -66,6 +66,8 @@ async function createPost() {
     const content = byId('np-content').value.trim();
     if (byId('np-url').value.trim()) addUrlToQueue();
     if (!content && !currentPostMediaQueue.length) { showToast('Add a caption or some media first.', 'error'); return; }
+    const at = byId('np-later').checked ? new Date(byId('np-at').value).getTime() : 0;
+    if (byId('np-later').checked && !(at > Date.now() + 30000)) { showToast('Pick a time in the future to schedule this post.', 'error'); return; }
     publishing = true;
     const files = currentPostMediaQueue.filter(i => i.type === 'file').map(i => i.val);
     let paths = [];
@@ -77,18 +79,39 @@ async function createPost() {
     }
     let fi = 0;
     const media = currentPostMediaQueue.map(item => item.type === 'file' ? paths[fi++] : item.val).filter(Boolean);
-    const post = { id: Date.now(), content, tags: selectedNewPostTags(), pinned: byId('np-pinned').checked };
+    const post = { id: at ? freePostId(at) : Date.now(), content, tags: selectedNewPostTags(), pinned: byId('np-pinned').checked };
+    if (at) post.at = post.id;
+    const alt = byId('np-alt').value.trim(); if (alt) post.alt = alt;
     if (media.length === 1) post.media = media[0]; else if (media.length > 1) post.media = media;
     postsCache.push(post);
 
-    byId('np-content').value = ''; byId('np-custom-tags').value = ''; byId('np-pinned').checked = false;
+    byId('np-content').value = ''; byId('np-alt').value = ''; byId('np-custom-tags').value = ''; byId('np-pinned').checked = false;
+    byId('np-later').checked = false; syncScheduleField();
     $$('#np-tags .chip').forEach(b => b.setAttribute('aria-pressed', 'false'));
     currentPostMediaQueue = []; renderMediaQueue();
     ui.feed.limit = FEED_STEP;
     renderHome(); renderNewPostTags();
     await savePosts();
     publishing = false;
-    showToast('Published');
+    showToast(at ? 'Scheduled for ' + whenText(at) : 'Published');
+}
+
+/* Scheduling: a scheduled post's id is the time it goes up (a few random milliseconds keep ids apart),
+   so it sorts, dates and numbers like a post made at that moment */
+function freePostId(at) {
+    let id = Math.floor(at / 1000) * 1000 + Math.floor(Math.random() * 1000);
+    while (postsCache.some(p => p.id === id)) id++;
+    return id;
+}
+function whenText(ts) { return new Date(ts).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+// The value a datetime-local field uses, in this device's time
+function localInputValue(ts) { const d = new Date(ts - new Date(ts).getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }
+function syncScheduleField() {
+    const on = byId('np-later').checked, at = byId('np-at');
+    byId('np-at-field').hidden = !on;
+    at.min = localInputValue(Date.now());
+    if (on && !at.value) at.value = localInputValue(Math.ceil((Date.now() + 36e5) / 9e5) * 9e5);
+    byId('np-publish').innerHTML = '<i class="fa-solid fa-paper-plane" aria-hidden="true"></i> ' + (on ? 'Schedule post' : 'Publish post');
 }
 
 /* Bulk upload: every image becomes its own post */
@@ -144,7 +167,7 @@ function renderManagePosts() {
         return '<div class="m-row" data-id="' + p.id + '">'
             + '<div class="m-thumb">' + (thumb ? '<img src="' + esc(thumbOf(thumb)) + '" alt="" loading="lazy">' : '<i class="fa-solid fa-align-left" aria-hidden="true"></i>') + '</div>'
             + '<div class="m-body"><span class="m-title' + (title ? '' : ' is-muted') + '">' + (title ? esc(title) : 'No caption') + '</span>'
-            + '<span class="m-meta"><span>' + esc(formatDate(p)) + '</span>' + (p.pinned ? '<span class="pin">Pinned</span>' : '')
+            + '<span class="m-meta"><span>' + esc(formatDate(p)) + '</span>' + (isScheduled(p) ? '<span class="pin">Goes up ' + esc(whenText(p.at)) + '</span>' : '') + (p.pinned ? '<span class="pin">Pinned</span>' : '')
             + '<span><i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' + (ints.likes || 0) + '</span><span><i class="fa-solid fa-thumbs-down" aria-hidden="true"></i> ' + (ints.dislikes || 0) + '</span>'
             + '<span><i class="fa-regular fa-comment" aria-hidden="true"></i> ' + commentCount(p.id) + '</span>' + (media.length ? '<span><i class="fa-regular fa-image" aria-hidden="true"></i> ' + media.length + '</span>' : '') + '</span>'
             + (postTags(p).length ? '<span class="m-tags">' + postTags(p).map(t => '<span>' + esc(t) + '</span>').join('') + '</span>' : '')
@@ -163,14 +186,22 @@ function editPostHTML(p) {
     const media = mediaList(p);
     return '<form class="m-edit" data-form="edit-post" data-id="' + p.id + '">'
         + '<label class="field"><span>Caption</span><textarea name="content" rows="4">' + esc(p.content || '') + '</textarea></label>'
+        + '<label class="field"><span>Picture description <em>(for screen readers)</em></span><input type="text" name="alt" value="' + esc(p.alt || '') + '"></label>'
         + '<label class="field"><span>Tags, separated by commas</span><input type="text" name="tags" value="' + esc(postTags(p).join(', ')) + '"></label>'
+        + (isScheduled(p) ? '<label class="field"><span>Goes up at <em>(your time; clear it to put the post up now)</em></span><input type="datetime-local" name="at" value="' + localInputValue(p.at) + '"></label>' : '')
         + (media.length ? '<div class="field"><span>Media <em>(tap ✕ to remove from this post)</em></span><div class="m-media">' + media.map((u, i) => '<span class="mm" data-i="' + i + '">' + (getMediaType(u) === 'image' ? '<img src="' + esc(u) + '" alt="">' : '<i class="fa-solid fa-film" aria-hidden="true"></i>') + '<button type="button" data-action="edit-remove-media" aria-label="Remove">✕</button></span>').join('') + '</div></div>' : '')
         + '<div class="form-foot"><button type="button" class="btn btn-ghost small" data-action="edit-post" data-id="' + p.id + '">Cancel</button><button type="submit" class="btn btn-primary small">Save changes</button></div>'
         + '</form>';
 }
 function saveEditedPost(form) {
     const post = postsCache.find(p => p.id === Number(form.dataset.id)); if (!post) return;
+    if (form.elements.at) {
+        const v = form.elements.at.value, at = v ? new Date(v).getTime() : 0;
+        if (!at || at <= Date.now() + 30000) { post.id = Date.now(); delete post.at; }
+        else if (Math.floor(at / 6e4) !== Math.floor(post.at / 6e4)) { post.id = post.at = freePostId(at); }
+    }
     post.content = form.elements.content.value.trim();
+    const alt = form.elements.alt.value.trim(); if (alt) post.alt = alt; else delete post.alt;
     post.tags = form.elements.tags.value.split(',').map(t => t.trim()).filter(Boolean);
     const removed = $$('.mm.is-removed', form).map(n => Number(n.dataset.i));
     if (removed.length) {
@@ -405,6 +436,7 @@ function populateSiteForm() {
     populateAotdForm();
     set('s-like-label', c.likeLabel); set('s-dislike-label', c.dislikeLabel);
     set('s-title', c.metaTitle); set('s-desc', c.metaDescription);
+    set('s-start-theme', c.startTheme || 'dark'); chk('s-feed', !c.feedOff); renderFeedStatus();
     const lp = lpSettings();
     set('lp-pic', lp.pic); set('lp-pic-url', lp.picUrl); set('lp-icon', lp.icon); set('lp-icon-url', lp.iconUrl);
     linkPreviewSoon();
@@ -426,6 +458,7 @@ async function saveSiteSettings() {
     if (byId('aotd-tiles') && Aotd.draft) { c.artOfToday = byId('s-aotd').checked; c.aotd = aotdFormSettings(); delete c.aotdColor; Aotd.draft = clone(c.aotd); }
     c.likeLabel = byId('s-like-label').value; c.dislikeLabel = byId('s-dislike-label').value;
     c.metaTitle = val('s-title'); c.metaDescription = val('s-desc');
+    c.startTheme = byId('s-start-theme').value; c.feedOff = !byId('s-feed').checked;
     c.linkPreview = Object.assign({}, c.linkPreview, lpFormSettings());
     c.bgImage = val('s-bgimage'); c.customCss = byId('s-css').value;
     c.webpUploads = byId('s-webp').checked;
@@ -471,6 +504,12 @@ function populateCommForm() {
     setCommColors(cp);
     byId('status-presets').innerHTML = STATUS_PRESETS.map(p => '<button type="button" class="chip" data-action="status-preset" data-text="' + esc(p.text) + '" data-color="' + p.color + '"><span class="status-dot" style="background:' + p.color + ';animation:none"></span>' + esc(p.label) + '</button>').join('');
     renderTierEditor(cp.tiers || []);
+    const design = COMM_DESIGNS.includes(cp.design) ? cp.design : 'original';
+    $$('input[name="comm-design"]').forEach(r => { r.checked = r.value === design; });
+    renderAddonEditor(cp.addons || []);
+    renderTermSections(cp.termSections || []);
+    set('cm-f-will', (cp.willDraw || []).join('\n')); set('cm-f-wont', (cp.wontDraw || []).join('\n'));
+    byId('cm-f-agree').checked = cp.agreeCheck !== false;
     syncCommSwitch(cp.open !== false);
     syncTapeSample();
 }
@@ -520,6 +559,8 @@ function tierRowHTML(t, i, n) {
         + '<button type="button" class="btn small" data-action="pick-image" data-target="' + id + '">From posts</button>'
         + '<label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="' + id + '" hidden></label>'
         + '</div></div>'
+        + '<div class="tier-pair span-2 tier-spots"><label class="field"><span>Spots <em>(how many you take; empty means no limit)</em></span><input type="number" name="limit" min="0" max="99" inputmode="numeric" value="' + esc(t.limit || '') + '" placeholder="No limit"></label>'
+        + '<label class="field"><span>Filled</span><input type="number" name="taken" min="0" max="99" inputmode="numeric" value="' + esc(t.taken || '') + '" placeholder="0"></label></div>'
         + '<label class="check span-2"><input type="checkbox" name="pop"' + (t.pop ? ' checked' : '') + '> <span>Let the art pop out of its frame <em>(for art with a see-through background)</em></span></label>'
         + '<label class="field span-2"><span>Details <em>(one per line; **bold** works)</em></span><textarea name="notes" rows="4" placeholder="Flat colors, one character.&#10;**Extra characters:** +$20 each.">' + esc(t.notes || '') + '</textarea></label>'
         + '</div>'
@@ -537,7 +578,8 @@ function renderTierEditor(tiers) {
 function readTierRows() {
     return $$('#cm-tier-list .tier-row').map(r => {
         const v = name => $('[name="' + name + '"]', r).value.trim();
-        return { name: v('name'), price: v('price'), color: v('color'), image: v('image'), pop: $('[name="pop"]', r).checked, notes: v('notes') };
+        const num = name => { const n = parseInt(v(name), 10); return n > 0 ? Math.min(n, 99) : 0; };
+        return { name: v('name'), price: v('price'), color: v('color'), image: v('image'), pop: $('[name="pop"]', r).checked, notes: v('notes'), limit: num('limit'), taken: num('taken') };
     });
 }
 // Keeps the little preview beside each tier in step with its art, color and name
@@ -549,7 +591,7 @@ function refreshTierThumb(row) {
 }
 function addTier() {
     const tiers = readTierRows();
-    tiers.push({ name: '', price: '', color: TIER_COLORS[tiers.length % TIER_COLORS.length], image: '', pop: false, notes: '' });
+    tiers.push({ name: '', price: '', color: TIER_COLORS[tiers.length % TIER_COLORS.length], image: '', pop: false, notes: '', limit: 0, taken: 0 });
     renderTierEditor(tiers);
     const rows = $$('#cm-tier-list .tier-row');
     $('[name="name"]', rows[rows.length - 1]).focus();
@@ -575,6 +617,68 @@ async function removeTier(btn) {
     renderTierEditor(tiers);
 }
 
+// Add-ons: extras buyers can add on a tier's page (the new designs add them to the total)
+function addonRowHTML(a) {
+    return '<div class="addon-row">'
+        + '<label class="field"><span>Add-on</span><input type="text" name="name" value="' + esc(a.name || '') + '" placeholder="Extra character" maxlength="40"></label>'
+        + '<label class="field"><span>Price</span><input type="text" name="price" value="' + esc(a.price || '') + '" placeholder="$15" maxlength="12"></label>'
+        + '<button type="button" class="q-btn del" data-action="addon-remove" aria-label="Remove add-on"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>';
+}
+function renderAddonEditor(list) { byId('cm-addon-list').innerHTML = list.map(addonRowHTML).join(''); }
+function readAddonRows() {
+    return $$('#cm-addon-list .addon-row').map(r => ({ name: $('[name="name"]', r).value.trim(), price: $('[name="price"]', r).value.trim() })).filter(a => a.name);
+}
+function addAddon() {
+    byId('cm-addon-list').insertAdjacentHTML('beforeend', addonRowHTML({}));
+    const rows = $$('#cm-addon-list .addon-row');
+    $('[name="name"]', rows[rows.length - 1]).focus();
+}
+
+// Terms of service, in sections that open and close on the page (each rule on its own line)
+function termSectionHTML(sec, i, n) {
+    return '<div class="tsec-row">'
+        + '<div class="tsec-fields"><label class="field"><span>Section</span><input type="text" name="title" value="' + esc(sec.title || '') + '" placeholder="Payment" maxlength="40"></label>'
+        + '<label class="field"><span>Rules <em>(one per line; **bold** works)</em></span><textarea name="rules" rows="3" placeholder="Full payment is due before I start.">' + esc((sec.rules || []).join('\n')) + '</textarea></label></div>'
+        + '<div class="tier-actions">'
+        + '<button type="button" class="q-btn" data-action="tsec-move" data-dir="-1" aria-label="Move section up"' + (i === 0 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>'
+        + '<button type="button" class="q-btn" data-action="tsec-move" data-dir="1" aria-label="Move section down"' + (i === n - 1 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>'
+        + '<button type="button" class="q-btn del" data-action="tsec-remove" aria-label="Remove section"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>'
+        + '</div></div>';
+}
+function renderTermSections(list) {
+    byId('cm-tsec-list').innerHTML = list.map((sec, i) => termSectionHTML(sec, i, list.length)).join('');
+}
+function readTermSections() {
+    return $$('#cm-tsec-list .tsec-row').map(r => ({
+        title: $('[name="title"]', r).value.trim(),
+        rules: $('[name="rules"]', r).value.split('\n').map(x => x.trim()).filter(Boolean)
+    })).filter(sec => sec.title || sec.rules.length);
+}
+function addTermSection() {
+    const list = readTermSections();
+    list.push({ title: '', rules: [] });
+    renderTermSections(list);
+    const rows = $$('#cm-tsec-list .tsec-row');
+    $('[name="title"]', rows[rows.length - 1]).focus();
+}
+function moveTermSection(btn) {
+    const rows = $$('#cm-tsec-list .tsec-row');
+    const i = rows.indexOf(btn.closest('.tsec-row')), j = i + Number(btn.dataset.dir);
+    const list = $$('#cm-tsec-list .tsec-row').map(r => ({ title: $('[name="title"]', r).value, rules: $('[name="rules"]', r).value.split('\n') }));
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    renderTermSections(list);
+    const again = $('[data-action="tsec-move"][data-dir="' + btn.dataset.dir + '"]', $$('#cm-tsec-list .tsec-row')[j]);
+    if (again && !again.disabled) again.focus();
+}
+async function removeTermSection(btn) {
+    const row = btn.closest('.tsec-row');
+    const title = $('[name="title"]', row).value.trim();
+    if ((title || $('[name="rules"]', row).value.trim()) && !await askConfirm('Its rules leave your page when you save.', { hold: true, title: 'Remove the ' + (title || 'untitled') + ' section?', yes: 'Hold to remove' })) return;
+    row.remove();
+    renderTermSections(readTermSections());
+}
+
 function saveCommSettings() {
     const c = currentConfig;
     const val = id => (byId(id).value || '').trim();
@@ -588,10 +692,16 @@ function saveCommSettings() {
         tiers, terms: byId('cm-f-terms').value.trim(), termsImage: val('cm-f-termspic'),
         tapeWords: byId('cm-f-tape').value.split('\n').map(w => w.trim()).filter(Boolean),
         closedNote: val('cm-f-closednote'),
+        design: ($('input[name="comm-design"]:checked') || { value: 'original' }).value,
+        addons: readAddonRows(), termSections: readTermSections(),
+        willDraw: byId('cm-f-will').value.split('\n').map(w => w.trim()).filter(Boolean),
+        wontDraw: byId('cm-f-wont').value.split('\n').map(w => w.trim()).filter(Boolean),
+        agreeCheck: byId('cm-f-agree').checked,
         paper: byId('cm-f-paper').value, ink: byId('cm-f-ink').value, tape: byId('cm-f-tapecolor').value
     });
     byId('s-comm-link').value = link;
     renderTierEditor(tiers);
+    renderAddonEditor(c.commPage.addons); renderTermSections(c.commPage.termSections);
     renderStatus(); renderCommissions();
     saveSystem();
 }
@@ -1034,10 +1144,10 @@ function swapImageRefs(map) {
     comicsCache.forEach(cm => { if (cm.pages) cm.pages = cm.pages.map(sw); if (cm.cover) cm.cover = sw(cm.cover); });
     // A picture's small copy still shows the same picture, so it moves to the new name
     const swKeys = m => Object.fromEntries(Object.entries(m).map(([k, v]) => [sw(k), v]));
-    postsCache.forEach(p => { if (p.previews) p.previews = swKeys(p.previews); });
+    postsCache.forEach(p => { if (p.previews) p.previews = swKeys(p.previews); if (p.sizes) p.sizes = swKeys(p.sizes); });
     comicsCache.forEach(cm => { if (cm.previews) cm.previews = swKeys(cm.previews); });
     if (currentConfig.previews) currentConfig.previews = swKeys(currentConfig.previews);
-    olds.forEach(o => { if (freshPreviews.has(o)) { freshPreviews.set(map[o], freshPreviews.get(o)); freshPreviews.delete(o); } });
+    olds.forEach(o => [freshPreviews, freshSizes].forEach(m => { if (m.has(o)) { m.set(map[o], m.get(o)); m.delete(o); } }));
     previewIndex = null;
     const c = currentConfig;
     ['pfpImage', 'bgImage', 'bannerImage'].forEach(k => { if (c[k]) c[k] = sw(c[k]); });
@@ -1129,64 +1239,87 @@ function uploadPathOf(u) {
     const s = String(u || '').trim();
     return /^[a-z][a-z0-9+.-]*:|^\/\//i.test(s) ? siteImagePath(s) : s.split(/[?#]/)[0].replace(/^\.?\//, '');
 }
-// Pictures stored on this site that could have a small copy but don't yet (minus ones an earlier run couldn't do)
-function previewlessRefs() {
-    const skipped = readJSON(KEYS.previewSkipped, []) || [], refs = new Set();
-    const add = u => { if (typeof u === 'string' && PREVIEWABLE.test(uploadPathOf(u)) && thumbOf(u) === u && !skipped.includes(u)) refs.add(u); };
-    postsCache.forEach(p => mediaList(p).forEach(add));
-    comicsCache.forEach(c => { (c.pages || []).forEach(add); add(c.cover); });
-    configImageRefs().forEach(add);
-    return [...refs];
+// Pictures stored on this site that still need a small copy, or (post pictures) their shape. Ones an earlier run
+// couldn't copy (too small, animated, missing) or couldn't measure are left out
+function previewWork() {
+    const noCopy = readJSON(KEYS.previewSkipped, []) || [], noSize = readJSON(KEYS.sizeSkipped, []) || [], work = new Map();
+    const want = (u, size) => {
+        if (typeof u !== 'string') return;
+        const path = uploadPathOf(u);
+        const copy = PREVIEWABLE.test(path) && thumbOf(u) === u && !noCopy.includes(u);
+        const shape = size && SIZEABLE.test(path) && !sizeOf(u) && !noSize.includes(u);
+        if (copy || shape) work.set(u, { copy: copy || (work.get(u) || {}).copy, shape: shape || (work.get(u) || {}).shape });
+    };
+    postsCache.forEach(p => mediaList(p).forEach(u => want(u, true)));
+    comicsCache.forEach(c => { (c.pages || []).forEach(u => want(u)); want(c.cover); });
+    configImageRefs().forEach(u => want(u));
+    return [...work].map(([ref, w]) => Object.assign({ ref }, w));
 }
 
 function renderPreviews() {
-    const refs = previewlessRefs();
-    byId('pv-info').textContent = refs.length
-        ? plural(refs.length, 'picture') + ' on your site ' + (refs.length === 1 ? 'has' : 'have') + ' no small preview yet. This makes small copies for cards, boards and sliders, so pages load faster. Your full pictures stay exactly as they are.'
-        : 'Every picture that can have a small preview has one.';
-    byId('pv-start').disabled = !refs.length || Previews.running;
+    const n = previewWork().length;
+    byId('pv-info').textContent = n
+        ? plural(n, 'picture') + ' on your site ' + (n === 1 ? 'needs' : 'need') + ' a small preview or ' + (n === 1 ? 'its' : 'their') + ' shape saved. Small copies make cards, boards and sliders load faster, and saved shapes keep boards from jumping while pictures load. Your full pictures stay exactly as they are.'
+        : 'Every picture that can have a small preview has one, and boards know every picture\'s shape.';
+    byId('pv-start').disabled = !n || Previews.running;
 }
 
 async function runPreviews() {
     if (Previews.running) return;
     if (isLocalMode()) { showToast('Connect your site to Neocities first, so the copies can be uploaded.', 'error'); return; }
-    const refs = previewlessRefs();
-    if (!refs.length) return;
-    if (!await askConfirm('Your full pictures stay as they are. Keep this tab open until it finishes.', { title: 'Make small previews of ' + plural(refs.length, 'picture') + '?', yes: 'Make previews' })) return;
+    const work = previewWork();
+    if (!work.length) return;
+    if (!await askConfirm('Your full pictures stay as they are. Keep this tab open until it finishes.', { title: 'Prepare ' + plural(work.length, 'picture') + '?', yes: 'Make previews' })) return;
     Previews.running = true; Previews.stop = false;
     const bar = byId('pv-bar'), txt = byId('pv-text'), count = byId('pv-count');
     byId('pv-progress').hidden = false; byId('pv-stop').hidden = false; byId('pv-start').disabled = true;
-    cleanupLog('Making previews for ' + plural(refs.length, 'picture'), 'info');
-    const small = [], byPath = new Map();
-    let made = 0, failed = 0, missing = 0;
-    for (let i = 0; i < refs.length && !Previews.stop; i++) {
-        const ref = refs[i], path = uploadPathOf(ref);
-        txt.textContent = 'Making a preview of ' + path.split('/').pop();
-        count.textContent = (i + 1) + ' of ' + refs.length;
-        bar.style.width = (i / refs.length * 100) + '%';
-        // Posts that share a file share its copy
-        if (byPath.has(path)) { const r = byPath.get(path); if (r === 'ok') freshPreviews.set(ref, previewPath(path)); else if (r !== 'fail') small.push(ref); continue; }
+    cleanupLog('Preparing ' + plural(work.length, 'picture'), 'info');
+    const noCopy = [], noSize = [], byPath = new Map();
+    let made = 0, measured = 0, failed = 0, missing = 0;
+    for (let i = 0; i < work.length && !Previews.stop; i++) {
+        const { ref, copy, shape } = work[i], path = uploadPathOf(ref);
+        txt.textContent = 'Preparing ' + path.split('/').pop();
+        count.textContent = (i + 1) + ' of ' + work.length;
+        bar.style.width = (i / work.length * 100) + '%';
+        // Posts that share a file share its copy and shape
+        const seen = byPath.get(path);
+        if (seen && seen.r !== 'fail') {
+            if (seen.copied) freshPreviews.set(ref, seen.copied); else if (copy) noCopy.push(ref);
+            if (seen.size) freshSizes.set(ref, seen.size); else if (shape) noSize.push(ref);
+            continue;
+        }
         try {
-            const res = await fetch(new URL(ref, location.href), { cache: 'no-store' });
-            if (!res.ok) { missing++; small.push(ref); byPath.set(path, 'missing'); continue; }
-            const r = await addPreview(await res.blob(), path, ref);
-            byPath.set(path, r);
-            if (r === 'ok') made++;
-            else if (r === 'skip') small.push(ref);
-            else if (++failed >= 3 && !made) { cleanupLog('Stopped: the first few uploads failed. Check your connection, then try again.', 'error'); break; }
+            // A picture that only needs its shape is measured from its small copy, when it has one
+            const src = copy ? ref : thumbOf(ref);
+            const res = await fetch(new URL(src, location.href), { cache: 'no-store' });
+            if (!res.ok) { missing++; if (copy) noCopy.push(ref); if (shape) noSize.push(ref); byPath.set(path, { r: 'missing' }); continue; }
+            const blob = await res.blob();
+            let copied = '', r = '';
+            if (copy) {
+                r = await addPreview(blob, path, ref);
+                if (r === 'ok') { made++; copied = previewPath(path); }
+                else if (r === 'skip') noCopy.push(ref);
+                else if (++failed >= 3 && !made) { cleanupLog('Stopped: the first few uploads failed. Check your connection, then try again.', 'error'); break; }
+            } else {
+                const info = await readPicture(blob, uploadPathOf(src), false);
+                if (info) freshSizes.set(ref, [info.w, info.h]);
+            }
+            const size = freshSizes.get(ref);
+            if (shape) { if (size) measured++; else noSize.push(ref); }
+            byPath.set(path, { copied, size, r });
         } catch (e) { failed++; }
     }
     bar.style.width = '100%';
-    if (made) {
+    if (made || measured) {
         txt.textContent = 'Saving your posts';
         renderHome(); renderComics(); renderGallery();
         await savePosts(); await saveComics(); await saveSystem();
-        cleanupLog('Made ' + plural(made, 'small preview'), 'success');
+        if (made) cleanupLog('Made ' + plural(made, 'small preview'), 'success');
+        if (measured) cleanupLog('Saved the shape of ' + plural(measured, 'picture'), 'success');
     }
-    if (small.length) {
-        writeJSON(KEYS.previewSkipped, (readJSON(KEYS.previewSkipped, []) || []).concat(small));
-        if (small.length > missing) cleanupLog('Left ' + plural(small.length - missing, 'picture') + ' without a preview because ' + (small.length - missing === 1 ? 'it is' : 'they are') + ' small already or animated', 'info');
-    }
+    const remember = (key, list) => { if (list.length) writeJSON(key, (readJSON(key, []) || []).concat(list)); };
+    remember(KEYS.previewSkipped, noCopy); remember(KEYS.sizeSkipped, noSize);
+    if (noCopy.length > missing) cleanupLog('Left ' + plural(noCopy.length - missing, 'picture') + ' without a preview because ' + (noCopy.length - missing === 1 ? 'it is' : 'they are') + ' small already or animated', 'info');
     if (missing) cleanupLog('Skipped ' + plural(missing, 'picture') + ' not found on your site', 'info');
     if (failed) cleanupLog(plural(failed, 'preview') + ' didn\'t upload. Run it again to try those again.', 'error');
     if (Previews.stop) cleanupLog('Stopped early. Run it again any time to finish the rest.', 'info');
@@ -1219,14 +1352,14 @@ function lpFormSettings() {
 function lpPicture(s) {
     if (s.pic === 'pfp') return safeUrl(currentConfig.pfpImage);
     if (s.pic === 'own') return safeUrl(s.picUrl);
-    const p = sortPosts(postsCache.filter(x => firstImage(x) && !isNsfw(x)), 'newest')[0];
+    const p = sortPosts(shownPosts().filter(x => firstImage(x) && !isNsfw(x)), 'newest')[0];
     return p ? safeUrl(firstImage(p)) : safeUrl(currentConfig.pfpImage);
 }
 function lpIconPicture(s) { return s.icon === 'pic' ? lpPicture(s) : s.icon === 'own' ? safeUrl(s.iconUrl) : safeUrl(currentConfig.pfpImage); }
 function lpText() { const c = currentConfig; return { title: c.metaTitle || siteName(), desc: c.metaDescription || c.tagline || '' }; }
 function siteBase() { return location.origin + location.pathname.replace(/[^/]*$/, ''); }
 // What the preview shows, to tell when the live one is out of date
-function lpSignature(s) { const t = lpText(); return JSON.stringify([t.title, t.desc, siteName(), lpPicture(s), lpIconPicture(s)]); }
+function lpSignature(s) { const t = lpText(); return JSON.stringify([t.title, t.desc, siteName(), lpPicture(s), lpIconPicture(s), feedShown()]); }
 function lpLiveStamp() { const m = $('meta[name="neerg-preview"]'); return m ? m.getAttribute('content') : ''; }
 // This page was loaded before the update, so it learns the new stamp here
 function lpMarkLive(v) {
@@ -1339,6 +1472,7 @@ function lpBlock(v) {
         m('twitter:card', 'summary_large_image', 'name'),
         '    <link rel="icon" type="image/png" href="' + LP_FILES.icon + q + '">',
         '    <link rel="apple-touch-icon" href="' + LP_FILES.touch + q + '">',
+        ...(feedShown() ? ['    <link rel="alternate" type="application/rss+xml" title="' + esc(t.title) + '" href="feed.xml">'] : []),
         m('neerg-preview', String(v), 'name'),
         '    ' + LP_END].join('\n');
 }
@@ -1389,10 +1523,84 @@ async function updateLinkPreview() {
 }
 function downloadLinkPreviewPage() { if (lpPage) downloadFile(lpPage, 'index.html'); }
 
+/* ═════════════════════════════════════════════
+   ADMIN: BACKUP REMINDER
+   Your posts, comics, likes and settings live only in four files on Neocities, so the dashboard asks
+   for a fresh backup when this device's last one is two weeks old, or there isn't one yet.
+   ═════════════════════════════════════════════ */
+
+const BACKUP_EVERY = 14 * 864e5;
+function renderBackupNudge() {
+    const box = byId('backup-nudge'); if (!box) return;
+    const now = Date.now(), last = Number(readJSON(KEYS.lastBackup, 0)) || 0, snooze = Number(readJSON(KEYS.backupSnooze, 0)) || 0;
+    const due = (postsCache.length || comicsCache.length) && now - last > BACKUP_EVERY && now > snooze;
+    box.hidden = !due;
+    if (!due) return;
+    const days = Math.floor((now - last) / 864e5);
+    box.innerHTML = '<span><strong>' + (last ? 'Your last backup from this device was ' + plural(days, 'day') + ' ago.' : 'You haven\'t backed up your site from this device yet.') + '</strong>'
+        + ' A backup saves your posts, comics, likes and settings to your computer, in case anything ever goes wrong on Neocities.</span>'
+        + '<span class="row-actions"><button class="btn small btn-primary" data-action="download-backup"><i class="fa-solid fa-download" aria-hidden="true"></i> Back up now</button>'
+        + '<button class="btn small btn-ghost" data-action="backup-snooze">Remind me in a week</button></span>';
+}
+
+/* ═════════════════════════════════════════════
+   ADMIN: RSS FEED
+   feed.xml lists the 20 newest posts that are up, for feed readers. Admin rewrites it after posts are
+   saved (when it changed) and once each visit, so scheduled posts that have gone up join it.
+   ═════════════════════════════════════════════ */
+
+let feedLast = '', feedState = '';
+function feedXml() {
+    const base = siteBase(), t = lpText(), nos = postNumbers();
+    const abs = u => { try { return new URL(u, base).href; } catch (e) { return ''; } };
+    const items = sortPosts(shownPosts(), 'newest').slice(0, 20).map(p => {
+        const img = firstImage(p), link = base + '#/post/' + p.id, sensitive = isNsfw(p);
+        const body = (img && !sensitive ? '<p><img src="' + esc(abs(thumbOf(img))) + '" alt="' + esc(p.alt || '') + '"></p>' : '')
+            + md(p.content || '') + (sensitive ? '<p>Sensitive piece: see it on the site.</p>' : '');
+        return '<item><title>' + esc('No.' + nos.get(p.id) + ' · ' + (excerpt(p.content, 80) || stampTag(p) || 'Untitled piece')) + '</title>'
+            + '<link>' + esc(link) + '</link><guid isPermaLink="false">' + esc(link) + '</guid>'
+            + (p.id > 1e12 ? '<pubDate>' + new Date(p.id).toUTCString() + '</pubDate>' : '')
+            + postTags(p).map(g => '<category>' + esc(g) + '</category>').join('')
+            + '<description>' + esc(body) + '</description></item>';
+    });
+    const newest = shownPosts().reduce((m, p) => Math.max(m, p.id), 0);
+    return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel>'
+        + '<title>' + esc(t.title) + '</title><link>' + esc(base) + '</link><description>' + esc(t.desc || siteName()) + '</description>'
+        + '<atom:link href="' + esc(base + 'feed.xml') + '" rel="self" type="application/rss+xml"/>'
+        + (newest > 1e12 ? '<lastBuildDate>' + new Date(newest).toUTCString() + '</lastBuildDate>' : '')
+        + '\n' + items.join('\n') + '\n</channel></rss>\n';
+}
+async function writeFeed() {
+    if (currentConfig.feedOff || isLocalMode()) return;
+    const xml = feedXml();
+    if (xml === feedLast) return;
+    const r = await uploadToBridge('feed', { content: xml, quiet: true });
+    feedState = r.success ? 'ok' : 'refused';
+    if (r.success) {
+        feedLast = xml;
+        if (!currentConfig.feedLive) { currentConfig.feedLive = true; applyVisualConfig(); saveSystem(); }
+    }
+    renderFeedStatus();
+}
+function renderFeedStatus() {
+    const st = byId('feed-status'); if (!st) return;
+    const on = byId('s-feed').checked;
+    st.innerHTML = !on ? 'The feed is off.'
+        : feedState === 'refused' ? 'Your site didn\'t accept feed.xml, so there\'s no feed for now.'
+        : currentConfig.feedLive ? 'Your feed: <a href="feed.xml" target="_blank" rel="noopener">' + esc(siteBase() + 'feed.xml') + '</a>'
+        : 'It\'s written the next time you save a post.';
+}
+
+// Once each visit to Admin: restore notes and the feed
+function adminArrived() {
+    if (lpWarned) return;
+    checkLinkPreview();
+    writeFeed();
+}
+
 // After logging in: an index.html update puts the plain lines back, so say how to restore the preview
 function checkLinkPreview() {
     const lp = lpSettings();
-    if (lpWarned) return;
     lpWarned = true;
     if (lp.v && lpLiveStamp() !== String(lp.v)) showToast('Your link preview isn\'t on your site right now. Put it back in Site info › Search and sharing.', 'info');
 }
