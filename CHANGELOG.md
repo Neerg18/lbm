@@ -8,6 +8,15 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.18 · 2026-10-31
+**Scheduled posts, steady boards, picture descriptions, an RSS feed and more**
+- **Schedule posts:** in New post, tick **Schedule it to go up later** and pick a date and time. Until then only you can see the post (in **Posts**, marked "Goes up …"). Visitors don't see it anywhere, even with a direct link, and it appears on its own at that time, as your newest piece. To change the time or put it up now, use Edit. The post sits in your site's data file until then, so someone digging through that file could find it early.
+- **Boards don't jump:** Admin remembers each picture's shape when you upload it, so boards keep the right space for every picture while it loads. For pictures you posted before, press **Clean up → Make small previews** again; it saves their shapes too (quickly, from the small copies).
+- **Picture descriptions:** New post and Edit have an optional description box. People who use screen readers hear it instead of the caption.
+- **RSS feed:** your site keeps a `feed.xml` with your 20 newest posts, updated when you save a post, so people can follow you in a feed reader. Your footer links to it. You can turn it off in **Site info → Search and sharing**.
+- **Clearer tab titles:** the browser tab shows where you are, like "Gallery · NEERG", a board's name, or the piece you're looking at.
+- **Theme for first-time visitors:** in **Site info → Visitors**, choose dark, light, or match their phone or computer. Visitors can still switch with the sun/moon button, and their choice sticks.
+
 ## 7.0.17 · 2026-10-30
 **Faster pictures, big boards in batches, and link previews**
 - **Small previews:** every picture you upload now also gets a small copy, about a quarter of the size. Cards, Recent works, boards, sliders, comic covers and profile pictures show the small copy, so pages load much faster. Opening a piece still shows the full picture. For pictures you posted before, press **Clean up → Make small previews** once. If a small copy is ever missing, the full picture shows instead.

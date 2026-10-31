@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.17 · logic.js                                         ║
+ ║  NEERG 7.0.18 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.17';
+const NEERG_VERSION = '7.0.18';
 // Where the code files live: beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // admin.js, about.js and about.css load from the same place as this file.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
@@ -36,6 +36,7 @@ const KEYS = {
     reactions: 'NEERG_USER_REACTIONS',
     ops: 'NEERG_PENDING_OPS',
     theme: 'neerg_theme',
+    startTheme: 'neerg_start_theme',
     paletteCache: 'neerg_palette_cache',
     age: 'neerg_age_ok',
     commenter: 'neerg_commenter_name',
@@ -48,6 +49,7 @@ const KEYS = {
     shrinkLeftovers: 'neerg_shrink_leftovers',
     shrinkSkipped: 'neerg_shrink_skipped',
     previewSkipped: 'neerg_preview_skipped',
+    sizeSkipped: 'neerg_size_skipped',
     aotdSeen: 'neerg_aotd_seen'
 };
 
@@ -280,6 +282,9 @@ function postTags(post) {
     return (Array.isArray(post.tags) ? post.tags : String(post.tags).split(',')).map(t => String(t).trim()).filter(Boolean);
 }
 function isNsfw(post) { return postTags(post).some(t => t.toLowerCase() === 'nsfw'); }
+// A scheduled post carries the time it goes up (at, which is also its id). Until then visitors don't see it anywhere
+function isScheduled(post) { return !!(post && post.at && post.at > Date.now()); }
+function shownPosts() { return postsCache.filter(p => !isScheduled(p)); }
 function isVeiled(post) { return !!currentConfig.blurNsfw && isNsfw(post) && !ui.revealed.has(post.id); }
 
 function formatDate(post) {
@@ -767,6 +772,16 @@ function applyTheme() {
     $$('.theme-label').forEach(n => { n.textContent = next === 'light' ? 'Light mode' : 'Dark mode'; });
 }
 
+// Visitors who haven't picked a theme with the sun/moon button get the one set in Admin: dark, light, or their device's
+const deviceLight = window.matchMedia('(prefers-color-scheme: light)');
+function startTheme() {
+    const s = currentConfig.startTheme || 'dark';
+    try { localStorage.setItem(KEYS.startTheme, s); } catch (e) {}
+    if (readText(KEYS.theme)) return;
+    document.documentElement.setAttribute('data-theme', s === 'light' || (s === 'device' && deviceLight.matches) ? 'light' : 'dark');
+}
+deviceLight.addEventListener('change', () => { if (currentConfig.startTheme === 'device' && !readText(KEYS.theme)) { startTheme(); applyTheme(); } });
+
 function setMode(mode) {
     document.documentElement.setAttribute('data-theme', mode);
     try { localStorage.setItem(KEYS.theme, mode); } catch (e) {}
@@ -802,11 +817,24 @@ function bannerSettings() {
 function commPage() { return Object.assign({}, COMM_DEFAULTS, currentConfig.commPage || {}); }
 
 function siteName() { return currentConfig.siteName || 'NEERG'; }
+// Once Admin has written feed.xml (and the feed is on), the footer links to it
+function feedShown() { return !!currentConfig.feedLive && !currentConfig.feedOff; }
+// The browser tab says where you are: a piece's or comic's name, the page ("Gallery · NEERG"), or the site's title at home
+const PAGE_NAMES = { gallery: 'Gallery', comics: 'Comics', commissions: 'Commissions', about: 'About', admin: 'Admin' };
+function updateTitle() {
+    const name = siteName(), at = s => { document.title = s + ' · ' + name; };
+    const post = ui.post.id != null && postsCache.find(p => p.id === ui.post.id);
+    if (post) return at(postTitle(post));
+    const cid = ui.reader.id != null ? ui.reader.id : ui.comic.id, comic = cid != null && comicsCache.find(c => String(c.id) === String(cid));
+    if (comic) return at(comic.title || 'Comic');
+    if (ui.view === 'gallery' && ui.gallery.board && byId('board-title').textContent) return at(byId('board-title').textContent);
+    document.title = PAGE_NAMES[ui.view] ? PAGE_NAMES[ui.view] + ' · ' + name : currentConfig.metaTitle || name;
+}
 
 function applyVisualConfig() {
     const cfg = currentConfig;
     const name = siteName();
-    document.title = cfg.metaTitle || name;
+    updateTitle();
     const md_ = $('meta[name="description"]'); if (md_ && cfg.metaDescription) md_.setAttribute('content', cfg.metaDescription);
 
     ['brand-name', 'hero-name', 'footer-name'].forEach(id => { const n = byId(id); if (n) n.textContent = name; });
@@ -814,6 +842,7 @@ function applyVisualConfig() {
     const tg = byId('hero-tagline'); if (tg) { tg.textContent = cfg.tagline || ''; tg.hidden = !cfg.tagline; }
     const fc = byId('footer-copy'); if (fc) fc.textContent = cfg.copyright ? '© ' + cfg.copyright : '';
     const fv = byId('footer-version'); if (fv) fv.textContent = 'NEERG ' + NEERG_VERSION;
+    const ff = byId('footer-feed'); if (ff) ff.hidden = !feedShown();
     const ft = byId('feed-title'); if (ft) ft.textContent = 'Recent ' + (cfg.leafletsName || 'works').toLowerCase();
 
     // Profile picture everywhere
@@ -830,6 +859,7 @@ function applyVisualConfig() {
     renderCommissions();
 
     // Colors, ring, background, custom CSS
+    startTheme();
     applyTheme();
     let ring = cfg.pfpRingStyle || readJSON(KEYS.ring, null);
     applyRingStyle(ring);
@@ -1127,6 +1157,7 @@ function route() {
         if (!ui.view) showView('home');
         if (Modals.isOpen(byId('comic-overlay'))) closeComicGallery(true);
         openPost(r.post, 0, { fromRoute: true });
+        updateTitle();
         return;
     }
     if (ui.post.id != null) closePost(true);
@@ -1140,6 +1171,7 @@ function route() {
         if (ui.reader.id != null) closeReader(true);
         if (ui.comic.id != null) closeComicGallery(true);
     }
+    updateTitle();
 }
 
 /* ═════════════════════════════════════════════
@@ -1175,12 +1207,12 @@ function aboutData() {
     const two = n => String(n).padStart(2, '0');
     const nos = postNumbers();
     const dated = p => Number(p.id) > 1e12 ? new Date(Number(p.id)) : null;
-    const posts = postsCache.filter(p => firstImage(p) && !(cfg.blurNsfw && isNsfw(p))).sort((a, b) => b.id - a.id).slice(0, 6).map(p => {
+    const posts = shownPosts().filter(p => firstImage(p) && !(cfg.blurNsfw && isNsfw(p))).sort((a, b) => b.id - a.id).slice(0, 6).map(p => {
         const d = dated(p), no = nos.get(p.id);
         return { id: p.id, img: safeUrl(thumbOf(firstImage(p))), no, label: excerpt(p.content, 48) || 'No.' + no, tag: stampTag(p), date: formatDate(p), md: d ? two(d.getMonth() + 1) + '.' + two(d.getDate()) : '', year: d ? String(d.getFullYear()) : '' };
     });
-    const years = postsCache.map(dated).filter(Boolean).map(d => d.getFullYear());
-    const newest = postsCache.map(dated).filter(Boolean).sort((a, b) => b - a)[0];
+    const years = shownPosts().map(dated).filter(Boolean).map(d => d.getFullYear());
+    const newest = shownPosts().map(dated).filter(Boolean).sort((a, b) => b - a)[0];
     const comic = comicsCache.slice().sort((a, b) => b.id - a.id)[0];
     const letters = name.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     const bio = cfg.aboutBio || readJSON(KEYS.bio, null) || readText(KEYS.bio);
@@ -1190,7 +1222,7 @@ function aboutData() {
         bio: bio ? md(bio) : '<p>' + esc(name) + ' hasn\'t written a bio yet.</p>',
         initials: letters ? letters.charAt(0) + letters.slice(-1) : 'ART',
         posts,
-        counts: { posts: postsCache.length, boards: new Set(postsCache.flatMap(p => postTags(p).map(t => t.toLowerCase()))).size, comics: comicsCache.length },
+        counts: { posts: shownPosts().length, boards: new Set(shownPosts().flatMap(p => postTags(p).map(t => t.toLowerCase()))).size, comics: comicsCache.length },
         comicCover: comic ? comicCover(comic) : '',
         status: (cfg.commissionStatus || '').trim(),
         open: commPage().open !== false,
@@ -1305,7 +1337,7 @@ function sortPosts(list, sort) {
 function filteredPosts() {
     const f = ui.feed;
     const q = f.q.trim().toLowerCase();
-    let list = postsCache.filter(p => {
+    let list = shownPosts().filter(p => {
         if (f.tag !== 'all' && !postTags(p).some(t => t.toLowerCase() === f.tag)) return false;
         if (q) {
             const hay = (plainText(p.content) + ' ' + postTags(p).join(' ')).toLowerCase();
@@ -1349,7 +1381,7 @@ function renderHero() {
     const count = clamp(parseInt(s.panelCount, 10) || 4, 2, 4);
     let panels = [];
     // Newest image posts, used for auto mode and to fill any empty manual slots
-    const pool = sortPosts(postsCache, 'oldest').reverse().filter(p => firstImage(p) && !(currentConfig.blurNsfw && isNsfw(p)));
+    const pool = sortPosts(shownPosts(), 'oldest').reverse().filter(p => firstImage(p) && !(currentConfig.blurNsfw && isNsfw(p)));
     const manual = s.bannerMode === 'manual' ? (s.bannerImages || []).map(safeUrl) : [];
     const used = new Set(manual.filter(Boolean));
     let next = 0;
@@ -1375,7 +1407,7 @@ function renderHero() {
 function featuredPosts() {
     const mode = currentConfig.featuredMode || 'recent';
     if (mode === 'off') return [];
-    let list = postsCache.filter(p => firstImage(p) && !(currentConfig.blurNsfw && isNsfw(p)));
+    let list = shownPosts().filter(p => firstImage(p) && !(currentConfig.blurNsfw && isNsfw(p)));
     if (mode === 'popular') list.sort((a, b) => postScore(b) - postScore(a) || b.id - a.id);
     else if (mode === 'pinned') list = list.filter(p => p.pinned).sort((a, b) => b.id - a.id);
     else list.sort((a, b) => b.id - a.id);
@@ -1410,7 +1442,7 @@ function showFeatured() {
     const likes = currentConfig.reactionsEnabled ? '<br>' + plural(getInteractions(p.id).likes || 0, 'like') : '';
     byId('feat-frame').innerHTML = '<img class="ha-frame-bg" src="' + esc(thumbOf(firstImage(p))) + '" alt="">'
         + '<span class="ha-grid" aria-hidden="true"></span>' + line('is-top') + line('is-bottom')
-        + '<a class="ha-art" ' + open + '><img src="' + img + '" alt="' + esc(title) + '"><span class="ha-shine" aria-hidden="true"></span></a>'
+        + '<a class="ha-art" ' + open + '><img src="' + img + '" alt="' + esc(p.alt || title) + '"><span class="ha-shine" aria-hidden="true"></span></a>'
         + '<span class="ha-reticle" aria-hidden="true"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="62"/><path d="M100 0v62M100 138v62M0 100h62M138 100h62"/><path class="thick" d="M100 30v10M100 160v10M30 100h10M160 100h10"/></svg><svg class="ha-spin" viewBox="0 0 200 200"><circle class="dash" cx="100" cy="100" r="80"/></svg><i></i></span>'
         + '<span class="ha-label" aria-hidden="true"><span class="ha-hud">' + HUD_STAR + 'Featured</span><b>No.' + (postNumbers().get(p.id) || '') + '</b><span class="ha-dashes"><i></i><i></i><i></i></span>'
         + '<span class="ha-gauge"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/><circle class="on" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="' + Math.round((ui.featured.i + 1) / n * 100) + ' 100"/></svg><span>' + num + '<i></i></span></span></span>'
@@ -1475,7 +1507,7 @@ function paletteOf(url) {
 function renderTagChips() {
     const box = byId('feed-tags'); if (!box) return;
     const counts = new Map();
-    postsCache.forEach(p => postTags(p).forEach(t => {
+    shownPosts().forEach(p => postTags(p).forEach(t => {
         const k = t.toLowerCase();
         if (!counts.has(k)) counts.set(k, { name: t, n: 0 });
         counts.get(k).n++;
@@ -1483,7 +1515,7 @@ function renderTagChips() {
     const tags = Array.from(counts.entries()).sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]));
     if (ui.feed.tag !== 'all' && !counts.has(ui.feed.tag)) ui.feed.tag = 'all';
     box.hidden = !tags.length;
-    box.innerHTML = '<button class="chip" data-action="filter-tag" data-tag="all" aria-pressed="' + (ui.feed.tag === 'all') + '">All <span class="n">' + postsCache.length + '</span></button>'
+    box.innerHTML = '<button class="chip" data-action="filter-tag" data-tag="all" aria-pressed="' + (ui.feed.tag === 'all') + '">All <span class="n">' + shownPosts().length + '</span></button>'
         + tags.map(([k, v]) => '<button class="chip" data-action="filter-tag" data-tag="' + esc(k) + '" aria-pressed="' + (ui.feed.tag === k) + '">' + esc(v.name) + ' <span class="n">' + v.n + '</span></button>').join('');
 }
 
@@ -1501,7 +1533,7 @@ function tileHTML(post, no, low) {
     const cap = excerpt(post.content, 140);
     const tag = stampTag(post);
     let visual = '';
-    if (type === 'image') visual = '<img src="' + esc(thumbOf(first)) + '" alt="' + esc(cap || 'Artwork from ' + date) + '" loading="lazy" decoding="async" class="is-loading">';
+    if (type === 'image') visual = '<img src="' + esc(thumbOf(first)) + '" alt="' + esc(post.alt || cap || 'Artwork from ' + date) + '" loading="lazy" decoding="async" class="is-loading">';
     else if (type === 'video') visual = '<video src="' + esc(first) + '" muted loop playsinline preload="metadata" data-hoverplay></video>';
     else if (type === 'audio') visual = '<div class="tile-audio"><i class="fa-solid fa-music" aria-hidden="true"></i></div>';
     else visual = '<div class="tile-text"><p>' + esc(excerpt(post.content, 320)) + '</p></div>';
@@ -1531,10 +1563,10 @@ function renderFeed(keep = 0) {
     const count = byId('feed-count');
     const filtering = ui.feed.tag !== 'all' || ui.feed.q.trim();
     if (count) {
-        const n = filtering ? all.length : postsCache.length;
+        const n = filtering ? all.length : shownPosts().length;
         count.textContent = n + ' ' + (filtering ? (n === 1 ? 'match' : 'matches') : (n === 1 ? 'post' : 'posts'));
     }
-    if (!postsCache.length) {
+    if (!shownPosts().length) {
         grid.innerHTML = '<div class="empty"><h3>Nothing posted yet</h3><p>New work will show up here.</p>' + (isAdminLoggedIn ? '<a class="btn btn-primary" href="#/admin">Make your first post</a>' : '') + '</div>';
     } else if (!all.length) {
         grid.innerHTML = '<div class="empty"><h3>No posts match that</h3><p>Try a different word or tag.</p><button class="btn" data-action="clear-filters">Show all posts</button></div>';
@@ -1558,7 +1590,14 @@ function feedColumns() {
     return getComputedStyle(grid).gridTemplateColumns.split(' ').length;
 }
 
-function renderHome() { renderHero(); renderFeatured(); renderTagChips(); renderFeed(); renderComicBar(); renderSliders(); renderAbout(); }
+function renderHome() { renderHero(); renderFeatured(); renderTagChips(); renderFeed(); renderComicBar(); renderSliders(); renderAbout(); armScheduleTimer(); }
+// Puts a scheduled post up on time for visitors who already have the site open
+let scheduleTimer = 0;
+function armScheduleTimer() {
+    clearTimeout(scheduleTimer);
+    const next = postsCache.filter(isScheduled).reduce((m, p) => Math.min(m, p.at), Infinity) - Date.now();
+    if (next < 864e5) scheduleTimer = setTimeout(() => { renderHome(); if (ui.view === 'gallery') renderGallery(); }, next + 500);
+}
 
 // The comic picked in Admin (Site info), or the newest one; 'off' hides it
 function recommendedComic() {
@@ -1591,9 +1630,9 @@ function sliderSettings(s) { return Object.assign({}, SLIDER_DEFAULTS, s || curr
 // One shuffle per side per visit, so the sides differ and a re-render keeps the same order
 const sliderOrder = {};
 function sliderSlides(s, side) {
-    const art = postsCache.filter(p => firstImage(p) && !(currentConfig.blurNsfw && isNsfw(p))).sort((a, b) => b.id - a.id);
+    const art = shownPosts().filter(p => firstImage(p) && !(currentConfig.blurNsfw && isNsfw(p))).sort((a, b) => b.id - a.id);
     const nos = postNumbers();
-    const postSlide = p => ({ img: firstImage(p), href: '#/post/' + p.id, post: p.id, kicker: 'No.' + nos.get(p.id) + (stampTag(p) ? ' · ' + stampTag(p) : ''), title: postTitle(p), cta: 'View' });
+    const postSlide = p => ({ img: firstImage(p), href: '#/post/' + p.id, post: p.id, kicker: 'No.' + nos.get(p.id) + (stampTag(p) ? ' · ' + stampTag(p) : ''), title: postTitle(p), alt: p.alt, cta: 'View' });
     const comics = comicsCache.filter(c => comicCover(c)).sort((a, b) => b.id - a.id)
         .map(c => ({ img: comicCover(c), href: '#/comics/' + c.id, kicker: 'Comic · ' + plural((c.pages || []).length, 'page'), title: c.title || 'Untitled', cta: 'Read' }));
     if (!sliderOrder[side] || sliderOrder[side].length !== art.length) {
@@ -1621,7 +1660,7 @@ function slideHTML(sl, on) {
     const attrs = sl.href ? 'href="' + esc(sl.href) + '"' + (sl.post ? ' data-action="open-post" data-id="' + sl.post + '"' : '') + (sl.external ? ' target="_blank" rel="noopener"' : '') : '';
     const text = sl.title || sl.kicker ? '<span class="ha-slide-text">' + (sl.kicker ? '<span class="ha-kicker">' + esc(sl.kicker) + '</span>' : '') + (sl.title ? '<b>' + esc(sl.title) + '</b>' : '') + (sl.cta ? '<span class="ha-cta">' + sl.cta + ' <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>' : '') + '</span>' : '';
     return '<' + (sl.href ? 'a' : 'span') + ' class="ha-slide' + (on ? ' is-on' : '') + (sl.promo ? ' is-promo' : '') + '" ' + attrs + '><img class="ha-slide-bg" src="' + esc(thumbOf(sl.img)) + '" alt="" loading="lazy" decoding="async">'
-        + '<span class="ha-slide-body"><img class="ha-slide-art" src="' + esc(thumbOf(sl.img)) + '" alt="' + esc(sl.title || '') + '" loading="lazy" decoding="async">' + text + '</span></' + (sl.href ? 'a' : 'span') + '>';
+        + '<span class="ha-slide-body"><img class="ha-slide-art" src="' + esc(thumbOf(sl.img)) + '" alt="' + esc(sl.alt || sl.title || '') + '" loading="lazy" decoding="async">' + text + '</span></' + (sl.href ? 'a' : 'span') + '>';
 }
 function fillRail(rail, slides, s) {
     if (!rail) return;
@@ -1675,7 +1714,7 @@ function refreshReactionsUI(postId) {
 
 function boardsData() {
     const map = new Map();
-    postsCache.filter(p => mediaList(p).length).sort((a, b) => b.id - a.id).forEach(p => {
+    shownPosts().filter(p => mediaList(p).length).sort((a, b) => b.id - a.id).forEach(p => {
         const tags = postTags(p); const list = tags.length ? tags : ['Untagged'];
         list.forEach(t => {
             const k = t.toLowerCase();
@@ -1688,7 +1727,7 @@ function boardsData() {
 
 function allMediaItems() {
     const items = [];
-    postsCache.filter(p => mediaList(p).length).sort((a, b) => b.id - a.id)
+    shownPosts().filter(p => mediaList(p).length).sort((a, b) => b.id - a.id)
         .forEach(p => mediaList(p).forEach(url => items.push({ url, type: getMediaType(url), postId: p.id, nsfw: isNsfw(p) })));
     return items;
 }
@@ -1703,15 +1742,16 @@ const ALL_BOARD = '__all';
 // Polaroids for items[from..to); each keeps its place in the whole list for numbering, tilt and the viewer
 function polaHTML(items, listName, from = 0, to = items.length) {
     if (!items.length) return '<div class="empty"><h3>No images here yet</h3></div>';
+    const alts = new Map(postsCache.filter(p => p.alt).map(p => [p.id, p.alt]));
     return items.slice(from, to).map((m, j) => {
         const i = from + j;
         const veil = currentConfig.blurNsfw && m.nsfw && !ui.revealed.has(m.postId);
         let inner;
         if (m.type === 'video') inner = '<video src="' + esc(m.url) + '" muted loop playsinline preload="metadata" data-hoverplay></video><span class="badge"><i class="fa-solid fa-play" aria-hidden="true"></i></span>';
         else if (m.type === 'audio') inner = '<span class="tile-audio" style="position:relative;aspect-ratio:1"><i class="fa-solid fa-music" aria-hidden="true"></i></span>';
-        else inner = '<img src="' + esc(thumbOf(m.url)) + '" alt="" loading="lazy" decoding="async" class="is-loading">';
+        else { const sz = sizeOf(m.url); inner = '<img src="' + esc(thumbOf(m.url)) + '" alt="" loading="lazy" decoding="async" class="is-loading"' + (sz ? ' style="aspect-ratio:' + sz[0] + ' / ' + sz[1] + '"' : '') + '>'; }
         const n = items.length - i;
-        return '<button class="zg-pola' + (veil ? ' is-veiled' : '') + '" style="--r:' + ZINE_TILTS[i % ZINE_TILTS.length] + 'deg;--tape:' + ZINE_TAPES[i % ZINE_TAPES.length] + '" data-action="open-viewer" data-list="' + listName + '" data-index="' + i + '" aria-label="View piece ' + n + ' full size">'
+        return '<button class="zg-pola' + (veil ? ' is-veiled' : '') + '" style="--r:' + ZINE_TILTS[i % ZINE_TILTS.length] + 'deg;--tape:' + ZINE_TAPES[i % ZINE_TAPES.length] + '" data-action="open-viewer" data-list="' + listName + '" data-index="' + i + '" aria-label="View piece ' + n + ' full size' + (alts.has(m.postId) ? ': ' + esc(alts.get(m.postId)) : '') + '">'
             + '<span class="zg-tape" aria-hidden="true"></span>'
             + '<span class="zg-pola-img">' + inner + (veil ? '<span class="veil"><i class="fa-regular fa-eye-slash" aria-hidden="true"></i>Sensitive</span>' : '') + '</span>'
             + '<span class="zg-pola-cap">No. ' + n + '</span></button>';
@@ -1790,7 +1830,7 @@ function renderGalleryId(tagBoards) {
     const tag = (currentConfig.tagline || '').trim();
     const t = byId('zg-tag'); t.textContent = tag; t.hidden = !tag;
     byId('zg-boards').textContent = tagBoards.length;
-    byId('zg-pieces').textContent = postsCache.filter(p => mediaList(p).length).length;
+    byId('zg-pieces').textContent = shownPosts().filter(p => mediaList(p).length).length;
     byId('zg-media').textContent = allMediaItems().some(m => m.type === 'video') ? 'Images & video' : 'Images';
     const pfp = safeUrl(currentConfig.pfpImage), img = byId('zg-pfp'), fb = byId('zg-pfp-fallback');
     fb.textContent = siteName().trim().charAt(0).toUpperCase() || '✦';
@@ -1875,13 +1915,14 @@ function renderComics() {
 
 function postNavList() {
     const feedIds = filteredPosts().map(p => p.id);
-    return feedIds.includes(ui.post.id) ? feedIds : sortPosts(postsCache, 'newest').map(p => p.id);
+    return feedIds.includes(ui.post.id) ? feedIds : sortPosts(shownPosts(), 'newest').map(p => p.id);
 }
 
 function openPost(id, imgIndex = 0, opts = {}) {
     id = Number(id);
     const post = postsCache.find(p => p.id === id);
-    if (!post) {
+    // Only you can open a scheduled post early (to check it from Admin)
+    if (!post || (isScheduled(post) && !isAdminLoggedIn)) {
         showToast('That post isn\'t here anymore.', 'error');
         if (opts.fromRoute) history.replaceState(null, '', viewHash(ui.view || 'home'));
         return;
@@ -1909,6 +1950,7 @@ function openPost(id, imgIndex = 0, opts = {}) {
         }, 120);
     }
     preloadNeighbors();
+    updateTitle();
 }
 
 function closePost(fromRoute) {
@@ -1921,6 +1963,7 @@ function closePost(fromRoute) {
     $$('video', overlay).forEach(v => v.pause());
     ui.post.id = null;
     Modals.close(overlay);
+    updateTitle();
 }
 
 function stepPost(dir) {
@@ -1951,7 +1994,7 @@ function renderStage(post) {
     const box = byId('post-media'), pager = byId('post-pager');
     const url = media[ui.post.img] || '';
     const type = getMediaType(url);
-    const alt = excerpt(post.content, 120) || 'Artwork';
+    const alt = post.alt || excerpt(post.content, 120) || 'Artwork';
     if (type === 'video') box.innerHTML = '<video src="' + esc(url) + '" controls autoplay loop muted playsinline></video>';
     else if (type === 'audio') box.innerHTML = '<audio src="' + esc(url) + '" controls></audio>';
     else box.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(alt) + '" data-action="zoom-post-image">';
@@ -2227,7 +2270,7 @@ function renderViewer() {
     $$('video', box).forEach(x => x.pause());
     if (m.type === 'video') box.innerHTML = '<video src="' + esc(m.url) + '" controls autoplay loop playsinline></video>';
     else if (m.type === 'audio') box.innerHTML = '<audio src="' + esc(m.url) + '" controls autoplay></audio>';
-    else box.innerHTML = '<img src="' + esc(m.url) + '" alt="Full size artwork" data-action="viewer-zoom">';
+    else { const vp = m.postId != null && postsCache.find(p => p.id === m.postId); box.innerHTML = '<img src="' + esc(m.url) + '" alt="' + esc((vp && vp.alt) || 'Full size artwork') + '" data-action="viewer-zoom">'; }
     byId('viewer-count').textContent = ui.viewer.list.length > 1 ? (ui.viewer.i + 1) + ' / ' + ui.viewer.list.length : '';
     byId('viewer-open-post').hidden = m.postId == null || Modals.isOpen(byId('post-overlay'));
     $$('#viewer .stage-nav').forEach(b => { b.hidden = ui.viewer.list.length < 2; });
@@ -2281,6 +2324,7 @@ function openComicGallery(id, opts = {}) {
     byId('co-grid').innerHTML = pages.map((url, i) => '<button class="page-thumb' + (prog === i ? ' is-last' : '') + '" data-action="read-comic" data-id="' + comic.id + '" data-page="' + i + '"><span class="frame"><img src="' + esc(thumbOf(url)) + '" alt="" loading="lazy" decoding="async"></span>Page ' + (i + 1) + (prog === i ? ', last read' : '') + '</button>').join('');
     overlay.scrollTop = 0;
     if (!Modals.isOpen(overlay)) Modals.open(overlay, { onRequestClose: () => closeComicGallery(), focus: '.back-btn' });
+    updateTitle();
 }
 
 function closeComicGallery(fromRoute) {
@@ -2294,6 +2338,7 @@ function closeComicGallery(fromRoute) {
     ui.comic.id = null;
     Modals.close(overlay);
     renderComics();
+    updateTitle();
 }
 
 function openReader(id, page, opts = {}) {
@@ -2305,6 +2350,7 @@ function openReader(id, page, opts = {}) {
     const r = byId('reader');
     if (!Modals.isOpen(r)) Modals.open(r, { onRequestClose: () => closeReader(), focus: '.reader-top [data-action="close-reader"]' });
     renderReader(opts.fromRoute);
+    updateTitle();
 }
 
 function renderReader(fromRoute) {
@@ -2364,6 +2410,7 @@ function closeReader(fromRoute) {
         const thumb = $$('#co-grid .page-thumb')[prog];
         if (thumb) thumb.scrollIntoView({ block: 'center' });
     }
+    updateTitle();
 }
 
 /* ═════════════════════════════════════════════
@@ -2476,6 +2523,7 @@ function sanitizeBeforeSave() {
             if (p.content.length < before) stripped++;
         }
         if (p.media === undefined || p.media === null) delete p.media;
+        if (p.at && p.at <= Date.now()) delete p.at;
     });
     return stripped;
 }
@@ -2497,7 +2545,7 @@ async function uploadToBridge(target, opts = {}) {
         return { success: false, message: 'load failed' };
     }
     let passwordCheck = null;
-    if (['system', 'posts', 'comics', 'media_only', 'page'].includes(target)) {
+    if (['system', 'posts', 'comics', 'media_only', 'page', 'feed'].includes(target)) {
         if (!sessionPassword) {
             if (!opts.quiet) showToast('Your admin session ended. Log in again to save.', 'error');
             return { success: false, message: 'no session' };
@@ -2521,6 +2569,8 @@ async function uploadToBridge(target, opts = {}) {
         filename = 'interactions.js';
     } else if (target === 'page') {
         fileContent = opts.content || ''; filename = 'index.html';
+    } else if (target === 'feed') {
+        fileContent = opts.content || ''; filename = 'feed.xml';
     } else if (target === 'media_only') {
         if (!opts.mediaFile) return { success: false, message: 'no file' };
         const raw = opts.mediaPath || 'img/' + safeFileName(opts.mediaFile.name, opts.mediaFile.type);
@@ -2532,8 +2582,8 @@ async function uploadToBridge(target, opts = {}) {
     }, target === 'media_only' ? 120000 : 45000);
     if (!result.success) {
         const msg = result.message || '';
-        // A refused index.html is about the file, not the connection (see the link preview in admin.js)
-        if (isAdminLoggedIn && target !== 'page' && /invalid|403|credential|corrupt/i.test(msg)) openRepair();
+        // A refused index.html or feed.xml is about the file, not the connection (see admin.js)
+        if (isAdminLoggedIn && target !== 'page' && target !== 'feed' && /invalid|403|credential|corrupt/i.test(msg)) openRepair();
         else if (isAdminLoggedIn && !opts.quiet) showToast('Couldn\'t sync ' + (filename || 'that file') + '. ' + (msg || 'Try again.'), 'error');
     }
     return result;
@@ -2568,6 +2618,7 @@ async function syncFile(target, labels) {
     const r = await uploadToBridge(target, { quiet: true });
     dismissToast(t);
     if (r.success) showToast(labels[1]);
+    if (r.success && target === 'posts' && typeof writeFeed === 'function') writeFeed();
     else if (!/invalid|403|credential|corrupt/i.test(r.message || '')) showToast('Couldn\'t sync ' + target + '.js. ' + (r.message || 'Try again.'), 'error');
     return r;
 }
@@ -2666,23 +2717,30 @@ function webpName(name) { return String(name || 'image').replace(/\.[^./]*$/, ''
    Cards, tiles, boards, sliders and covers show the copy; opening a piece shows the full picture.
    Posts and comics list their copies in previews ({ picture: copy }), and the site settings do the same
    for their own pictures (profile picture, header images, tier examples, slider images).
+   Posts also keep each picture's shape in sizes ({ picture: [width, height] }), so a board can hold
+   the right space for a picture before it loads.
    ═════════════════════════════════════════════ */
 
 const PREVIEW_SIDE = 800, PREVIEW_MAX = 2400, PREVIEW_QUALITY = 0.82;
-const PREVIEWABLE = /\.(png|jpe?g|webp|bmp)$/i;
-const freshPreviews = new Map(); // made this visit and not saved yet
+const PREVIEWABLE = /\.(png|jpe?g|webp|bmp)$/i, SIZEABLE = /\.(png|jpe?g|webp|bmp|gif|avif)$/i;
+const freshPreviews = new Map(), freshSizes = new Map(); // made this visit and not saved yet
 let previewIndex = null, previewFrom = [];
-function previewMap() {
+function pictureIndex() {
     const from = [postsCache, comicsCache, currentConfig];
     if (!previewIndex || from.some((x, i) => x !== previewFrom[i])) {
-        previewIndex = new Map(); previewFrom = from;
-        const add = m => { if (m && typeof m === 'object') Object.entries(m).forEach(([k, v]) => { if (typeof v === 'string') previewIndex.set(k, v); }); };
-        postsCache.forEach(p => add(p.previews)); comicsCache.forEach(c => add(c.previews)); add(currentConfig.previews);
+        previewIndex = { thumbs: new Map(), sizes: new Map() }; previewFrom = from;
+        const add = (m, into, ok) => { if (m && typeof m === 'object') Object.entries(m).forEach(([k, v]) => { if (ok(v)) into.set(k, v); }); };
+        const str = v => typeof v === 'string', pair = v => Array.isArray(v) && v[0] > 0 && v[1] > 0;
+        postsCache.forEach(p => { add(p.previews, previewIndex.thumbs, str); add(p.sizes, previewIndex.sizes, pair); });
+        comicsCache.forEach(c => add(c.previews, previewIndex.thumbs, str)); add(currentConfig.previews, previewIndex.thumbs, str);
     }
     return previewIndex;
 }
+function previewMap() { return pictureIndex().thumbs; }
 // The small copy of a picture, or the picture itself when it has none
 function thumbOf(url) { return (url && (freshPreviews.get(url) || previewMap().get(url))) || url; }
+// A post picture's [width, height], or null when it isn't known
+function sizeOf(url) { return (url && (freshSizes.get(url) || pictureIndex().sizes.get(url))) || null; }
 // The picture a small copy was made from, so a copy that fails to load can fall back to it
 function fullOf(thumb) {
     for (const m of [freshPreviews, previewMap()]) for (const [k, v] of m) if (v === thumb) return k;
@@ -2694,27 +2752,34 @@ function isAnimatedWebp(buf) {
     const b = new Uint8Array(buf), tag = i => String.fromCharCode(b[i], b[i + 1], b[i + 2], b[i + 3]);
     return b.length > 21 && tag(8) === 'WEBP' && tag(12) === 'VP8X' && (b[20] & 2) === 2;
 }
-// A small WebP copy, or null when the picture is already small, animated or can't be read
-async function makePreview(blob, name) {
-    if (!PREVIEWABLE.test(String(name || '').split(/[?#]/)[0]) && !/^image\/(png|jpeg|webp|bmp)$/.test(blob.type || '')) return null;
+// Reads a picture once: its size, and (when wanted) a small WebP copy if it is big and not animated. Null when it can't be read
+async function readPicture(blob, name, wantCopy = true) {
+    const plain = String(name || '').split(/[?#]/)[0];
+    if (!SIZEABLE.test(plain) && !/^image\//.test(blob.type || '')) return null;
     try {
         const buf = await blob.arrayBuffer();
-        if (isAnimatedPng(buf) || isAnimatedWebp(buf)) return null;
         const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
-        const s = Math.min(PREVIEW_SIDE / Math.min(bmp.width, bmp.height), PREVIEW_MAX / Math.max(bmp.width, bmp.height));
-        if (s > 0.75) { if (bmp.close) bmp.close(); return null; }
-        const c = document.createElement('canvas');
-        c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
-        const cx = c.getContext('2d'); cx.imageSmoothingQuality = 'high';
-        cx.drawImage(bmp, 0, 0, c.width, c.height);
+        const info = { w: bmp.width, h: bmp.height, small: null };
+        const s = Math.min(PREVIEW_SIDE / Math.min(info.w, info.h), PREVIEW_MAX / Math.max(info.w, info.h));
+        const copyable = (PREVIEWABLE.test(plain) || /^image\/(png|jpeg|webp|bmp)$/.test(blob.type || '')) && !isAnimatedPng(buf) && !isAnimatedWebp(buf);
+        if (wantCopy && copyable && s <= 0.75) {
+            const c = document.createElement('canvas');
+            c.width = Math.round(info.w * s); c.height = Math.round(info.h * s);
+            const cx = c.getContext('2d'); cx.imageSmoothingQuality = 'high';
+            cx.drawImage(bmp, 0, 0, c.width, c.height);
+            const out = await new Promise(res => c.toBlob(res, 'image/webp', PREVIEW_QUALITY));
+            if (out && out.type === 'image/webp' && out.size < blob.size * 0.7) info.small = out;
+        }
         if (bmp.close) bmp.close();
-        const out = await new Promise(res => c.toBlob(res, 'image/webp', PREVIEW_QUALITY));
-        return out && out.type === 'image/webp' && out.size < blob.size * 0.7 ? out : null;
+        return info;
     } catch (e) { return null; }
 }
-// Makes and uploads the small copy of a picture stored at path (ref is how posts refer to it). Quietly skips when it can't
+// Makes and uploads the small copy of a picture stored at path (ref is how posts refer to it), and notes its size.
+// Quietly skips when it can't
 async function addPreview(blob, path, ref) {
-    const small = await makePreview(blob, path);
+    const info = await readPicture(blob, path);
+    if (info) freshSizes.set(ref || path, [info.w, info.h]);
+    const small = info && info.small;
     if (!small) return 'skip';
     const to = previewPath(path);
     const r = await uploadToBridge('media_only', { mediaFile: new File([small], to.split('/').pop(), { type: 'image/webp' }), mediaPath: to, quiet: true });
@@ -2729,14 +2794,20 @@ function configImageRefs() {
         .concat(bannerSettings().bannerImages || [], (cp.tiers || []).map(t => t.image), (sliderSettings().own || []).map(o => o.img))
         .filter(u => typeof u === 'string' && u);
 }
-// Writes the small copies into the posts, comics and settings that use them, and drops ones they no longer use
+// Writes the small copies (and post picture sizes) into the posts, comics and settings that use them,
+// and drops ones they no longer use
 function attachPreviews() {
     const put = (o, urls) => {
         const m = {};
         urls.forEach(u => { const t = thumbOf(u); if (t && t !== u) m[u] = t; });
         if (Object.keys(m).length) o.previews = m; else delete o.previews;
     };
-    postsCache.forEach(p => put(p, mediaList(p)));
+    postsCache.forEach(p => {
+        put(p, mediaList(p));
+        const m = {};
+        mediaList(p).forEach(u => { const s = sizeOf(u); if (s) m[u] = s; });
+        if (Object.keys(m).length) p.sizes = m; else delete p.sizes;
+    });
     comicsCache.forEach(c => put(c, (c.pages || []).concat(c.cover || [])));
     put(currentConfig, configImageRefs());
 }
@@ -2861,7 +2932,7 @@ function renderAdminView() {
         renderRecovery();
         renderNewPostTags();
         showAdminTab(ui.adminTab || 'post');
-        checkLinkPreview();
+        adminArrived();
     });
 }
 
@@ -3102,7 +3173,7 @@ function aotdDesignFor(s) {
     for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
     return list[aotdDayNumber() % list.length];
 }
-function aotdAllowed(p, s) { return !!firstImage(p) && !(s.skipNsfw && isNsfw(p)); }
+function aotdAllowed(p, s) { return !!firstImage(p) && !isScheduled(p) && !(s.skipNsfw && isNsfw(p)); }
 // Everyone gets the same piece on the same day. Stepping by a large prime walks through every post before repeating.
 function aotdPick(s) {
     if (s.art === 'pick') {
@@ -3133,7 +3204,7 @@ function aotdData(post, design, s) {
     const len = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     for (let n = 1; n <= len; n++) days.push({ n: pad(n), wd: AOTD_DAYS[new Date(now.getFullYear(), now.getMonth(), n).getDay()].slice(0, 3).toUpperCase(), today: n === now.getDate() });
     return {
-        id: post.id, img: esc(firstImage(post)), alt: esc(cap ? 'Today\'s artwork: ' + cap : 'Today\'s artwork'),
+        id: post.id, img: esc(firstImage(post)), alt: esc(post.alt || cap ? 'Today\'s artwork: ' + (post.alt || cap) : 'Today\'s artwork'),
         title: esc(cap || 'Untitled piece'), titleLen: (cap || 'Untitled piece').length, tag: esc(tag), posted: esc(formatDate(post)), no: postNumbers().get(post.id) || '', site: esc(siteName()),
         head: esc(head), letters: Array.from(Array.from(words[0]).filter(ch => /[\p{L}\p{N}]/u.test(ch)).slice(0, 6).join('') || 'Art'), first: esc(words[0]), rest: esc(words.slice(1).join(' ')), lead: esc(words.slice(0, -1).join(' ')), last: esc(words[words.length - 1]),
         msg: esc(String(s.message || '').trim()), msgWords: String(s.message || '').trim().split(/\s+/).filter(Boolean).map(esc),
@@ -3551,8 +3622,8 @@ const actions = {
     'featured-prev': () => featuredGo(ui.featured.i - 1),
     'featured-next': () => featuredGo(ui.featured.i + 1),
 
-    'open-board': el => { ui.gallery.board = el.dataset.key; ui.gallery.limit = BOARD_STEP; renderGallery(); window.scrollTo(0, 0); },
-    'close-board': () => { ui.gallery.board = null; renderGallery(); },
+    'open-board': el => { ui.gallery.board = el.dataset.key; ui.gallery.limit = BOARD_STEP; renderGallery(); updateTitle(); window.scrollTo(0, 0); },
+    'close-board': () => { ui.gallery.board = null; renderGallery(); updateTitle(); },
     'board-more': () => { const from = ui.gallery.limit; ui.gallery.limit += BOARD_STEP; renderBoardGrid(galleryLists.board, from); },
     'open-viewer': el => {
         const list = galleryLists[el.dataset.list] || [];
@@ -3753,6 +3824,8 @@ function bindEvents() {
         else if (t.id === 'c-dislike-ink') Studio.setShared('dislikeBtn', t.value);
         else if (/^ring-/.test(t.id)) Studio.readRing();
         else if (t.id === 'bn-speed') byId('bn-speed-out').textContent = t.value + 's per loop';
+        else if (t.id === 'np-later') syncScheduleField();
+        else if (t.id === 's-feed') renderFeedStatus();
         else if (/^lp-|^s-(title|desc|sitename|tagline|pfp)$/.test(t.id)) linkPreviewSoon();
         else if (/^sl-/.test(t.id) || t.closest('.sl-own')) syncSliderForm();
         else if (/^bn-img-\d$/.test(t.id)) { const prev = t.parentElement.querySelector('.prev'); if (prev) prev.style.backgroundImage = 'url("' + safeUrl(t.value).replace(/"/g, '%22') + '")'; }
