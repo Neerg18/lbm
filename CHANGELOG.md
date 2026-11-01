@@ -9,21 +9,22 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 ---
 
 ## 7.0.20 · 2026-10-31
-**Pick a design for your Commissions page, with a page for each tier, add-ons, terms and spots**
+**Pick a design for your Commissions page, with a page for each tier, add-ons, terms and spots** · [#20](https://github.com/Neerg18/lbm/pull/20) · [code](https://github.com/Neerg18/lbm/tree/0d86b22)
 - **Page design:** in **Commissions → Page design**, choose your original taped poster or one of three new designs: **Rounded panels**, **Poster frame** or **Character strips**. Your page stays the same until you pick one and press Save. The new designs only load when picked, so the original stays as quick as before.
 - **A page for each tier:** in the new designs the main page shows only your tiers. Picking one opens its own page with what's included, your add-ons with − and + buttons and a running total, your terms of service, and the request button.
 - **Spots:** give each tier a number of **Spots** and how many are **Filled**. Visitors see "2 of 3 spots left", and when every spot is filled the tier says "Full right now" and its request button turns off.
 - **Add-ons:** list extras like an extra character with their price. A tier's page adds them to the total.
 - **Terms of service in sections:** write your terms as sections, like Ordering or Payment, that open and close on the page, plus **Will draw** and **Won't draw** lists (Won't draw shows in red). The original poster shows them too. You can ask buyers to tick "I've read the terms" before the request button works.
 - **Two new files:** if you upload every file yourself, add `comm.js` and `comm.css`.
+- **Hotfix (Nov 1):** after a save worked, Admin showed "Settings synced" and then, wrongly, "Couldn't sync system.js" (or comics.js). Your saves were going through, and now only the "synced" message shows. A save that really fails still shows the error. Only `logic.js` changed. · [#21](https://github.com/Neerg18/lbm/pull/21)
 
 ## 7.0.19 · 2026-10-31
-**Backup reminder and tidier terms**
+**Backup reminder and tidier terms** · [#20](https://github.com/Neerg18/lbm/pull/20) · [code](https://github.com/Neerg18/lbm/tree/0d86b22)
 - **Backup reminder:** your posts, comics, likes and settings live only in a few files on Neocities, so Admin now reminds you to press **Back up** when your last backup from that computer or phone is two weeks old, or you haven't made one there yet. **Back up now** saves everything in one click, and **Remind me in a week** puts it off.
 - **Commissions terms:** a short terms box (a line or two) now reads as one column, instead of splitting a sentence across two columns. Longer terms still use two columns on wide screens.
 
 ## 7.0.18 · 2026-10-31
-**Scheduled posts, steady boards, picture descriptions, an RSS feed and more**
+**Scheduled posts, steady boards, picture descriptions, an RSS feed and more** · [#20](https://github.com/Neerg18/lbm/pull/20) · [code](https://github.com/Neerg18/lbm/tree/0d86b22)
 - **Schedule posts:** in New post, tick **Schedule it to go up later** and pick a date and time. Until then only you can see the post (in **Posts**, marked "Goes up …"). Visitors don't see it anywhere, even with a direct link, and it appears on its own at that time, as your newest piece. To change the time or put it up now, use Edit. The post sits in your site's data file until then, so someone digging through that file could find it early.
 - **Boards don't jump:** Admin remembers each picture's shape when you upload it, so boards keep the right space for every picture while it loads. For pictures you posted before, press **Clean up → Make small previews** again; it saves their shapes too (quickly, from the small copies).
 - **Picture descriptions:** New post and Edit have an optional description box. People who use screen readers hear it instead of the caption.

@@ -2709,9 +2709,10 @@ async function syncFile(target, labels) {
     const t = showToast(labels[0], 'loading');
     const r = await uploadToBridge(target, { quiet: true });
     dismissToast(t);
-    if (r.success) showToast(labels[1]);
-    if (r.success && target === 'posts' && typeof writeFeed === 'function') writeFeed();
-    else if (!/invalid|403|credential|corrupt/i.test(r.message || '')) showToast('Couldn\'t sync ' + target + '.js. ' + (r.message || 'Try again.'), 'error');
+    if (r.success) {
+        showToast(labels[1]);
+        if (target === 'posts' && typeof writeFeed === 'function') writeFeed();
+    } else if (!/invalid|403|credential|corrupt/i.test(r.message || '')) showToast('Couldn\'t sync ' + target + '.js. ' + (r.message || 'Try again.'), 'error');
     return r;
 }
 function saveSystem() { return syncFile('system', ['Saving settings', 'Settings synced']); }
