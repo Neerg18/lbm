@@ -8,8 +8,31 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.20 · 2026-10-31
+**Pick a design for your Commissions page, with a page for each tier, add-ons, terms and spots**
+- **Page design:** in **Commissions → Page design**, choose your original taped poster or one of three new designs: **Rounded panels**, **Poster frame** or **Character strips**. Your page stays the same until you pick one and press Save. The new designs only load when picked, so the original stays as quick as before.
+- **A page for each tier:** in the new designs the main page shows only your tiers. Picking one opens its own page with what's included, your add-ons with − and + buttons and a running total, your terms of service, and the request button.
+- **Spots:** give each tier a number of **Spots** and how many are **Filled**. Visitors see "2 of 3 spots left", and when every spot is filled the tier says "Full right now" and its request button turns off.
+- **Add-ons:** list extras like an extra character with their price. A tier's page adds them to the total.
+- **Terms of service in sections:** write your terms as sections, like Ordering or Payment, that open and close on the page, plus **Will draw** and **Won't draw** lists (Won't draw shows in red). The original poster shows them too. You can ask buyers to tick "I've read the terms" before the request button works.
+- **Two new files:** if you upload every file yourself, add `comm.js` and `comm.css`.
+
+## 7.0.19 · 2026-10-31
+**Backup reminder and tidier terms**
+- **Backup reminder:** your posts, comics, likes and settings live only in a few files on Neocities, so Admin now reminds you to press **Back up** when your last backup from that computer or phone is two weeks old, or you haven't made one there yet. **Back up now** saves everything in one click, and **Remind me in a week** puts it off.
+- **Commissions terms:** a short terms box (a line or two) now reads as one column, instead of splitting a sentence across two columns. Longer terms still use two columns on wide screens.
+
+## 7.0.18 · 2026-10-31
+**Scheduled posts, steady boards, picture descriptions, an RSS feed and more**
+- **Schedule posts:** in New post, tick **Schedule it to go up later** and pick a date and time. Until then only you can see the post (in **Posts**, marked "Goes up …"). Visitors don't see it anywhere, even with a direct link, and it appears on its own at that time, as your newest piece. To change the time or put it up now, use Edit. The post sits in your site's data file until then, so someone digging through that file could find it early.
+- **Boards don't jump:** Admin remembers each picture's shape when you upload it, so boards keep the right space for every picture while it loads. For pictures you posted before, press **Clean up → Make small previews** again; it saves their shapes too (quickly, from the small copies).
+- **Picture descriptions:** New post and Edit have an optional description box. People who use screen readers hear it instead of the caption.
+- **RSS feed:** your site keeps a `feed.xml` with your 20 newest posts, updated when you save a post, so people can follow you in a feed reader. Your footer links to it. You can turn it off in **Site info → Search and sharing**.
+- **Clearer tab titles:** the browser tab shows where you are, like "Gallery · NEERG", a board's name, or the piece you're looking at.
+- **Theme for first-time visitors:** in **Site info → Visitors**, choose dark, light, or match their phone or computer. Visitors can still switch with the sun/moon button, and their choice sticks.
+
 ## 7.0.17 · 2026-10-30
-**Faster pictures, big boards in batches, and link previews**
+**Faster pictures, big boards in batches, and link previews** · [#19](https://github.com/Neerg18/lbm/pull/19) · [code](https://github.com/Neerg18/lbm/tree/2618be4)
 - **Small previews:** every picture you upload now also gets a small copy, about a quarter of the size. Cards, Recent works, boards, sliders, comic covers and profile pictures show the small copy, so pages load much faster. Opening a piece still shows the full picture. For pictures you posted before, press **Clean up → Make small previews** once. If a small copy is ever missing, the full picture shows instead.
 - **Boards in batches:** big boards show 48 pictures at a time, with a **Show more** button for the rest. The pictures already on screen stay where they are.
 - **Link previews and tab icon:** in **Site info → Search and sharing**, choose the picture that shows when someone shares a link to your site (Discord, Bluesky, X, text messages) and the little icon in the browser tab. A mock-up shows how both will look. **Update link preview** puts them on your site. If your site doesn't let Admin change `index.html`, it gives you the finished file to upload in your Neocities dashboard. Installing a NEERG update resets the link preview, and the dashboard reminds you to put it back.

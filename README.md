@@ -1,4 +1,4 @@
-# NEERG 7.0.17
+# NEERG 7.0.20
 ### A fork of [LBM — Leaflet Blog Manager](https://lbm-test.neocities.org) by applesaucy
 
 > Self-hosted digital art archive for Neocities. Post your art, comics and commission info, all managed from your browser. No code editing needed.
@@ -30,10 +30,16 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Commissions Poster:** A zine-style Commissions page with a tier card for each kind of commission (example art, price badge, notes) and a terms box, plus a one-click switch that tapes the whole page off with hazard tape when you're closed
 - **One-Click Backup:** Download all four data files from the dashboard
 - **Clean Up Tool:** Storage overview plus tools to trim, de-duplicate and compact your data
+- **Backup Reminder:** When this device's last **Back up** is two weeks old (or there isn't one), the dashboard reminds you, with a one-click Back up now
 - **Smaller Images:** PNG and JPG uploads are saved as WebP automatically, and **Clean up → Shrink images** converts the ones already on your site (then lists the old files to delete on Neocities)
 - **Faster Posting:** Paste an image straight into the post editor, or bulk upload many images as separate posts
 - **Small Previews:** Every picture you upload also gets a small copy (in `img/p/`) that cards, tiles, boards, sliders and covers show, so pages load much faster; opening a piece shows the full picture. **Clean up → Small previews** makes them for pictures posted before. If a copy is ever missing, the full picture shows instead
-- **Boards in Batches:** Big boards show 48 pictures at a time with a **Show more** button, and the pictures already on screen stay where they are
+- **Boards in Batches:** Big boards show 48 pictures at a time with a **Show more** button, and the pictures already on screen stay where they are. Each picture's shape is saved when you upload it, so boards hold the right space while pictures load
+- **Scheduled Posts:** Pick a date and time in New post and the post goes up on its own then. Until then only you see it, in **Posts**
+- **Picture Descriptions:** An optional description for each post's pictures, read aloud to people who use screen readers
+- **RSS Feed:** `feed.xml` with your 20 newest posts, updated when you save a post and linked in the footer (switch it off in **Site info → Search and sharing**)
+- **Clear Tab Titles:** The browser tab names the page, board, comic or piece you're on
+- **First-Visit Theme:** Choose dark, light or "match their device" for first-time visitors in **Site info → Visitors**
 - **Link Previews and Tab Icon:** In **Site info → Search and sharing**, pick the picture that shows when someone shares your link on Discord, Bluesky, X or in a text message, and the icon in the browser tab, with a live mock-up. **Update link preview** writes them into your site's `index.html`; if your site won't let Admin change that file, it hands you the finished file to upload yourself. Installing an update resets it, and the dashboard reminds you to put it back
 - **Accessibility:** Keyboard navigation, screen reader labels and a skip-to-content link
 - **Hold to Delete:** Deleting a post, comic, comment or commission tier (and the big Clean up erases) takes a one-second press and hold, by mouse, finger or the Enter key, so nothing goes by accident. Other questions use the same pop-up with a normal button
@@ -48,7 +54,7 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 
 1. Pick one way to put NEERG on your Neocities site:
    - **One file (easiest):** download [`one-file/index.html`](one-file/index.html) and upload it to your site. The rest of the code loads from this GitHub through [jsDelivr](https://www.jsdelivr.com), a free service that serves code to websites.
-   - **Every file:** upload `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder. Your site then doesn't rely on jsDelivr.
+   - **Every file:** upload `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `comm.js`, `comm.css`, `vfx.min.js` and the `fonts` folder. Your site then doesn't rely on jsDelivr.
 2. Open your site. A **Setup Wizard** appears automatically
 3. Enter a password (8+ characters) and your Neocities API key (Neocities → Settings → API). That's it, you're live
 
@@ -58,8 +64,8 @@ No code editing required. Everything is managed from the **Admin** page (the ⚙
 
 NEERG 7 stores your content in the same format as 6.0, so your posts, comics, likes and settings stay where they are.
 
-- **One file:** upload the newest `one-file/index.html` over your `index.html`. If you used to upload every file, you can then delete the other code files: `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder.
-- **Every file:** replace `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `vfx.min.js` and the `fonts` folder (and delete `sky.js` and `sky.css` if you have them).
+- **One file:** upload the newest `one-file/index.html` over your `index.html`. If you used to upload every file, you can then delete the other code files: `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `comm.js`, `comm.css`, `vfx.min.js` and the `fonts` folder.
+- **Every file:** replace `index.html`, `style.css`, `logic.js`, `admin.js`, `marked.min.js`, `about.js`, `about.css`, `comm.js`, `comm.css`, `vfx.min.js` and the `fonts` folder (and delete `sky.js` and `sky.css` if you have them).
 
 > Tip: hit **Back up** in the dashboard before upgrading, just in case.
 
@@ -75,12 +81,14 @@ your-neocities-site/
 ├── admin.js            ← the admin tools (loads only when Admin opens)
 ├── marked.min.js       ← turns Markdown captions into formatted text
 ├── about.js, about.css ← the About page covers (load only when About opens)
+├── comm.js, comm.css   ← the new Commissions designs (load only when one is picked)
 ├── vfx.min.js          ← WebGL picture effects for the About covers
 ├── fonts/              ← the site's icons (a trimmed Font Awesome)
 ├── system.js           ← auto-generated on first setup
 ├── posts.js            ← auto-generated when you post
 ├── comics.js           ← auto-generated when you add a comic
 ├── interactions.js     ← auto-generated on first like/comment
+├── feed.xml            ← your RSS feed, written by Admin when you save a post
 └── img/                ← uploaded images stored here (plus link-preview.jpg, favicon.png and apple-touch-icon.png)
     ├── p/              ← small preview copies
     └── comics/         ← comic pages stored here (small copies in comics/p/)
@@ -104,7 +112,7 @@ All visual customization is done through the **Admin** dashboard. No code editin
 | **Posts** | Find, edit, pin and delete existing posts |
 | **Comics** | Create comics, reorder pages by dragging, add new pages later |
 | **Commissions** | The open/closed switch, status badge, tiers (example art, price, notes, color), terms, request link, hazard-tape words and poster colors |
-| **Site info** | Site name, tagline, profile picture, About page cover design, bio, age check, comments, reactions, featured posts, recommended comic, Art of Today pop-up, search engine description, link preview picture and tab icon |
+| **Site info** | Site name, tagline, profile picture, About page cover design, bio, age check, comments, reactions, featured posts, recommended comic, Art of Today pop-up, theme for first-time visitors, search engine description, link preview picture, tab icon and RSS feed |
 | **Colors & style** | Dark and light palettes, presets, color generator, reaction button colors, profile ring |
 | **Home page** | Header images (latest posts or your own picks), the scrolling text band and the side sliders |
 | **Social links** | Links shown on the header, About page, Commissions page and footer |
@@ -134,7 +142,7 @@ For deeper edits:
 ## Credits
 
 - **Original engine:** [LBM by applesaucy](https://lbm-test.neocities.org)
-- **This fork:** NEERG 7.0.17 by [Neerg18](https://github.com/Neerg18)
+- **This fork:** NEERG 7.0.20 by [Neerg18](https://github.com/Neerg18)
 - **Previous version:** [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219467fa6bcdc0d06dc786a3bc935ef99e58cf8f)
 - **Icons:** [Font Awesome Free 6.7.2](https://fontawesome.com) (icons CC BY 4.0, fonts SIL OFL 1.1, code MIT), trimmed to the icons this site uses
 - **Markdown:** [marked 15.0.12](https://github.com/markedjs/marked) (MIT)
