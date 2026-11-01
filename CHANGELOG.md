@@ -9,7 +9,7 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 ---
 
 ## 7.0.21 · 2026-11-01
-**Code files in folders**
+**Code files in folders** · [#22](https://github.com/Neerg18/lbm/pull/22) · [code](https://github.com/Neerg18/lbm/tree/a6856f6)
 - **Tidier Neocities files:** the style files are now in a `css` folder and the code files in a `js` folder. Your main folder keeps `index.html`, your data files (`system.js`, `posts.js`, `comics.js`, `interactions.js`), `feed.xml` and the `fonts` and `img` folders. Your data files didn't move.
 - **Updating by hand:** upload the new `css` and `js` folders first, then `index.html`, then delete the old code files from your main folder (see the README). Installing a new `index.html` resets your link preview, so press **Update link preview** in Site info afterwards.
 
