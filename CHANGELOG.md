@@ -8,6 +8,10 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.21 · 2026-11-01
+**No more false "Couldn't sync" message**
+- **Saving settings and comics:** after a save worked, Admin showed "Settings synced" and then, wrongly, "Couldn't sync system.js" (or comics.js). Your saves were going through, and now only the "synced" message shows. If a save really does fail, you still get the error.
+
 ## 7.0.20 · 2026-10-31
 **Pick a design for your Commissions page, with a page for each tier, add-ons, terms and spots** · [#20](https://github.com/Neerg18/lbm/pull/20) · [code](https://github.com/Neerg18/lbm/tree/0d86b22)
 - **Page design:** in **Commissions → Page design**, choose your original taped poster or one of three new designs: **Rounded panels**, **Poster frame** or **Character strips**. Your page stays the same until you pick one and press Save. The new designs only load when picked, so the original stays as quick as before.
