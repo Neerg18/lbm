@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.20 · comm.js
+ NEERG 7.0.21 · comm.js
  The Commissions page in one of the designs picked in Admin › Commissions › Page design:
    event   rounded panels: one frame cut into panels, with a white star where they meet
    signal  poster frame: a rounded poster over a yellow strip of tiers

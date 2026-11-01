@@ -8,6 +8,11 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.21 · 2026-11-01
+**Code files in folders**
+- **Tidier Neocities files:** the style files are now in a `css` folder and the code files in a `js` folder. Your main folder keeps `index.html`, your data files (`system.js`, `posts.js`, `comics.js`, `interactions.js`), `feed.xml` and the `fonts` and `img` folders. Your data files didn't move.
+- **Updating by hand:** upload the new `css` and `js` folders first, then `index.html`, then delete the old code files from your main folder (see the README). Installing a new `index.html` resets your link preview, so press **Update link preview** in Site info afterwards.
+
 ## 7.0.20 · 2026-10-31
 **Pick a design for your Commissions page, with a page for each tier, add-ons, terms and spots** · [#20](https://github.com/Neerg18/lbm/pull/20) · [code](https://github.com/Neerg18/lbm/tree/0d86b22)
 - **Page design:** in **Commissions → Page design**, choose your original taped poster or one of three new designs: **Rounded panels**, **Poster frame** or **Character strips**. Your page stays the same until you pick one and press Save. The new designs only load when picked, so the original stays as quick as before.
