@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.20 · style.css
+ NEERG 7.0.21 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -11,9 +11,9 @@
    Copyright 2024 Fonticons, Inc.
    Using an icon that isn't listed below? See "Icons" in the README.
    ═════════════════════════════════════════════ */
-@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:900;font-display:block;src:url(fonts/fa-solid-900.woff2) format("woff2")}
-@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:400;font-display:block;src:url(fonts/fa-regular-400.woff2) format("woff2")}
-@font-face{font-family:"Font Awesome 6 Brands";font-style:normal;font-weight:400;font-display:block;src:url(fonts/fa-brands-400.woff2) format("woff2")}
+@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:900;font-display:block;src:url(../fonts/fa-solid-900.woff2) format("woff2")}
+@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:400;font-display:block;src:url(../fonts/fa-regular-400.woff2) format("woff2")}
+@font-face{font-family:"Font Awesome 6 Brands";font-style:normal;font-weight:400;font-display:block;src:url(../fonts/fa-brands-400.woff2) format("woff2")}
 .fa-solid,.fa-regular,.fa-brands{-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased;display:var(--fa-display,inline-block);font-style:normal;font-variant:normal;line-height:1;text-rendering:auto}
 .fa-solid::before,.fa-regular::before,.fa-brands::before{content:var(--fa)}
 .fa-solid,.fa-regular{font-family:"Font Awesome 6 Free"}

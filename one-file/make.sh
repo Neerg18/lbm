@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds one-file/index.html: a copy of index.html whose code (style.css, marked.min.js, logic.js,
+# Builds one-file/index.html: a copy of index.html whose code (css/style.css, js/marked.min.js, js/logic.js,
 # and through logic.js everything else) loads from this GitHub repository through jsDelivr.
 # Run it after committing a release, then commit the result:  sh one-file/make.sh [commit]
 # The links are pinned to that commit, so a one-file site only changes when its owner uploads a newer copy.
@@ -7,14 +7,14 @@ set -e
 cd "$(git rev-parse --show-toplevel)"
 sha=$(git rev-parse "${1:-HEAD}")
 cdn="https://cdn.jsdelivr.net/gh/Neerg18/lbm@$sha/"
-ver=$(git show "$sha:logic.js" | sed -n "s/^const NEERG_VERSION = '\(.*\)';$/\1/p")
+ver=$(git show "$sha:js/logic.js" | sed -n "s/^const NEERG_VERSION = '\(.*\)';$/\1/p")
 
 git show "$sha:index.html" | sed \
     -e "s#<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">#<link rel=\"preconnect\" href=\"https://cdn.jsdelivr.net\">\n    &#" \
     -e "s#<!-- The ?v= tag .*-->#<!-- One-file NEERG $ver: the code loads from github.com/Neerg18/lbm through jsDelivr. To update, upload the newest one-file/index.html over this file. -->#" \
-    -e "s#href=\"style.css?v=[^\"]*\"#href=\"${cdn}style.css\"#" \
-    -e "s#src=\"marked.min.js\"#src=\"${cdn}marked.min.js\"#" \
-    -e "s#src=\"logic.js?v=[^\"]*\"#src=\"${cdn}logic.js\"#" \
+    -e "s#href=\"css/style.css?v=[^\"]*\"#href=\"${cdn}css/style.css\"#" \
+    -e "s#src=\"js/marked.min.js\"#src=\"${cdn}js/marked.min.js\"#" \
+    -e "s#src=\"js/logic.js?v=[^\"]*\"#src=\"${cdn}js/logic.js\"#" \
     > one-file/index.html
 
 # Stop if index.html changed shape and a link was missed
