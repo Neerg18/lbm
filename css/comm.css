@@ -257,6 +257,24 @@ a.cxh-cta:hover { transform: translateY(3px); box-shadow: 0 1px 0 #fff; }
 /* Closed: the art goes grey */
 .cx.is-closed .cxe-fill, .cx.is-closed .cxe-roundimg, .cx.is-closed .cxe-wishimg, .cx.is-closed .cxs-archimg, .cx.is-closed .cxh-img, .cx.is-closed .cxe-moreimg { filter: grayscale(1); }
 
+@media (max-width: 1100px) {
+    /* Tablets and phones, second tier: the round picture sits beside the name, the note and spots go full width under it */
+    .cxe-yel.cxe-btn { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 2px 12px; padding: 20px 22px; }
+    .cxe-yeltext { display: contents; }
+    .cxe-yeltext > * { grid-column: 1; justify-self: start; }
+    .cxe-yeltext > span, .cxe-yeltext > .cxe-pill { grid-column: 1 / -1; }
+    .cxe-yeltext b { font-size: clamp(30px, 3.8vw, 52px); }
+    .cxe-yeltext em { font-size: 30px; }
+    .cxe-yeltext > .cxe-pill, .cxe-wishtext > .cxe-pill { font-size: 11px; white-space: nowrap; }
+    .cxe-round { grid-column: 2; grid-row: 1 / span 3; width: clamp(96px, 10vw, 120px); height: clamp(96px, 10vw, 120px); margin-right: 8px; }
+    .cxe-pal { right: -12px; bottom: -10px; width: 52px; height: 52px; }
+    /* Third tier: words on the red, picture underneath instead of behind them */
+    .cxe-wish.cxe-btn { display: flex; flex-direction: column; min-height: 0; }
+    .cxe-wishtext { position: static; padding: 22px 22px 18px; }
+    .cxe-wishtext em { line-height: 1.1; }
+    .cxe-wishimg { position: static; order: 2; flex: 1 1 0; min-height: 200px; height: auto; }
+    .cxe-tools { width: 150px; height: 75px; }
+}
 @media (max-width: 820px) {
     .cxs-frame { height: 580px; border-radius: 26px 80px 26px 26px; }
     .cxs-arch { left: auto; right: 6%; top: 7%; width: 44%; bottom: 46%; }
@@ -269,10 +287,28 @@ a.cxh-cta:hover { transform: translateY(3px); box-shadow: 0 1px 0 #fff; }
     .cxe-bento { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "logo" "sky" "big" "yel" "wish"; }
     .cxe-bento > * { min-height: 170px; }
     .cxe-big { min-height: 440px; }
-    .cxe-wish.cxe-btn { min-height: 320px; }
     .cxe-star { display: none; }
-    .cxe-bigtext { right: 108px; }
-    .cxe-badge { width: 80px; height: 80px; right: 16px; bottom: 18px; }
+    /* Phones: "Pick a tier" sits on the left and the "From" circle gets its own column, so they never cross */
+    .cxe-sky:not(.cxe-addons) { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "chip chip" "pick from" "keys from"; align-items: end; gap: 12px; padding: 22px; border-radius: 48px 16px 16px 16px; }
+    .cxe-sky > .cxe-chip { grid-area: chip; justify-self: start; }
+    .cxe-pick { position: static; grid-area: pick; }
+    .cxe-pick i { display: block; margin-bottom: 4px; font-size: 20px; }
+    .cxe-pick b { display: block; font-size: clamp(46px, 15vw, 64px); }
+    .cxe-from { position: static; grid-area: from; align-self: center; width: 104px; height: 104px; border-width: 4px; transform: none; }
+    .cxe-from small { font-size: 13px; }
+    .cxe-from b { font-size: 28px; }
+    .cxe-keys { position: static; grid-area: keys; }
+    /* Tier name stays on one line next to its line */
+    .cxe-line { top: 46px; width: 14%; }
+    .cxe-word { left: calc(14% + 12px); top: 22px; font-size: clamp(38px, 12vw, 64px); }
+    .cxe-bigtext { left: 22px; right: 100px; bottom: 22px; }
+    .cxe-bigtext b { font-size: clamp(50px, 16vw, 80px); overflow-wrap: anywhere; }
+    .cxe-bigtext > span { font-size: 16px; }
+    .cxe-bigtext > .cxe-pill { font-size: 11px; white-space: nowrap; }
+    .cxe-badge { width: 72px; height: 72px; right: 16px; bottom: 18px; }
+    .cxe-yeltext b { font-size: clamp(30px, 10vw, 52px); }
+    .cxe-wishtext b { font-size: clamp(36px, 11vw, 46px); }
+    .cxe-wishimg { min-height: 220px; }
     .cxh-stage { height: auto; overflow: visible; }
     .cxh-band, .cxh-stage.is-open .cxh-band { position: static; width: auto; flex-direction: column; gap: 6px; }
     .cxh-strip { flex: none; height: 220px; transform: none; }
