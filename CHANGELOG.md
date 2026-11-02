@@ -9,7 +9,7 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 ---
 
 ## 7.0.23 · 2026-11-02
-**Comic folders box removed**
+**Comic folders box removed** · [#26](https://github.com/Neerg18/lbm/pull/26) · [code](https://github.com/Neerg18/lbm/tree/96718f1)
 - **Done with the move:** every comic now lives in its own folder, so the **Comic folders** box and its **Move into folders** button are gone from Admin › Comics. New comics, added pages and swapped pages still go into the comic's own folder automatically.
 - **Updating by hand:** upload `index.html`, `css/style.css`, `js/logic.js` and `js/admin.js`. Installing a new `index.html` resets your link preview, so press **Update link preview** in Site info afterwards.
 
