@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.22 · style.css
+ NEERG 7.0.23 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -363,8 +363,6 @@ input[type="range"] { width: 100%; accent-color: var(--hl); }
 .shrink-left { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px dashed var(--line-strong); border-radius: var(--r-m); }
 .shrink-left p { font-size: .9rem; color: var(--text-2); }
 .shrink-left textarea { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; }
-.comic-folders { margin-top: 28px; padding: 18px; border: 1px solid var(--line); border-radius: var(--r-m); }
-.comic-folders .mini-head { margin-top: 0; }
 .progress { padding: 12px 14px; border-radius: var(--r-s); background: var(--surface); border: 1px solid var(--line); }
 .progress-row { display: flex; justify-content: space-between; font-size: .85rem; color: var(--text-2); margin-bottom: 8px; }
 .progress-bar { height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; }
