@@ -9,7 +9,7 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 ---
 
 ## 7.0.22 · 2026-11-02
-**Comic folders**
+**Comic folders** · [#24](https://github.com/Neerg18/lbm/pull/24) · [code](https://github.com/Neerg18/lbm/tree/5460ac3)
 - **Each comic gets its own folder:** a new comic's pages now upload into a folder named after it inside `img/comics/`, like `img/comics/space-cats/` for "Space Cats", with their small copies in `img/comics/space-cats/p/`. Pages you add or swap later go into the same folder, even if you rename the comic.
 - **Move your older comics:** Admin › Comics has a new **Comic folders** box. **Move into folders** copies each older comic's pages (and their small copies) into its own folder and switches the comic over. Nothing is lost if it stops partway: the old files stay on Neocities until you delete them, and the box lists them. The list clears itself once they're gone.
 - **Updating by hand:** upload `index.html`, `css/style.css`, `js/logic.js` and `js/admin.js`. Installing a new `index.html` resets your link preview, so press **Update link preview** in Site info afterwards.
