@@ -95,7 +95,8 @@ your-neocities-site/
 ├── feed.xml            ← your RSS feed, written by Admin when you save a post
 └── img/                ← uploaded images stored here (plus link-preview.jpg, favicon.png and apple-touch-icon.png)
     ├── p/              ← small preview copies
-    └── comics/         ← comic pages stored here (small copies in comics/p/)
+    └── comics/         ← one folder per comic, named after it
+        └── space-cats/ ← a comic's pages (small copies in space-cats/p/)
 ```
 
 Only the files above `system.js` live in this repository. The rest are created on your Neocities site by the Admin page. A one-file site has only `index.html` from the top part; its other code files load from jsDelivr.

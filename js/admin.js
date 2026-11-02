@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.21 · admin.js                                         ║
+ ║  NEERG 7.0.22 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home page, links and cleanup.    ║
  ║  logic.js loads this the first time Admin opens, so visitors     ║
@@ -236,6 +236,23 @@ async function deletePost(id) {
 let comicPagesQueue = [];
 let addPagesComicId = null, addPagesQueue = [];
 
+/* Each comic keeps its pages in its own folder inside img/comics/, named after the comic when its first pages
+   upload: "Space Cats" → img/comics/space-cats/ (small copies in img/comics/space-cats/p/). The folder name is
+   saved on the comic, so renaming the comic later keeps all its pages together. */
+function comicSlug(title) {
+    return String(title || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+}
+function comicFolder(c) {
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(c.folder || '')) {
+        let name = comicSlug(c.title) || 'comic';
+        // p/ already holds the small copies of older comics' pages, and two comics never share a folder
+        if (name === 'p' || comicsCache.some(o => o !== c && o.folder === name)) name += '-' + Number(c.id).toString(36);
+        c.folder = name;
+    }
+    return 'img/comics/' + c.folder + '/';
+}
+
 function renderPageSorter(boxId, queue, rerender) {
     const box = byId(boxId); if (!box) return;
     box.innerHTML = queue.map((it, i) => '<div class="ps-item" draggable="true" data-index="' + i + '">' + (it.preview ? '<img src="' + esc(it.preview) + '" alt="">' : '') + '<span class="num">' + (i + 1) + '</span><button type="button" data-action="sorter-remove" data-sorter="' + boxId + '" data-index="' + i + '" aria-label="Remove page ' + (i + 1) + '">✕</button></div>').join('');
@@ -260,9 +277,11 @@ async function createComic() {
     publishing = true;
     const box = byId('nc-progress'), bar = byId('nc-progress-bar'), txt = byId('nc-progress-text');
     box.hidden = false;
-    const pages = await uploadFiles(comicPagesQueue.map(i => i.file), 'img/comics/', (i, n) => { bar.style.width = (i / n * 100) + '%'; txt.textContent = i < n ? 'Uploading page ' + (i + 1) + ' of ' + n : 'Saving comic'; });
+    const comic = { id: Date.now(), title, cover: '', pages: [], tags, date: new Date().toLocaleDateString() };
+    const pages = await uploadFiles(comicPagesQueue.map(i => i.file), comicFolder(comic), (i, n) => { bar.style.width = (i / n * 100) + '%'; txt.textContent = i < n ? 'Uploading page ' + (i + 1) + ' of ' + n : 'Saving comic'; });
     if (!pages) { publishing = false; box.hidden = true; return; }
-    comicsCache.push({ id: Date.now(), title, cover: cover || pages[0], pages, tags, date: new Date().toLocaleDateString() });
+    comic.cover = cover || pages[0]; comic.pages = pages;
+    comicsCache.push(comic);
     byId('nc-title').value = ''; byId('nc-cover').value = ''; byId('nc-tags').value = ''; byId('nc-files').value = '';
     comicPagesQueue = []; renderNewComicPages();
     bar.style.width = '100%';
@@ -300,6 +319,7 @@ function renderComicsAdmin() {
             + '</div>';
     }).join('');
     if (editingComicId != null) renderEditComicPages();
+    renderComicMove();
 }
 
 /* Editing the pages of a comic that's already posted.
@@ -358,7 +378,7 @@ async function saveEditedComic(form) {
         publishing = true;
         const btn = form.querySelector('[type="submit"]'); if (btn) btn.disabled = true;
         const t = showToast('Uploading ' + plural(swaps.length, 'new page'), 'loading');
-        const paths = await uploadFiles(swaps.map(it => it.file), 'img/comics/');
+        const paths = await uploadFiles(swaps.map(it => it.file), comicFolder(c));
         dismissToast(t);
         publishing = false;
         if (btn) btn.disabled = false;
@@ -402,7 +422,7 @@ async function submitAddPages() {
     publishing = true;
     const box = byId('ap-progress'), bar = byId('ap-progress-bar'), txt = byId('ap-progress-text');
     box.hidden = false;
-    const pages = await uploadFiles(addPagesQueue.map(i => i.file), 'img/comics/', (i, n) => { bar.style.width = (i / n * 100) + '%'; txt.textContent = i < n ? 'Uploading page ' + (i + 1) + ' of ' + n : 'Saving'; });
+    const pages = await uploadFiles(addPagesQueue.map(i => i.file), comicFolder(c), (i, n) => { bar.style.width = (i / n * 100) + '%'; txt.textContent = i < n ? 'Uploading page ' + (i + 1) + ' of ' + n : 'Saving'; });
     if (!pages) { publishing = false; box.hidden = true; return; }
     c.pages = (c.pages || []).concat(pages);
     renderComicsAdmin(); renderComics();
@@ -411,6 +431,113 @@ async function submitAddPages() {
     Modals.close(byId('ap-modal'));
     addPagesQueue = []; addPagesComicId = null;
     showToast('Added ' + plural(pages.length, 'page') + ' to ' + (c.title || 'your comic'));
+}
+
+/* ═════════════════════════════════════════════
+   ADMIN: COMIC FOLDERS
+   Comics made before 7.0.22 keep their pages loose in img/comics/. This copies each of those pages (and its
+   small copy) into the comic's own folder and switches the comic over to the copies. The bridge can upload
+   but not delete, so the old files stay on Neocities and are listed for the owner to remove.
+   ═════════════════════════════════════════════ */
+
+const ComicMove = { running: false, stop: false };
+// A page or cover stored loose in img/comics/ rather than in a comic's folder ('' otherwise)
+function looseComicPath(u) {
+    const path = typeof u === 'string' ? uploadPathOf(u) : '';
+    return /^img\/comics\/[^/]+\.[a-z0-9]+$/i.test(path) ? path : '';
+}
+function comicMoveWork() { return comicsCache.filter(c => (c.pages || []).concat(c.cover || []).some(looseComicPath)); }
+
+function renderComicMove() {
+    const box = byId('cf-box'); if (!box) return;
+    const n = comicMoveWork().length, left = readJSON(KEYS.comicLeftovers, []) || [];
+    box.hidden = !n && !left.length && !ComicMove.running;
+    byId('cf-info').textContent = n
+        ? plural(n, 'comic') + (n === 1 ? ' keeps its' : ' keep their') + ' pages in the shared img/comics/ folder. This copies ' + (n === 1 ? 'its pages' : 'each comic\'s pages') + ' into ' + (n === 1 ? 'its' : 'their') + ' own folder, like img/comics/' + comicSlug((comicMoveWork()[0] || {}).title || 'space cats') + '/, and switches the comic over. New comics get their own folder already.'
+        : 'Every comic has its own folder in img/comics/.';
+    byId('cf-start').disabled = !n || ComicMove.running;
+    byId('cf-left').hidden = !left.length;
+    byId('cf-left-count').textContent = plural(left.length, 'old file') + ' still on Neocities.';
+    byId('cf-list').value = left.join('\n');
+}
+// Drops files from the leftovers list once they're gone from the site
+let comicLeftoversChecked = false;
+async function pruneComicLeftovers() {
+    if (comicLeftoversChecked || isLocalMode()) return;
+    comicLeftoversChecked = true;
+    const left = readJSON(KEYS.comicLeftovers, []) || [];
+    if (!left.length) return;
+    const still = [];
+    for (const f of left) if (await siteHasFile(f)) still.push(f);
+    if (still.length !== left.length) { writeJSON(KEYS.comicLeftovers, still); renderComicMove(); }
+}
+
+async function runComicMove() {
+    if (ComicMove.running) return;
+    if (isLocalMode()) { showToast('Connect your site to Neocities first, so the pages can be copied.', 'error'); return; }
+    const comics = comicMoveWork();
+    if (!comics.length) return;
+    // One job per loose file; a file two comics share goes to the first one's folder
+    const jobs = [], seen = new Set();
+    comics.forEach(c => {
+        const folder = comicFolder(c);
+        (c.pages || []).concat(c.cover || []).forEach(ref => { if (looseComicPath(ref) && !seen.has(ref)) { seen.add(ref); jobs.push({ c, ref, folder }); } });
+    });
+    if (!await askConfirm('Each comic\'s pages are copied into its own folder in img/comics/, then the comic switches to the copies. The old files stay on Neocities until you delete them, so nothing is lost if something goes wrong. Keep this tab open until it finishes.', { title: 'Move ' + plural(comics.length, 'comic') + ' into folders?', yes: 'Move comics' })) return;
+    ComicMove.running = true; ComicMove.stop = false;
+    const bar = byId('cf-bar'), txt = byId('cf-text'), count = byId('cf-count');
+    byId('cf-progress').hidden = false; byId('cf-stop').hidden = false; byId('cf-start').disabled = true;
+    const map = {}, oldFiles = [];
+    let moved = 0, failed = 0, missing = 0, why = '';
+    for (let i = 0; i < jobs.length && !ComicMove.stop; i++) {
+        const { c, ref, folder } = jobs[i], from = looseComicPath(ref), name = from.split('/').pop(), to = folder + name;
+        txt.textContent = 'Moving ' + (c.title || 'Untitled') + ': ' + name;
+        count.textContent = (i + 1) + ' of ' + jobs.length;
+        bar.style.width = (i / jobs.length * 100) + '%';
+        try {
+            const res = await fetch(new URL(ref, location.href), { cache: 'no-store' });
+            if (!res.ok) { missing++; continue; }
+            const blob = await res.blob();
+            await promisifiedUpload(new File([blob], name, { type: blob.type || 'application/octet-stream' }), to);
+            // Its small copy moves too (or a new one is made when it had none)
+            const thumb = thumbOf(ref), thumbFrom = thumb !== ref ? uploadPathOf(thumb) : '';
+            let thumbDone = false;
+            if (thumbFrom) {
+                const tr = await fetch(new URL(thumb, location.href), { cache: 'no-store' }).catch(() => null);
+                if (tr && tr.ok) {
+                    const tb = await tr.blob(), tp = previewPath(to);
+                    const r = await uploadToBridge('media_only', { mediaFile: new File([tb], tp.split('/').pop(), { type: tb.type || 'image/webp' }), mediaPath: tp, quiet: true });
+                    if (r.success) { freshPreviews.set(to, tp); thumbDone = true; if (/^img\/comics\/p\/[^/]+$/.test(thumbFrom)) oldFiles.push(thumbFrom); }
+                }
+            }
+            if (!thumbDone && PREVIEWABLE.test(to)) await addPreview(blob, to);
+            map[ref] = to; oldFiles.push(from); moved++;
+        } catch (e) {
+            failed++; why = String(e || '');
+            if (!moved && failed >= 3) { showToast('Stopped: the first few pages didn\'t copy. ' + why + ' Nothing changed.', 'error'); break; }
+        }
+    }
+    bar.style.width = '100%';
+    if (moved) {
+        txt.textContent = 'Saving your comics';
+        const postsBefore = JSON.stringify(postsCache), configBefore = JSON.stringify(currentConfig);
+        swapImageRefs(map);
+        renderComics();
+        const r = await saveComics();
+        if (JSON.stringify(postsCache) !== postsBefore) { renderHome(); await savePosts(); }
+        if (JSON.stringify(currentConfig) !== configBefore) { applyVisualConfig(); await saveSystem(); }
+        if (r && r.success) {
+            const left = readJSON(KEYS.comicLeftovers, []) || [];
+            writeJSON(KEYS.comicLeftovers, left.concat(oldFiles.filter(f => !left.includes(f))));
+            showToast('Moved ' + plural(moved, 'page') + ' into ' + (comics.length === 1 ? 'its comic\'s folder' : 'their comics\' folders'));
+        } else showToast('The pages were copied, but your comics list didn\'t save. Press Sync comics to try again. Nothing was lost.', 'error');
+    }
+    if (missing) showToast(plural(missing, 'page') + ' couldn\'t be found on your site, so ' + (missing === 1 ? 'it stayed' : 'they stayed') + ' where ' + (missing === 1 ? 'it was' : 'they were') + '.', 'info');
+    if (failed && moved) showToast(plural(failed, 'page') + ' didn\'t copy. ' + why + ' Press Move into folders again to try ' + (failed === 1 ? 'it' : 'them') + ' again.', 'error');
+    if (ComicMove.stop) showToast('Stopped early. Press Move into folders again any time to finish the rest.', 'info');
+    ComicMove.running = false;
+    byId('cf-progress').hidden = true; byId('cf-stop').hidden = true;
+    renderComicsAdmin();
 }
 
 /* ═════════════════════════════════════════════

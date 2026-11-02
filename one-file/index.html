@@ -11,7 +11,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    NEERG 7.0.21 · index.html
+    NEERG 7.0.22 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
     Upload index.html and the css, js and fonts folders to your Neocities root.
@@ -41,11 +41,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
-    <!-- One-file NEERG 7.0.21: the code loads from github.com/Neerg18/lbm through jsDelivr. To update, upload the newest one-file/index.html over this file. -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Neerg18/lbm@c9fd98ddfa8b331dd0fd146819697710402d21cb/css/style.css">
+    <!-- One-file NEERG 7.0.22: the code loads from github.com/Neerg18/lbm through jsDelivr. To update, upload the newest one-file/index.html over this file. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Neerg18/lbm@5460ac38a0d1e23a5a844ee21aa943e462975c29/css/style.css">
 
-    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@c9fd98ddfa8b331dd0fd146819697710402d21cb/js/marked.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@c9fd98ddfa8b331dd0fd146819697710402d21cb/js/logic.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@5460ac38a0d1e23a5a844ee21aa943e462975c29/js/marked.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/gh/Neerg18/lbm@5460ac38a0d1e23a5a844ee21aa943e462975c29/js/logic.js"></script>
 </head>
 <body>
 
@@ -469,7 +469,7 @@
                             <p><strong>Choose pages</strong> or drop them here, in reading order</p>
                             <input type="file" id="nc-files" accept="image/*" multiple hidden>
                         </div>
-                        <p class="hint">Drag thumbnails to reorder. Pages upload to img/comics/ on your site.</p>
+                        <p class="hint">Drag thumbnails to reorder. Pages upload to the comic's own folder on your site, like img/comics/space-cats/ for a comic called Space Cats.</p>
                         <div class="page-sorter" id="nc-pages"></div>
                         <div class="progress" id="nc-progress" hidden>
                             <div class="progress-row"><span id="nc-progress-text">Uploading</span></div>
@@ -486,6 +486,25 @@
                         </div>
                     </div>
                     <div class="manage-list" id="mc-list"></div>
+                    <div class="shrink comic-folders" id="cf-box" hidden>
+                        <h3 class="mini-head">Comic folders</h3>
+                        <p class="hint" id="cf-info"></p>
+                        <div class="progress" id="cf-progress" hidden>
+                            <div class="progress-row"><span id="cf-text">Moving</span><span id="cf-count"></span></div>
+                            <div class="progress-bar"><div class="progress-fill" id="cf-bar"></div></div>
+                        </div>
+                        <div class="row-actions">
+                            <button class="btn small" data-action="cf-start" id="cf-start"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Move into folders</button>
+                            <button class="btn small btn-ghost" data-action="cf-stop" id="cf-stop" hidden>Stop after this one</button>
+                        </div>
+                        <div class="shrink-left" id="cf-left" hidden>
+                            <p><strong id="cf-left-count"></strong> Your comics no longer use these old copies, so delete them in your <a href="https://neocities.org/dashboard" target="_blank" rel="noopener">Neocities dashboard</a> to free up the space. This list clears itself once they're gone.</p>
+                            <textarea id="cf-list" class="code" rows="5" readonly aria-label="Old comic files to delete"></textarea>
+                            <div class="row-actions">
+                                <button class="btn small" data-action="cf-copy"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy list</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Commissions -->
@@ -982,7 +1001,7 @@
             <a href="#/about">About</a>
         </nav>
         <div class="social-icons" id="footer-social"></div>
-        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.21</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.22</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
     </div>
 </footer>
 
