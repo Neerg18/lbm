@@ -12,7 +12,7 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 **Comic folders box removed** · [#26](https://github.com/Neerg18/lbm/pull/26) · [code](https://github.com/Neerg18/lbm/tree/96718f1)
 - **Done with the move:** every comic now lives in its own folder, so the **Comic folders** box and its **Move into folders** button are gone from Admin › Comics. New comics, added pages and swapped pages still go into the comic's own folder automatically.
 - **Updating by hand:** upload `index.html`, `css/style.css`, `js/logic.js` and `js/admin.js`. Installing a new `index.html` resets your link preview, so press **Update link preview** in Site info afterwards.
-- **Hotfix (Nov 2): the link preview survives updates.** Installing a new `index.html` still resets the link preview, but the next time you open Admin it puts your saved preview back by itself and says so. No more pressing **Update link preview** after every update. It reuses the preview pictures already on your site, so nothing is redrawn. Only `js/admin.js` changed.
+- **Hotfix (Nov 2): the link preview survives updates.** Installing a new `index.html` still resets the link preview, but the next time you open Admin it puts your saved preview back by itself and says so. No more pressing **Update link preview** after every update. It reuses the preview pictures already on your site, so nothing is redrawn. Only `js/admin.js` changed. · [#27](https://github.com/Neerg18/lbm/pull/27)
 
 ## 7.0.22 · 2026-11-02
 **Comic folders** · [#24](https://github.com/Neerg18/lbm/pull/24) · [code](https://github.com/Neerg18/lbm/tree/5460ac3)
