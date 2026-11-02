@@ -1355,7 +1355,7 @@ async function runPreviews() {
    and browsers read the tab icon from it too, so these live in index.html between the Link preview
    markers. Updating draws a preview card and icons, uploads them to img/, and rewrites only the lines
    between the markers on your site. Installing a newer index.html puts the plain lines back, so the
-   dashboard offers to write them again after an update.
+   next time Admin opens it writes the saved preview back in by itself (the pictures stay in img/).
    ═════════════════════════════════════════════ */
 
 const LP_START = '<!-- Link preview:', LP_END = '<!-- /Link preview -->';
@@ -1499,8 +1499,8 @@ function lpBlock(v) {
 // The site's own address, not /index.html, which Neocities redirects (dropping the ?tag that skips its cache)
 const freshPage = tag => fetch(siteBase() + '?' + tag + '=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').catch(() => '');
 // Rewrites the lines between the markers in the site's index.html, then reads it back to be sure
-async function lpWritePage(v) {
-    const html = await freshPage('read');
+async function lpWritePage(v, page) {
+    const html = page || await freshPage('read');
     const a = html.indexOf(LP_START), b = html.indexOf(LP_END);
     if (a < 0 || b < a || html.indexOf(LP_START, a + 1) >= 0 || html.indexOf(LP_END, b + 1) >= 0 || !/logic\.js/.test(html) || !/<\/html>\s*$/i.test(html)) return 'old';
     lpPage = html.slice(0, a) + lpBlock(v) + html.slice(b + LP_END.length);
@@ -1612,17 +1612,26 @@ function renderFeedStatus() {
 }
 
 // Once each visit to Admin: restore notes and the feed
-function adminArrived() {
+async function adminArrived() {
     if (lpWarned) return;
-    checkLinkPreview();
+    await checkLinkPreview();
     writeFeed();
 }
 
-// After logging in: an index.html update puts the plain lines back, so say how to restore the preview
-function checkLinkPreview() {
+// After logging in: an index.html update puts the plain lines back, so the saved preview goes back in by itself.
+// Its pictures are still in img/ under the same ?v= stamp, so only the lines in index.html are written again.
+async function checkLinkPreview() {
     const lp = lpSettings();
     lpWarned = true;
-    if (lp.v && lpLiveStamp() !== String(lp.v)) showToast('Your link preview isn\'t on your site right now. Put it back in Site info › Search and sharing.', 'info');
+    if (!lp.v || isLocalMode()) return;
+    // This tab may have loaded an older copy of the page, so look at the one on the site
+    const live = await freshPage('read');
+    if (!live) return;
+    if (live.includes('name="neerg-preview" content="' + lp.v + '"')) { lpMarkLive(lp.v); return; }
+    const r = await lpWritePage(lp.v, live);
+    if (r === 'ok' || r === 'unchecked') { lpMarkLive(lp.v); showToast('Your link preview is back on your site after the update.'); }
+    else showToast('Your link preview isn\'t on your site right now. Put it back in Site info › Search and sharing.', 'info');
+    renderLinkPreviewStatus('');
 }
 
 
