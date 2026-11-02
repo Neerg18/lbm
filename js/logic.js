@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.21 · logic.js                                         ║
+ ║  NEERG 7.0.22 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.21';
+const NEERG_VERSION = '7.0.22';
 // Where the code files live: the js folder beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // admin.js, about.js and comm.js load from this same folder; about.css and comm.css from the css folder beside it.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
@@ -47,6 +47,7 @@ const KEYS = {
     recoveryDismissed: 'neerg_recovery_dismissed',
     comicProgress: 'neerg_comic_progress',
     shrinkLeftovers: 'neerg_shrink_leftovers',
+    comicLeftovers: 'neerg_comic_folder_leftovers',
     shrinkSkipped: 'neerg_shrink_skipped',
     previewSkipped: 'neerg_preview_skipped',
     lastBackup: 'neerg_last_backup',
@@ -2808,7 +2809,7 @@ function webpName(name) { return String(name || 'image').replace(/\.[^./]*$/, ''
 
 /* ═════════════════════════════════════════════
    PREVIEWS
-   Each uploaded picture also gets a small WebP copy in a p/ folder beside it (img/p/, img/comics/p/).
+   Each uploaded picture also gets a small WebP copy in a p/ folder beside it (img/p/, img/comics/space-cats/p/).
    Cards, tiles, boards, sliders and covers show the copy; opening a piece shows the full picture.
    Posts and comics list their copies in previews ({ picture: copy }), and the site settings do the same
    for their own pictures (profile picture, header images, tier examples, slider images).
@@ -3037,7 +3038,7 @@ function showAdminTab(tab) {
     $$('[data-action="admin-tab"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
     $$('[data-tab-panel]').forEach(p => { p.hidden = p.dataset.tabPanel !== tab; });
     if (tab === 'posts') renderManagePosts();
-    if (tab === 'comics') renderComicsAdmin();
+    if (tab === 'comics') { renderComicsAdmin(); pruneComicLeftovers(); }
     if (tab === 'comm') populateCommForm();
     if (tab === 'site') populateSiteForm();
     if (tab === 'look') Studio.open();
@@ -3814,6 +3815,9 @@ const actions = {
     'links-save': () => saveSocialLinks(),
     'cleanup': el => runCleanup(el.dataset.fn, el),
     'shrink-start': () => runShrink(),
+    'cf-start': () => runComicMove(),
+    'cf-stop': el => { ComicMove.stop = true; el.disabled = true; el.textContent = 'Stopping'; setTimeout(() => { el.disabled = false; el.textContent = 'Stop after this one'; }, 1500); },
+    'cf-copy': () => { const t = byId('cf-list').value; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('List copied'), () => { byId('cf-list').select(); showToast('Press Ctrl+C to copy the selected list'); }); },
     'pv-start': () => runPreviews(),
     'lp-update': () => updateLinkPreview(),
     'lp-download': () => downloadLinkPreviewPage(),
