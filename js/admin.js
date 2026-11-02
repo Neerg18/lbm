@@ -238,13 +238,18 @@ let addPagesComicId = null, addPagesQueue = [];
 
 /* Each comic keeps its pages in its own folder inside img/comics/, named after the comic when its first pages
    upload: "Space Cats" → img/comics/space-cats/ (small copies in img/comics/space-cats/p/). The folder name is
-   saved on the comic, so renaming the comic later keeps all its pages together. */
-function comicSlug(title) {
-    return String(title || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+   saved on the comic, so renaming the comic later keeps all its pages together. Apostrophes are dropped, so
+   "Girl's Night" → girls-night (the first 7.0.22 turned them into dashes: girl-s-night). */
+function comicSlug(title, dashApostrophes) {
+    let s = String(title || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (!dashApostrophes) s = s.replace(/['\u2018\u2019\u02bc`]/g, '');
+    return s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
 }
 function comicFolder(c) {
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(c.folder || '')) {
+    const named = /^[a-z0-9][a-z0-9-]*$/.test(c.folder || '');
+    // A comic still in a folder the first 7.0.22 named with a dash for an apostrophe moves to the tidier name
+    const dashed = named && c.folder === comicSlug(c.title, true) && comicSlug(c.title) !== c.folder;
+    if (!named || dashed) {
         let name = comicSlug(c.title) || 'comic';
         // p/ already holds the small copies of older comics' pages, and two comics never share a folder
         if (name === 'p' || comicsCache.some(o => o !== c && o.folder === name)) name += '-' + Number(c.id).toString(36);
@@ -435,25 +440,30 @@ async function submitAddPages() {
 
 /* ═════════════════════════════════════════════
    ADMIN: COMIC FOLDERS
-   Comics made before 7.0.22 keep their pages loose in img/comics/. This copies each of those pages (and its
-   small copy) into the comic's own folder and switches the comic over to the copies. The bridge can upload
-   but not delete, so the old files stay on Neocities and are listed for the owner to remove.
+   Comics made before 7.0.22 keep their pages loose in img/comics/, and a few made by the first 7.0.22 sit in a
+   folder with a dash for an apostrophe. This copies each page outside the comic's own folder (and its small
+   copy) into that folder and switches the comic over to the copies. The bridge can upload but not delete, so
+   the old files stay on Neocities and are listed for the owner to remove.
    ═════════════════════════════════════════════ */
 
 const ComicMove = { running: false, stop: false };
-// A page or cover stored loose in img/comics/ rather than in a comic's folder ('' otherwise)
-function looseComicPath(u) {
+// A page or cover stored in img/comics/ but outside the comic's own folder ('' otherwise)
+function comicPathToMove(c, u) {
     const path = typeof u === 'string' ? uploadPathOf(u) : '';
-    return /^img\/comics\/[^/]+\.[a-z0-9]+$/i.test(path) ? path : '';
+    if (!/^img\/comics\/.+\.[a-z0-9]+$/i.test(path) || path.startsWith(comicFolder(c))) return '';
+    // A page in another comic's folder belongs to that comic (a cover borrowed from it, say), so it stays
+    const dir = path.slice(0, path.lastIndexOf('/') + 1);
+    return comicsCache.some(o => o !== c && comicFolder(o) === dir) ? '' : path;
 }
-function comicMoveWork() { return comicsCache.filter(c => (c.pages || []).concat(c.cover || []).some(looseComicPath)); }
+function comicMoveWork() { return comicsCache.filter(c => (c.pages || []).concat(c.cover || []).some(u => comicPathToMove(c, u))); }
 
 function renderComicMove() {
     const box = byId('cf-box'); if (!box) return;
     const n = comicMoveWork().length, left = readJSON(KEYS.comicLeftovers, []) || [];
     box.hidden = !n && !left.length && !ComicMove.running;
+    const first = comicMoveWork()[0];
     byId('cf-info').textContent = n
-        ? plural(n, 'comic') + (n === 1 ? ' keeps its' : ' keep their') + ' pages in the shared img/comics/ folder. This copies ' + (n === 1 ? 'its pages' : 'each comic\'s pages') + ' into ' + (n === 1 ? 'its' : 'their') + ' own folder, like img/comics/' + comicSlug((comicMoveWork()[0] || {}).title || 'space cats') + '/, and switches the comic over. New comics get their own folder already.'
+        ? plural(n, 'comic') + (n === 1 ? ' has' : ' have') + ' pages outside ' + (n === 1 ? 'its' : 'their') + ' own folder. This copies ' + (n === 1 ? 'them' : 'each comic\'s pages') + ' into ' + (n === 1 ? 'its' : 'their') + ' own folder, like ' + comicFolder(first) + ', and switches the comic over. New comics get their own folder already.'
         : 'Every comic has its own folder in img/comics/.';
     byId('cf-start').disabled = !n || ComicMove.running;
     byId('cf-left').hidden = !left.length;
@@ -477,20 +487,20 @@ async function runComicMove() {
     if (isLocalMode()) { showToast('Connect your site to Neocities first, so the pages can be copied.', 'error'); return; }
     const comics = comicMoveWork();
     if (!comics.length) return;
-    // One job per loose file; a file two comics share goes to the first one's folder
-    const jobs = [], seen = new Set();
+    // One job per file per comic: two comics that share an old file each get their own copy
+    const jobs = [];
     comics.forEach(c => {
-        const folder = comicFolder(c);
-        (c.pages || []).concat(c.cover || []).forEach(ref => { if (looseComicPath(ref) && !seen.has(ref)) { seen.add(ref); jobs.push({ c, ref, folder }); } });
+        const folder = comicFolder(c), seen = new Set();
+        (c.pages || []).concat(c.cover || []).forEach(ref => { if (comicPathToMove(c, ref) && !seen.has(ref)) { seen.add(ref); jobs.push({ c, ref, folder }); } });
     });
     if (!await askConfirm('Each comic\'s pages are copied into its own folder in img/comics/, then the comic switches to the copies. The old files stay on Neocities until you delete them, so nothing is lost if something goes wrong. Keep this tab open until it finishes.', { title: 'Move ' + plural(comics.length, 'comic') + ' into folders?', yes: 'Move comics' })) return;
     ComicMove.running = true; ComicMove.stop = false;
     const bar = byId('cf-bar'), txt = byId('cf-text'), count = byId('cf-count');
     byId('cf-progress').hidden = false; byId('cf-stop').hidden = false; byId('cf-start').disabled = true;
-    const map = {}, oldFiles = [];
+    const swaps = new Map(), oldFiles = [];
     let moved = 0, failed = 0, missing = 0, why = '';
     for (let i = 0; i < jobs.length && !ComicMove.stop; i++) {
-        const { c, ref, folder } = jobs[i], from = looseComicPath(ref), name = from.split('/').pop(), to = folder + name;
+        const { c, ref, folder } = jobs[i], from = comicPathToMove(c, ref), name = from.split('/').pop(), to = folder + name;
         txt.textContent = 'Moving ' + (c.title || 'Untitled') + ': ' + name;
         count.textContent = (i + 1) + ' of ' + jobs.length;
         bar.style.width = (i / jobs.length * 100) + '%';
@@ -507,11 +517,12 @@ async function runComicMove() {
                 if (tr && tr.ok) {
                     const tb = await tr.blob(), tp = previewPath(to);
                     const r = await uploadToBridge('media_only', { mediaFile: new File([tb], tp.split('/').pop(), { type: tb.type || 'image/webp' }), mediaPath: tp, quiet: true });
-                    if (r.success) { freshPreviews.set(to, tp); thumbDone = true; if (/^img\/comics\/p\/[^/]+$/.test(thumbFrom)) oldFiles.push(thumbFrom); }
+                    if (r.success) { freshPreviews.set(to, tp); thumbDone = true; if (thumbFrom.startsWith('img/comics/')) oldFiles.push(thumbFrom); }
                 }
             }
             if (!thumbDone && PREVIEWABLE.test(to)) await addPreview(blob, to);
-            map[ref] = to; oldFiles.push(from); moved++;
+            if (!swaps.has(c)) swaps.set(c, {});
+            swaps.get(c)[ref] = to; oldFiles.push(from); moved++;
         } catch (e) {
             failed++; why = String(e || '');
             if (!moved && failed >= 3) { showToast('Stopped: the first few pages didn\'t copy. ' + why + ' Nothing changed.', 'error'); break; }
@@ -520,15 +531,25 @@ async function runComicMove() {
     bar.style.width = '100%';
     if (moved) {
         txt.textContent = 'Saving your comics';
-        const postsBefore = JSON.stringify(postsCache), configBefore = JSON.stringify(currentConfig);
-        swapImageRefs(map);
+        // Each comic switches only its own pages and cover; posts and settings keep whatever they use
+        swaps.forEach((m, c) => {
+            const sw = u => (typeof u === 'string' && m[u]) || u;
+            c.pages = (c.pages || []).map(sw);
+            if (c.cover) c.cover = sw(c.cover);
+            if (c.previews) c.previews = Object.fromEntries(Object.entries(c.previews).map(([k, v]) => [sw(k), v]));
+        });
+        previewIndex = null;
         renderComics();
         const r = await saveComics();
-        if (JSON.stringify(postsCache) !== postsBefore) { renderHome(); await savePosts(); }
-        if (JSON.stringify(currentConfig) !== configBefore) { applyVisualConfig(); await saveSystem(); }
         if (r && r.success) {
+            // Only files nothing on the site uses any more go on the list (another comic's cover can share a page)
+            const used = new Set(), use = u => { const q = typeof u === 'string' ? uploadPathOf(u) : ''; if (q) used.add(q); };
+            comicsCache.forEach(cm => { (cm.pages || []).forEach(use); use(cm.cover); Object.values(cm.previews || {}).forEach(use); });
+            postsCache.forEach(po => { mediaList(po).forEach(use); Object.values(po.previews || {}).forEach(use); });
+            configImageRefs().forEach(use); Object.values(currentConfig.previews || {}).forEach(use);
+            const text = postsCache.map(po => po.content || '').join('\n');
             const left = readJSON(KEYS.comicLeftovers, []) || [];
-            writeJSON(KEYS.comicLeftovers, left.concat(oldFiles.filter(f => !left.includes(f))));
+            writeJSON(KEYS.comicLeftovers, left.concat(oldFiles.filter(f => !left.includes(f) && !used.has(f) && !text.includes(f))));
             showToast('Moved ' + plural(moved, 'page') + ' into ' + (comics.length === 1 ? 'its comic\'s folder' : 'their comics\' folders'));
         } else showToast('The pages were copied, but your comics list didn\'t save. Press Sync comics to try again. Nothing was lost.', 'error');
     }
