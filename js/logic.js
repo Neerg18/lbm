@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.23 · logic.js                                         ║
+ ║  NEERG 7.0.24 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  The admin tools live in admin.js, loaded when Admin opens.      ║
@@ -20,7 +20,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.23';
+const NEERG_VERSION = '7.0.24';
 // Where the code files live: the js folder beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // admin.js, about.js and comm.js load from this same folder; about.css and comm.css from the css folder beside it.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
@@ -46,6 +46,7 @@ const KEYS = {
     bio: 'neerg_about_bio',
     recoveryDismissed: 'neerg_recovery_dismissed',
     comicProgress: 'neerg_comic_progress',
+    readerModes: 'neerg_reader_modes',
     shrinkLeftovers: 'neerg_shrink_leftovers',
     shrinkSkipped: 'neerg_shrink_skipped',
     previewSkipped: 'neerg_preview_skipped',
@@ -59,7 +60,7 @@ const AGE_OK_DAYS = 30;
 const FEED_STEP = 12;
 const BOARD_STEP = 48;
 const PRESET_TAGS = ['SFW', 'NSFW', 'Sketch', 'Commissions', 'Animation', 'Fanart', 'OC', 'WIP'];
-const VIEWS = ['home', 'gallery', 'comics', 'commissions', 'about', 'admin'];
+const VIEWS = ['home', 'gallery', 'characters', 'comics', 'commissions', 'about', 'admin'];
 
 const DEFAULT_DARK = {
     bg: '#000F08', text: '#F0F0F0', sidebar: '#0A1A10', accent: '#FB3640', leaflet: '#0A1A10',
@@ -209,6 +210,7 @@ const ui = {
     viewer: { list: [], i: 0 },
     comic: { id: null, pushed: false },
     reader: { id: null, page: 0 },
+    character: null,
     featured: { i: 0, timer: null, list: [] },
     lastCommentAt: 0
 };
@@ -279,6 +281,8 @@ function mediaList(post) {
     return (Array.isArray(post.media) ? post.media : [post.media]).filter(Boolean);
 }
 function firstImage(post) { return mediaList(post).find(u => getMediaType(u) === 'image') || ''; }
+// Sketch to finished: a post can carry the sketch of its first picture (post.sketch), shown with a slider in the post
+function hasSketch(post) { const m = mediaList(post)[0]; return !!(post && post.sketch && m && getMediaType(m) === 'image'); }
 function postTags(post) {
     if (!post || !post.tags) return [];
     return (Array.isArray(post.tags) ? post.tags : String(post.tags).split(',')).map(t => String(t).trim()).filter(Boolean);
@@ -822,7 +826,7 @@ function siteName() { return currentConfig.siteName || 'NEERG'; }
 // Once Admin has written feed.xml (and the feed is on), the footer links to it
 function feedShown() { return !!currentConfig.feedLive && !currentConfig.feedOff; }
 // The browser tab says where you are: a piece's or comic's name, the page ("Gallery · NEERG"), or the site's title at home
-const PAGE_NAMES = { gallery: 'Gallery', comics: 'Comics', commissions: 'Commissions', about: 'About', admin: 'Admin' };
+const PAGE_NAMES = { gallery: 'Gallery', characters: 'Characters', comics: 'Comics', commissions: 'Commissions', about: 'About', admin: 'Admin' };
 function updateTitle() {
     const name = siteName(), at = s => { document.title = s + ' · ' + name; };
     const post = ui.post.id != null && postsCache.find(p => p.id === ui.post.id);
@@ -830,6 +834,7 @@ function updateTitle() {
     const cid = ui.reader.id != null ? ui.reader.id : ui.comic.id, comic = cid != null && comicsCache.find(c => String(c.id) === String(cid));
     if (comic) return at(comic.title || 'Comic');
     if (ui.view === 'gallery' && ui.gallery.board && byId('board-title').textContent) return at(byId('board-title').textContent);
+    if (ui.view === 'characters' && ui.character != null) { const ch = siteCharacters().find(x => String(x.id) === String(ui.character)); if (ch) return at(ch.name); }
     document.title = PAGE_NAMES[ui.view] ? PAGE_NAMES[ui.view] + ' · ' + name : currentConfig.metaTitle || name;
 }
 
@@ -837,6 +842,7 @@ function applyVisualConfig() {
     const cfg = currentConfig;
     const name = siteName();
     updateTitle();
+    syncCharactersNav();
     const md_ = $('meta[name="description"]'); if (md_ && cfg.metaDescription) md_.setAttribute('content', cfg.metaDescription);
 
     ['brand-name', 'hero-name', 'footer-name'].forEach(id => { const n = byId(id); if (n) n.textContent = name; });
@@ -1221,11 +1227,12 @@ function viewHash(view) { return view === 'home' || !view ? '#/' : '#/' + view; 
 function parseHash() {
     let raw = location.hash.replace(/^#\/?/, '');
     try { raw = decodeURIComponent(raw); } catch (e) {}
-    const r = { view: 'home', post: null, comic: null, page: null };
+    const r = { view: 'home', post: null, comic: null, page: null, character: null };
     if (/^\d+$/.test(raw)) { r.view = null; r.post = Number(raw); return r; }
     const parts = raw.split('/').filter(Boolean);
     if (!parts.length) return r;
     if (parts[0] === 'post' && parts[1]) { r.view = null; r.post = Number(parts[1]); return r; }
+    if (parts[0] === 'characters') { r.view = 'characters'; if (parts[1]) r.character = Number(parts[1]); return r; }
     if (parts[0] === 'comics') {
         r.view = 'comics';
         if (parts[1]) r.comic = Number(parts[1]);
@@ -1254,7 +1261,11 @@ function route() {
     }
     if (ui.post.id != null) closePost(true);
     if (Modals.isOpen(byId('viewer'))) closeViewer();
+    // A different character on the Characters page is a new page, without switching views
+    const charChange = r.view === 'characters' && ui.view === 'characters' && ui.character !== r.character;
+    if (r.view === 'characters') ui.character = r.character;
     showView(r.view);
+    if (charChange) { renderCharacters(); window.scrollTo(0, 0); }
     if (r.view === 'comics' && r.comic) {
         openComicGallery(r.comic, { fromRoute: true });
         if (r.page != null) openReader(r.comic, r.page, { fromRoute: true });
@@ -1355,6 +1366,7 @@ function showView(view) {
     if (leaving === 'admin' && Studio.dirty) applyTheme();
     if (view === 'home') { renderComicBar(); fitHome(); scheduleFeatured(); } else stopFeatured();
     if (view === 'gallery') renderGallery();
+    if (view === 'characters') renderCharacters();
     if (view === 'comics') renderComics();
     if (view === 'commissions') { replayTapes(); startComm(); } else if (leaving === 'commissions') stopComm();
     if (view === 'about') startAbout(); else if (leaving === 'about') stopAbout();
@@ -1632,6 +1644,7 @@ function tileHTML(post, no, low) {
 
     let badges = '';
     if (post.pinned) badges += '<span class="badge pin"><i class="fa-solid fa-thumbtack" aria-hidden="true"></i>Pinned</span>';
+    if (hasSketch(post)) badges += '<span class="badge"><i class="fa-solid fa-feather" aria-hidden="true"></i>Sketch</span>';
     if (type === 'video') badges += '<span class="badge right"><i class="fa-solid fa-play" aria-hidden="true"></i>Video</span>';
     else if (media.length > 1) badges += '<span class="badge right"><i class="fa-regular fa-images" aria-hidden="true"></i>' + media.length + '</span>';
 
@@ -1835,6 +1848,7 @@ const ALL_BOARD = '__all';
 function polaHTML(items, listName, from = 0, to = items.length) {
     if (!items.length) return '<div class="empty"><h3>No images here yet</h3></div>';
     const alts = new Map(postsCache.filter(p => p.alt).map(p => [p.id, p.alt]));
+    const sketched = new Set(postsCache.filter(hasSketch).map(p => p.id + ' ' + mediaList(p)[0]));
     return items.slice(from, to).map((m, j) => {
         const i = from + j;
         const veil = currentConfig.blurNsfw && m.nsfw && !ui.revealed.has(m.postId);
@@ -1842,11 +1856,11 @@ function polaHTML(items, listName, from = 0, to = items.length) {
         if (m.type === 'video') inner = '<video src="' + esc(m.url) + '" muted loop playsinline preload="metadata" data-hoverplay></video><span class="badge"><i class="fa-solid fa-play" aria-hidden="true"></i></span>';
         else if (m.type === 'audio') inner = '<span class="tile-audio" style="position:relative;aspect-ratio:1"><i class="fa-solid fa-music" aria-hidden="true"></i></span>';
         else { const sz = sizeOf(m.url); inner = '<img src="' + esc(thumbOf(m.url)) + '" alt="" loading="lazy" decoding="async" class="is-loading"' + (sz ? ' style="aspect-ratio:' + sz[0] + ' / ' + sz[1] + '"' : '') + '>'; }
-        const n = items.length - i;
-        return '<button class="zg-pola' + (veil ? ' is-veiled' : '') + '" style="--r:' + ZINE_TILTS[i % ZINE_TILTS.length] + 'deg;--tape:' + ZINE_TAPES[i % ZINE_TAPES.length] + '" data-action="open-viewer" data-list="' + listName + '" data-index="' + i + '" aria-label="View piece ' + n + ' full size' + (alts.has(m.postId) ? ': ' + esc(alts.get(m.postId)) : '') + '">'
+        const n = items.length - i, cap = m.part ? 'Part ' + String(m.part).padStart(2, '0') : 'No. ' + n;
+        return '<button class="zg-pola' + (veil ? ' is-veiled' : '') + '" style="--r:' + ZINE_TILTS[i % ZINE_TILTS.length] + 'deg;--tape:' + ZINE_TAPES[i % ZINE_TAPES.length] + '" data-action="open-viewer" data-list="' + listName + '" data-index="' + i + '" aria-label="View ' + (m.part ? 'part ' + m.part + ' of ' + m.of : 'piece ' + n) + ' full size' + (alts.has(m.postId) ? ': ' + esc(alts.get(m.postId)) : '') + '">'
             + '<span class="zg-tape" aria-hidden="true"></span>'
-            + '<span class="zg-pola-img">' + inner + (veil ? '<span class="veil"><i class="fa-regular fa-eye-slash" aria-hidden="true"></i>Sensitive</span>' : '') + '</span>'
-            + '<span class="zg-pola-cap">No. ' + n + '</span></button>';
+            + '<span class="zg-pola-img">' + inner + (sketched.has(m.postId + ' ' + m.url) ? '<span class="badge zg-sketch"><i class="fa-solid fa-feather" aria-hidden="true"></i>Sketch</span>' : '') + (veil ? '<span class="veil"><i class="fa-regular fa-eye-slash" aria-hidden="true"></i>Sensitive</span>' : '') + '</span>'
+            + '<span class="zg-pola-cap">' + cap + '</span></button>';
     }).join('');
 }
 
@@ -1937,23 +1951,166 @@ function renderGallery() {
     const boards = galleryBoards(tagBoards);
     renderGalleryId(tagBoards);
     const boardsEl = byId('gallery-boards'), boardEl = byId('gallery-board');
-    const open = g.board ? boards.find(x => x.key === g.board) : null;
+    const open = g.board ? (seriesBoard(g.board) || boards.find(x => x.key === g.board)) : null;
     if (!open) g.board = null;
+    const seriesEl = byId('gallery-series'), series = siteSeries().filter(s => seriesPosts(s).length);
     boardsEl.hidden = !!open;
     boardEl.hidden = !open;
+    seriesEl.hidden = !!open || !series.length;
     if (open) {
-        setZineSlot(byId('board-head'), boards.indexOf(open));
+        setZineSlot(byId('board-head'), open.series ? siteSeries().indexOf(open.series) + 2 : boards.indexOf(open));
         byId('board-title').textContent = open.name;
-        byId('board-count').textContent = plural(open.items.length, 'piece');
+        byId('board-count').textContent = open.series ? plural(open.items.length, 'part') + ', in order' : plural(open.items.length, 'piece');
+        const desc = byId('board-desc'); desc.textContent = open.series ? open.series.desc || '' : ''; desc.hidden = !desc.textContent;
         galleryLists.board = open.items;
         renderBoardGrid(open.items, 0);
         fitTitles(byId('board-head'));
         return;
     }
+    seriesEl.innerHTML = series.map((s, i) => seriesCardHTML(s, i)).join('');
+    fitTitles(seriesEl);
     const previews = boardPreviews(boards);
     boardsEl.innerHTML = boards.length ? boards.map((b, i) => zineCardHTML(b, i, previews.get(b.key))).join('')
         : '<div class="empty"><h3>No boards yet</h3><p>Boards are made from post tags. Tag your posts and they\'ll group here.</p></div>';
     fitTitles(boardsEl);
+}
+
+/* ═════════════════════════════════════════════
+   CHARACTERS
+   One card per character (Admin › Characters). A character's art is every post carrying their tag, so their
+   page keeps itself up to date. Their page shows the reference picture, bio, colors, who they're often drawn
+   with, and their pieces as polaroids.
+   ═════════════════════════════════════════════ */
+
+function siteCharacters() { return (currentConfig.characters || []).filter(c => c && c.name && c.id != null); }
+function tagKey(t) { return String(t || '').trim().replace(/^#+/, '').toLowerCase(); }
+function characterPosts(c) {
+    const k = tagKey(c.tag); if (!k) return [];
+    return shownPosts().filter(p => mediaList(p).length && postTags(p).some(t => tagKey(t) === k)).sort((a, b) => b.id - a.id);
+}
+function characterItems(c) {
+    const items = [];
+    characterPosts(c).forEach(p => mediaList(p).forEach(url => items.push({ url, type: getMediaType(url), postId: p.id, nsfw: isNsfw(p) })));
+    return items;
+}
+function characterColors(c) { return (c.colors || []).filter(h => /^#[0-9a-f]{6}$/i.test(h)); }
+// Who shares the most pieces with this character
+function oftenWith(c, list) {
+    const mine = new Set(characterPosts(c).map(p => p.id));
+    return list.filter(o => o !== c).map(o => ({ o, n: characterPosts(o).filter(p => mine.has(p.id)).length }))
+        .filter(x => x.n).sort((a, b) => b.n - a.n).slice(0, 4).map(x => x.o);
+}
+// The Characters links only show once there's a character to show
+function syncCharactersNav() {
+    const on = siteCharacters().length > 0;
+    $$('[data-view-link="characters"], [data-nav="characters"]').forEach(a => { const li = a.closest('li'); (li || a).hidden = !on; });
+}
+
+function characterCardHTML(c, i, wide) {
+    const posts = characterPosts(c), count = characterItems(c).length, img = safeUrl(c.img), blur = currentConfig.blurNsfw;
+    const strip = posts.filter(p => firstImage(p)).slice(0, 3);
+    const stickers = strip.map(p => '<span class="zg-sticker' + (blur && isNsfw(p) ? ' is-veiled' : '') + '"><img src="' + esc(thumbOf(firstImage(p))) + '" alt="" loading="lazy" decoding="async"></span>').join('');
+    const colors = characterColors(c);
+    return '<a class="zg-card zg-paper zc-card zch-card' + (wide ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" href="#/characters/' + esc(c.id) + '">'
+        + '<span class="zc-cover">' + (img ? '<img src="' + esc(thumbOf(img)) + '" alt="" loading="lazy" decoding="async">' : '<span class="zc-cover-empty" aria-hidden="true">' + esc(c.name.charAt(0).toUpperCase()) + '</span>') + '</span>'
+        + '<span class="zg-card-text">'
+        + '<span class="zg-card-title">' + esc(c.name) + '</span>'
+        + (c.role ? '<span class="zch-role">' + esc(c.role) + '</span>' : '')
+        + '<span class="zg-card-meta"><span><strong>' + plural(count, 'piece') + '</strong>' + (c.tag ? '#' + esc(tagKey(c.tag)) : 'No tag yet') + '</span></span>'
+        + (colors.length ? '<span class="zch-swatches" aria-hidden="true">' + colors.map(h => '<i style="background:' + h + '"></i>').join('') + '</span>' : '')
+        + '<span class="zg-open">Meet them <span aria-hidden="true">→</span></span>'
+        + '</span>'
+        + (stickers ? '<span class="zg-stickers n' + strip.length + '" aria-hidden="true">' + stickers + '</span>' : '')
+        + '</a>';
+}
+
+function renderCharacters() {
+    const list = siteCharacters();
+    const sel = ui.character != null ? list.find(c => String(c.id) === String(ui.character)) : null;
+    if (ui.character != null && !sel) { ui.character = null; if (ui.view === 'characters') history.replaceState(null, '', '#/characters'); }
+    byId('ch-top').hidden = !!sel; byId('ch-grid').hidden = !!sel; byId('ch-detail').hidden = !sel;
+    if (sel) { renderCharacterPage(sel, list); return; }
+    const intro = (currentConfig.charactersIntro || '').trim();
+    byId('ch-desc').textContent = intro || 'Everyone who shows up in my art. Pick one to see their reference, their story and every piece they\'re in.';
+    byId('ch-count').textContent = list.length;
+    byId('ch-pieces').textContent = new Set([].concat(...list.map(c => characterPosts(c).map(p => p.id)))).size;
+    const top = list.map(c => ({ c, n: characterPosts(c).length })).sort((a, b) => b.n - a.n)[0];
+    byId('ch-most').textContent = top && top.n ? top.c.name : '-';
+    const grid = byId('ch-grid');
+    grid.innerHTML = list.length ? list.map((c, i) => characterCardHTML(c, i, i === 0 && list.length % 2 === 1)).join('')
+        : '<div class="empty"><h3>No characters yet</h3><p>They\'ll show up here once they\'re added.</p></div>';
+    fitTitles(grid);
+    updateTitle();
+}
+
+function renderCharacterPage(c, list) {
+    const i = list.indexOf(c), head = byId('ch-head'), prof = byId('ch-profile');
+    setZineSlot(head, i); setZineSlot(prof, i);
+    byId('ch-name').textContent = c.name;
+    const role = byId('ch-role'); role.textContent = c.role || ''; role.hidden = !c.role;
+    const img = safeUrl(c.img), items = characterItems(c), colors = characterColors(c), friends = oftenWith(c, list);
+    galleryLists.char = items;
+    galleryLists.charref = img ? [{ url: img, type: 'image' }] : [];
+    const facts = [['First drawn', c.first], ['Appears in', c.appears]].filter(f => String(f[1] || '').trim());
+    const tag = tagKey(c.tag);
+    prof.innerHTML = (img ? '<button class="zch-ref" data-action="open-viewer" data-list="charref" data-index="0" aria-label="See ' + esc(c.name) + '\'s reference picture full size"><img src="' + esc(img) + '" alt="' + esc(c.name) + ', reference picture"><span class="zch-ref-tag">Reference</span></button>' : '')
+        + '<div class="zch-about">'
+        + (c.bio ? '<div class="prose zch-bio">' + md(c.bio) + '</div>' : '')
+        + (facts.length || tag ? '<dl class="zch-facts">' + facts.map(f => '<div><dt>' + f[0] + '</dt><dd>' + esc(f[1]) + '</dd></div>').join('')
+            + (tag ? '<div><dt>Their tag</dt><dd><button class="zch-taglink" data-action="filter-tag" data-tag="' + esc(tag) + '">#' + esc(tag) + '</button></dd></div>' : '') + '</dl>' : '')
+        + (colors.length ? '<div class="zch-colors"><span class="zch-label">Colors</span>' + colors.map(h => '<span class="zch-color"><i style="background:' + h + '"></i>' + h.toUpperCase() + '</span>').join('') + '</div>' : '')
+        + (friends.length ? '<div class="zch-friends"><span class="zch-label">Often with</span>' + friends.map(f => '<a class="zch-friend" href="#/characters/' + esc(f.id) + '">' + (safeUrl(f.img) ? '<img src="' + esc(thumbOf(safeUrl(f.img))) + '" alt="">' : '') + esc(f.name) + '</a>').join('') + '</div>' : '')
+        + '</div>';
+    byId('ch-art-title').textContent = items.length ? 'Art with ' + c.name : '';
+    byId('ch-art').innerHTML = items.length ? '<div class="zg-polas">' + polaHTML(items, 'char') + '</div>'
+        : '<div class="empty"><h3>No art yet</h3>' + (tag ? '<p>Posts tagged #' + esc(tag) + ' will show up here.</p>' : '') + '</div>';
+    fitTitles(head);
+    updateTitle();
+}
+
+/* ═════════════════════════════════════════════
+   SERIES
+   Named sets of posts in your order (Admin › Series). Each one is a card in the Gallery, ahead of the tag
+   boards; opening it lists the pieces as Part 01, 02..., the viewer says "Part 2 of 4", and a post in a
+   series links to the parts before and after it.
+   ═════════════════════════════════════════════ */
+
+function siteSeries() { return (currentConfig.series || []).filter(s => s && s.name && s.id != null); }
+function seriesPosts(s) {
+    const shown = new Map(shownPosts().map(p => [p.id, p]));
+    return (s.posts || []).map(id => shown.get(Number(id))).filter(p => p && mediaList(p).length);
+}
+function seriesItems(s) {
+    const posts = seriesPosts(s), n = posts.length;
+    return posts.map((p, i) => { const url = mediaList(p)[0]; return { url, type: getMediaType(url), postId: p.id, nsfw: isNsfw(p), part: i + 1, of: n, series: s.name }; });
+}
+function seriesOfPost(id) { return siteSeries().map(s => ({ s, posts: seriesPosts(s) })).filter(x => x.posts.some(p => p.id === id)); }
+function seriesBoard(key) {
+    const m = /^series:(.+)$/.exec(key || ''); if (!m) return null;
+    const s = siteSeries().find(x => String(x.id) === m[1]); if (!s) return null;
+    return { key, name: s.name, items: seriesItems(s), series: s };
+}
+function seriesCardHTML(s, i) {
+    const items = seriesItems(s), blur = currentConfig.blurNsfw, pics = items.filter(m => m.type === 'image').slice(0, 3);
+    const stickers = pics.map(m => '<span class="zg-sticker' + (blur && m.nsfw ? ' is-veiled' : '') + '"><img src="' + esc(thumbOf(m.url)) + '" alt="" loading="lazy" decoding="async"></span>').join('');
+    return '<button class="zg-card zg-paper zs-card" style="' + zineSlot(i + 2) + '" data-action="open-board" data-key="series:' + esc(s.id) + '">'
+        + '<span class="zg-card-text">'
+        + '<span class="zs-kicker">Series</span>'
+        + '<span class="zg-card-title">' + esc(s.name) + '</span>'
+        + '<span class="zg-card-meta"><span><strong>' + plural(items.length, 'part') + '</strong>Read in order</span></span>'
+        + (s.desc ? '<span class="zs-desc">' + esc(excerpt(s.desc, 140)) + '</span>' : '')
+        + '<span class="zg-open">Open series <span aria-hidden="true">→</span></span>'
+        + '</span>'
+        + (stickers ? '<span class="zg-stickers n' + pics.length + '" aria-hidden="true">' + stickers + '</span>' : '')
+        + '</button>';
+}
+function postSeriesHTML(post) {
+    return seriesOfPost(post.id).map(({ s, posts }) => {
+        const i = posts.findIndex(p => p.id === post.id), prev = posts[i - 1], next = posts[i + 1];
+        return '<div class="post-series"><span class="ps-label">Part ' + (i + 1) + ' of ' + posts.length + ' in <button class="ps-name" data-action="open-series" data-id="' + esc(s.id) + '">' + esc(s.name) + '</button></span>'
+            + '<span class="ps-nav">' + (prev ? '<button class="btn small" data-action="open-post" data-id="' + prev.id + '"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Part ' + i + '</button>' : '')
+            + (next ? '<button class="btn small" data-action="open-post" data-id="' + next.id + '">Part ' + (i + 2) + ' <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>' : '') + '</span></div>';
+    }).join('');
 }
 
 /* ═════════════════════════════════════════════
@@ -2081,14 +2238,79 @@ function preloadNeighbors() {
     });
 }
 
+/* The sketch and the finished piece stacked; a line splits them. Drag anywhere on the picture (or use the
+   arrow keys on the slider) to move it, or switch to the two side by side. The box is sized from the picture's
+   own shape so the line lines up with both. */
+function sketchStart(post) { return post.sketchStart === 'sketch' ? 100 : post.sketchStart === 'finished' ? 0 : 50; }
+function compareHTML(post, url, alt) {
+    const pos = sketchStart(post);
+    return '<div class="cmp" data-mode="slide" style="--pos:' + pos + '%">'
+        + '<img class="cmp-sketch" src="' + esc(safeUrl(post.sketch)) + '" alt="The sketch for this piece" draggable="false">'
+        + '<img class="cmp-final" src="' + esc(url) + '" alt="' + esc(alt) + '" draggable="false">'
+        + '<span class="cmp-tag is-sketch" aria-hidden="true">Sketch</span><span class="cmp-tag is-final" aria-hidden="true">Finished</span>'
+        + '<span class="cmp-line" aria-hidden="true"><span class="cmp-knob"><i class="fa-solid fa-chevron-left"></i><i class="fa-solid fa-chevron-right"></i></span></span>'
+        + '<input class="cmp-range" type="range" min="0" max="100" step="1" value="' + pos + '" aria-label="Sketch or finished: move to compare">'
+        + '</div>'
+        + '<div class="cmp-bar" role="group" aria-label="Compare the sketch and the finished piece">'
+        + '<button type="button" data-action="cmp-set" data-pos="100">Sketch</button><button type="button" data-action="cmp-set" data-pos="50">Half</button><button type="button" data-action="cmp-set" data-pos="0">Finished</button>'
+        + '<button type="button" data-action="cmp-side" aria-pressed="false">Side by side</button>'
+        + '<button type="button" data-action="zoom-post-image" aria-label="View full size"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>'
+        + '</div>';
+}
+function cmpSet(c, pos) {
+    if (!c) return;
+    pos = clamp(Math.round(pos), 0, 100);
+    c.style.setProperty('--pos', pos + '%');
+    const r = $('.cmp-range', c); if (r) r.value = pos;
+}
+function fitCompare(root) {
+    const c = root && $('.cmp', root); if (!c) return;
+    const fin = $('.cmp-final', c);
+    const go = () => {
+        const sz = sizeOf(fin.getAttribute('src'));
+        const ar = fin.naturalWidth && fin.naturalHeight ? fin.naturalWidth / fin.naturalHeight : sz ? sz[0] / sz[1] : 2 / 3;
+        const box = c.parentElement, cs = getComputedStyle(box);
+        const bw = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const bh = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        const side = c.dataset.mode === 'side', gap = side ? 10 : 0, k = side ? 2 : 1;
+        const w = Math.max(80, Math.min(bw, bh * ar * k + gap));
+        c.style.width = Math.round(w) + 'px';
+        c.style.height = Math.round((w - gap) / (ar * k)) + 'px';
+    };
+    go();
+    if (!(fin.complete && fin.naturalWidth)) fin.addEventListener('load', go, { once: true });
+}
+function wireCompare() {
+    document.addEventListener('pointerdown', e => {
+        const c = e.target.closest && e.target.closest('.cmp');
+        if (!c || c.dataset.mode === 'side' || e.button > 0 || e.target.classList.contains('cmp-range')) return;
+        const at = ev => { const q = c.getBoundingClientRect(); cmpSet(c, (ev.clientX - q.left) / q.width * 100); };
+        // A finger only moves the line once it slides sideways, so the page still scrolls up and down
+        const x0 = e.clientX, y0 = e.clientY, touch = e.pointerType !== 'mouse';
+        let on = !touch;
+        if (on) at(e);
+        const move = ev => {
+            if (!on) { if (Math.abs(ev.clientX - x0) > 6 && Math.abs(ev.clientX - x0) > Math.abs(ev.clientY - y0)) on = true; else return; }
+            at(ev);
+        };
+        const stop = () => { c.removeEventListener('pointermove', move); c.removeEventListener('pointerup', stop); c.removeEventListener('pointercancel', stop); };
+        try { c.setPointerCapture(e.pointerId); } catch (x) {}
+        c.addEventListener('pointermove', move); c.addEventListener('pointerup', stop); c.addEventListener('pointercancel', stop);
+    });
+    document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('cmp-range')) cmpSet(e.target.closest('.cmp'), Number(e.target.value)); });
+}
+
 function renderStage(post) {
     const media = mediaList(post);
     const box = byId('post-media'), pager = byId('post-pager');
     const url = media[ui.post.img] || '';
     const type = getMediaType(url);
     const alt = post.alt || excerpt(post.content, 120) || 'Artwork';
+    const compare = ui.post.img === 0 && hasSketch(post);
+    box.classList.toggle('has-cmp', compare);
     if (type === 'video') box.innerHTML = '<video src="' + esc(url) + '" controls autoplay loop muted playsinline></video>';
     else if (type === 'audio') box.innerHTML = '<audio src="' + esc(url) + '" controls></audio>';
+    else if (compare) { box.innerHTML = compareHTML(post, url, alt); fitCompare(box); }
     else box.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(alt) + '" data-action="zoom-post-image">';
     if (media.length > 1) {
         pager.hidden = false;
@@ -2118,6 +2340,7 @@ function renderPostOverlay() {
         + '</div>'
         + '<div class="info-scroll" id="post-scroll">'
         + (post.content ? '<div class="prose">' + md(post.content) + '</div>' : '')
+        + postSeriesHTML(post)
         + (tags.length ? '<div class="post-tags">' + tags.map(t => '<button class="chip" data-action="filter-tag" data-tag="' + esc(t.toLowerCase()) + '" data-close-post="1">#' + esc(t) + '</button>').join('') + '</div>' : '')
         + '<div class="engage" id="post-engage"></div>'
         + (currentConfig.allowComments ? '<section id="comments" aria-labelledby="comments-title"><h3 class="comments-title" id="comments-title"></h3><div id="comment-list"></div></section>' : '')
@@ -2363,8 +2586,10 @@ function renderViewer() {
     if (m.type === 'video') box.innerHTML = '<video src="' + esc(m.url) + '" controls autoplay loop playsinline></video>';
     else if (m.type === 'audio') box.innerHTML = '<audio src="' + esc(m.url) + '" controls autoplay></audio>';
     else { const vp = m.postId != null && postsCache.find(p => p.id === m.postId); box.innerHTML = '<img src="' + esc(m.url) + '" alt="' + esc((vp && vp.alt) || 'Full size artwork') + '" data-action="viewer-zoom">'; }
-    byId('viewer-count').textContent = ui.viewer.list.length > 1 ? (ui.viewer.i + 1) + ' / ' + ui.viewer.list.length : '';
-    byId('viewer-open-post').hidden = m.postId == null || Modals.isOpen(byId('post-overlay'));
+    byId('viewer-count').textContent = m.part ? 'Part ' + m.part + ' of ' + m.of + ' · ' + m.series : ui.viewer.list.length > 1 ? (ui.viewer.i + 1) + ' / ' + ui.viewer.list.length : '';
+    const op = byId('viewer-open-post'), vpost = m.postId != null && postsCache.find(p => p.id === m.postId);
+    op.hidden = m.postId == null || Modals.isOpen(byId('post-overlay'));
+    op.textContent = vpost && hasSketch(vpost) && mediaList(vpost)[0] === m.url ? 'Compare with the sketch' : 'View post';
     $$('#viewer .stage-nav').forEach(b => { b.hidden = ui.viewer.list.length < 2; });
     const nxt = ui.viewer.list[ui.viewer.i + 1];
     if (nxt && nxt.type === 'image') { const im = new Image(); im.src = nxt.url; }
@@ -2445,29 +2670,170 @@ function openReader(id, page, opts = {}) {
     updateTitle();
 }
 
+/* Reading modes: one page at a time, one long scroll (pages run together like a webtoon), or two pages side
+   by side like a printed comic (the cover alone, then 2-3, 4-5...). A reader's pick is remembered per comic on
+   their device, and a comic can open in a mode of its own (Admin › Comics › Edit). Two pages needs a wide
+   screen, so phones and tall windows show one page at a time instead. */
+const READER_MODES = ['page', 'scroll', 'spread'];
+function readerMode(comic) {
+    const m = (readJSON(KEYS.readerModes, {}) || {})[comic.id] || comic.mode;
+    return READER_MODES.includes(m) ? m : 'page';
+}
+function spreadFits() { return window.innerWidth >= 760 && window.innerWidth > window.innerHeight * 1.05; }
+function spreadOf(p, total) { if (p <= 0) return [0]; const a = p % 2 ? p : p - 1; return a + 1 < total ? [a, a + 1] : [a]; }
+// The pages on screen right now
+function readerShown(comic) {
+    const p = clamp(ui.reader.page, 0, comic.pages.length - 1);
+    return readerMode(comic) === 'spread' && spreadFits() ? spreadOf(p, comic.pages.length) : [p];
+}
+function pageAlt(comic, i) { return (comic.title || 'Comic') + ', page ' + (i + 1); }
+
 function renderReader(fromRoute) {
+    finishFlip();
     const comic = getComic(ui.reader.id); if (!comic) return;
-    const total = comic.pages.length, p = ui.reader.page;
-    const img = byId('rd-img');
-    img.src = comic.pages[p];
-    img.alt = (comic.title || 'Comic') + ', page ' + (p + 1);
-    byId('rd-page').textContent = 'Page ' + (p + 1) + ' of ' + total;
-    const stage = byId('rd-stage'); stage.scrollTop = 0;
-    const btns = [];
-    btns.push('<button class="pg go" data-action="reader-prev"' + (p === 0 ? ' disabled' : '') + '><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Prev</button>');
-    pageWindow(p, total).forEach(n => {
+    const total = comic.pages.length, mode = readerMode(comic), r = byId('reader');
+    const spread = mode === 'spread' && spreadFits();
+    r.classList.toggle('is-scroll', mode === 'scroll');
+    r.classList.toggle('is-spread', spread);
+    $$('[data-action="reader-mode"]', r).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    byId('rd-fit').hidden = mode === 'scroll';
+    if (mode === 'scroll') { renderReaderScroll(comic, fromRoute); return; }
+    byId('rd-scroll').hidden = true;
+    const shown = readerShown(comic), first = shown[0], last = shown[shown.length - 1];
+    const img = byId('rd-img'), pair = byId('rd-spread');
+    img.hidden = spread; pair.hidden = !spread;
+    if (spread) {
+        // Two slots with the spine in the middle, like a book: the cover sits on the right, a last lone page on the left
+        const slots = shown.length === 2 ? shown : shown[0] === 0 ? [null, 0] : [shown[0], null];
+        pair.innerHTML = slots.map((i, k) => i == null
+            ? '<img class="is-blank" src="' + esc(comic.pages[slots[1 - k]]) + '" alt="" aria-hidden="true">'
+            : '<img src="' + esc(comic.pages[i]) + '" alt="' + esc(pageAlt(comic, i)) + '">').join('');
+    }
+    else { img.src = comic.pages[first]; img.alt = pageAlt(comic, first); }
+    byId('rd-page').textContent = shown.length > 1 ? 'Pages ' + (first + 1) + '–' + (last + 1) + ' of ' + total : 'Page ' + (first + 1) + ' of ' + total;
+    byId('rd-stage').scrollTop = 0;
+    renderReaderPager(comic, shown);
+    saveReaderSpot(comic, first, last, fromRoute);
+    [last + 1, last + 2].forEach(i => { if (comic.pages[i]) { const im = new Image(); im.src = comic.pages[i]; } });
+}
+
+function renderReaderPager(comic, shown) {
+    const total = comic.pages.length, first = shown[0], last = shown[shown.length - 1];
+    const btns = ['<button class="pg go" data-action="reader-prev"' + (first === 0 ? ' disabled' : '') + '><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Prev</button>'];
+    pageWindow(first, total).forEach(n => {
         if (n === '…') btns.push('<span class="pg dots">…</span>');
-        else btns.push('<button class="pg" data-action="reader-go" data-page="' + n + '"' + (n === p ? ' aria-current="true"' : '') + ' aria-label="Page ' + (n + 1) + '">' + (n + 1) + '</button>');
+        else btns.push('<button class="pg" data-action="reader-go" data-page="' + n + '"' + (shown.includes(n) ? ' aria-current="true"' : '') + ' aria-label="Page ' + (n + 1) + '">' + (n + 1) + '</button>');
     });
-    btns.push(p === total - 1
+    btns.push(last >= total - 1
         ? '<button class="pg go finish" data-action="close-reader" title="Back to the page gallery">Gallery ▶▶</button>'
         : '<button class="pg go" data-action="reader-next">Next <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>');
     byId('rd-pages').innerHTML = btns.join('');
-    const prog = comicProgress(); prog[comic.id] = p; writeJSON(KEYS.comicProgress, prog);
-    if (!fromRoute) setHash('#/comics/' + comic.id + '/' + (p + 1), true);
-    if (comic.pages[p + 1]) { const im = new Image(); im.src = comic.pages[p + 1]; }
 }
 
+// Remembers the furthest page on screen, and keeps the address on the first one
+function saveReaderSpot(comic, first, last, fromRoute) {
+    const prog = comicProgress(); prog[comic.id] = last; writeJSON(KEYS.comicProgress, prog);
+    if (!fromRoute) setHash('#/comics/' + comic.id + '/' + (first + 1), true);
+}
+
+/* Long scroll: every page full width (up to a size that stays sharp and readable), one under the other.
+   Pages up to the one you start on load right away so the jump lands in the right place; the rest load as
+   you scroll. The page counter follows whichever page fills the middle of the screen. */
+function renderReaderScroll(comic, fromRoute) {
+    const box = byId('rd-scroll');
+    byId('rd-img').hidden = true; byId('rd-spread').hidden = true; box.hidden = false;
+    if (box.dataset.comic !== String(comic.id) || box.dataset.n !== String(comic.pages.length)) {
+        box.dataset.comic = comic.id; box.dataset.n = comic.pages.length;
+        box.innerHTML = comic.pages.map((u, i) => '<img src="' + esc(u) + '" alt="' + esc(pageAlt(comic, i)) + '" data-i="' + i + '" decoding="async"' + (i > ui.reader.page + 2 ? ' loading="lazy"' : '') + '>').join('')
+            + '<div class="rd-end"><p>The end</p><button class="btn on-dark" data-action="close-reader">Back to the pages</button></div>';
+    }
+    readerScrollTo(ui.reader.page);
+    updateScrollSpot(comic, fromRoute);
+}
+function readerScrollTo(i) {
+    const img = $('#rd-scroll img[data-i="' + i + '"]'); if (!img) return;
+    byId('rd-stage').scrollTop = img.offsetTop;
+    // Pages above may still be loading and push it down: follow it for a moment, until the reader scrolls
+    ui.reader.settle = { i, t: Date.now() };
+}
+function onReaderScroll() {
+    const comic = getComic(ui.reader.id); if (!comic || readerMode(comic) !== 'scroll') return;
+    const stage = byId('rd-stage'), mid = stage.scrollTop + stage.clientHeight * 0.4;
+    let cur = 0;
+    for (const im of $$('#rd-scroll img')) { if (im.offsetTop <= mid) cur = Number(im.dataset.i); else break; }
+    if (cur !== ui.reader.page) { ui.reader.page = cur; updateScrollSpot(comic); }
+}
+function updateScrollSpot(comic, fromRoute) {
+    const p = clamp(ui.reader.page, 0, comic.pages.length - 1);
+    byId('rd-page').textContent = 'Page ' + (p + 1) + ' of ' + comic.pages.length;
+    renderReaderPager(comic, [p]);
+    saveReaderSpot(comic, p, p, fromRoute);
+}
+
+function setReaderMode(mode) {
+    const comic = getComic(ui.reader.id); if (!comic || !READER_MODES.includes(mode)) return;
+    const all = readJSON(KEYS.readerModes, {}) || {}; all[comic.id] = mode; writeJSON(KEYS.readerModes, all);
+    if (mode === 'spread' && !spreadFits()) showToast('Two pages side by side needs a wider screen, so this one shows a page at a time.', 'info');
+    byId('rd-stage').scrollTop = 0;
+    renderReader();
+}
+
+// Next or previous: a page, a pair of pages, or a scroll to the next page down
+function readerStep(dir) {
+    const comic = getComic(ui.reader.id); if (!comic) return;
+    const total = comic.pages.length, shown = readerShown(comic);
+    const n = dir > 0 ? shown[shown.length - 1] + 1 : shown[0] - 1;
+    if (n < 0) return;
+    if (n >= total) { closeReader(); return; }
+    if (readerMode(comic) === 'spread' && spreadFits() && !reduceMotion() && !byId('reader').classList.contains('is-fit-width')) { flipTo(n, dir); return; }
+    readerGo(n);
+}
+
+/* Page turn in two-page mode: the right page lifts and turns over the spine onto the left, showing the next
+   pair (going back, the left page turns the other way). The new pair is drawn underneath straight away; the
+   page that's turning is a two-sided copy on top, and the old page it lands on stays in view until it's covered. */
+function finishFlip() { const f = ui.reader.flip; if (f) { ui.reader.flip = null; f(); } }
+function flipTo(n, dir) {
+    finishFlip();
+    const stage = byId('rd-stage'), pair = byId('rd-spread');
+    const old = $$('img', pair);
+    if (old.length !== 2) { readerGo(n); return; }
+    const box = stage.getBoundingClientRect();
+    const rect = el => { const q = el.getBoundingClientRect(); return 'left:' + (q.left - box.left) + 'px;top:' + (q.top - box.top) + 'px;width:' + q.width + 'px;height:' + q.height + 'px'; };
+    const src = el => el.classList.contains('is-blank') ? '' : el.getAttribute('src');
+    const moving = dir > 0 ? old[1] : old[0], staying = dir > 0 ? old[0] : old[1];
+    const movingAt = rect(moving), stayingAt = rect(staying), movingSrc = src(moving), stayingSrc = src(staying);
+    ui.reader.page = n;
+    renderReader();
+    const now = $$('img', pair), landing = dir > 0 ? now[0] : now[1];
+    if (!landing) return;
+    const landSrc = src(landing);
+    landing.style.visibility = 'hidden';
+    const layer = document.createElement('div');
+    layer.className = 'rd-flip-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    layer.innerHTML = (stayingSrc ? '<img class="rd-flip-still" src="' + esc(stayingSrc) + '" alt="" style="' + stayingAt + '">' : '')
+        + '<div class="rd-leaf ' + (dir > 0 ? 'is-next' : 'is-prev') + '" style="' + movingAt + '">'
+        + '<div class="rd-face is-front">' + (movingSrc ? '<img src="' + esc(movingSrc) + '" alt="">' : '') + '</div>'
+        + '<div class="rd-face is-back">' + (landSrc ? '<img src="' + esc(landSrc) + '" alt="">' : '') + '</div></div>';
+    stage.appendChild(layer);
+    const leaf = $('.rd-leaf', layer);
+    let timer = 0;
+    const done = () => { clearTimeout(timer); layer.parentNode && layer.parentNode.removeChild(layer); landing.style.visibility = ''; };
+    ui.reader.flip = done;
+    void leaf.offsetWidth;
+    leaf.classList.add('is-turning');
+    leaf.addEventListener('transitionend', () => { if (ui.reader.flip === done) finishFlip(); }, { once: true });
+    timer = setTimeout(() => { if (ui.reader.flip === done) finishFlip(); }, 900);
+}
+function readerGo(n) {
+    const comic = getComic(ui.reader.id); if (!comic) return;
+    if (n < 0) return;
+    if (n >= comic.pages.length) { closeReader(); return; }
+    ui.reader.page = n;
+    if (readerMode(comic) === 'scroll') { readerScrollTo(n); updateScrollSpot(comic); return; }
+    renderReader();
+}
 function pageWindow(current, total) {
     const narrow = window.innerWidth < 520;
     if (total <= (narrow ? 5 : 7)) return Array.from({ length: total }, (_, i) => i);
@@ -2479,14 +2845,6 @@ function pageWindow(current, total) {
     if (hi < total - 2) out.push('…');
     out.push(total - 1);
     return out;
-}
-
-function crGo(n) {
-    const comic = getComic(ui.reader.id); if (!comic) return;
-    if (n < 0) return;
-    if (n >= comic.pages.length) { closeReader(); return; }
-    ui.reader.page = n;
-    renderReader();
 }
 
 function closeReader(fromRoute) {
@@ -3038,6 +3396,8 @@ function showAdminTab(tab) {
     $$('[data-tab-panel]').forEach(p => { p.hidden = p.dataset.tabPanel !== tab; });
     if (tab === 'posts') renderManagePosts();
     if (tab === 'comics') renderComicsAdmin();
+    if (tab === 'chars') renderCharsAdmin(true);
+    if (tab === 'series') renderSeriesAdmin(true);
     if (tab === 'comm') populateCommForm();
     if (tab === 'site') populateSiteForm();
     if (tab === 'look') Studio.open();
@@ -3658,7 +4018,7 @@ function wireDropzone(zone, onFiles) {
 /* Swipe left/right on touch screens */
 function onSwipe(el, onLeft, onRight) {
     let x0 = null, y0 = null, t0 = 0;
-    el.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') return; x0 = e.clientX; y0 = e.clientY; t0 = Date.now(); }, { passive: true });
+    el.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' || (e.target.closest && e.target.closest('.cmp'))) return; x0 = e.clientX; y0 = e.clientY; t0 = Date.now(); }, { passive: true });
     el.addEventListener('pointerup', e => {
         if (x0 === null) return;
         const dx = e.clientX - x0, dy = e.clientY - y0;
@@ -3697,6 +4057,14 @@ const actions = {
         openViewer(list, ui.post.img);
     },
     'share-post': el => sharePost(Number(el.dataset.id)),
+    'cmp-set': el => { const box = byId('post-media'), c = $('.cmp', box); if (!c) return; if (c.dataset.mode === 'side') actions['cmp-side']($('[data-action="cmp-side"]', box)); cmpSet(c, Number(el.dataset.pos)); },
+    'cmp-side': el => {
+        const box = byId('post-media'), c = $('.cmp', box); if (!c || !el) return;
+        const side = c.dataset.mode !== 'side';
+        c.dataset.mode = side ? 'side' : 'slide';
+        el.setAttribute('aria-pressed', String(side));
+        fitCompare(box);
+    },
     'react': el => reactTo(Number(el.dataset.id), el.dataset.type, el),
     'reveal': el => { ui.revealed.add(Number(el.dataset.id)); const t = el.closest('.tile'); if (t) { t.classList.remove('is-veiled'); el.remove(); } },
     'reply': el => openReplyForm(Number(el.dataset.cid)),
@@ -3720,6 +4088,15 @@ const actions = {
 
     'open-board': el => { ui.gallery.board = el.dataset.key; ui.gallery.limit = BOARD_STEP; renderGallery(); updateTitle(); window.scrollTo(0, 0); },
     'close-board': () => { ui.gallery.board = null; renderGallery(); updateTitle(); },
+    'open-series': el => {
+        const key = 'series:' + el.dataset.id, fromPost = Modals.isOpen(byId('post-overlay'));
+        if (fromPost) closePost();
+        setTimeout(() => {
+            ui.gallery.board = key; ui.gallery.limit = BOARD_STEP;
+            if (ui.view !== 'gallery') { setHash('#/gallery', false); route(); } else renderGallery();
+            updateTitle(); window.scrollTo(0, 0);
+        }, fromPost ? 320 : 0);
+    },
     'board-more': () => { const from = ui.gallery.limit; ui.gallery.limit += BOARD_STEP; renderBoardGrid(galleryLists.board, from); },
     'open-viewer': el => {
         const list = galleryLists[el.dataset.list] || [];
@@ -3740,9 +4117,10 @@ const actions = {
     'close-comic': () => closeComicGallery(),
     'read-comic': el => openReader(Number(el.dataset.id), Number(el.dataset.page)),
     'close-reader': () => closeReader(),
-    'reader-prev': () => crGo(ui.reader.page - 1),
-    'reader-next': () => crGo(ui.reader.page + 1),
-    'reader-go': el => crGo(Number(el.dataset.page)),
+    'reader-prev': () => readerStep(-1),
+    'reader-next': () => readerStep(1),
+    'reader-go': el => readerGo(Number(el.dataset.page)),
+    'reader-mode': el => setReaderMode(el.dataset.mode),
     'reader-fit': el => { const r = byId('reader'); const on = !r.classList.contains('is-fit-width'); r.classList.toggle('is-fit-width', on); el.setAttribute('aria-pressed', String(on)); el.textContent = on ? 'Fit height' : 'Fit width'; },
 
     'modal-close': el => { const m = el.closest('.overlay'); if (m) Modals.close(m); },
@@ -3752,6 +4130,21 @@ const actions = {
     // Admin
     'logout': () => logoutAdmin(),
     'admin-tab': el => showAdminTab(el.dataset.tab),
+    'chf-save': () => saveCharacter(),
+    'chf-cancel': () => chfFill(null),
+    'chf-edit': el => { const c = siteCharacters().find(x => String(x.id) === el.dataset.id); if (c) { chfFill(c); byId('chf-name').focus(); byId('chf-heading').scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' }); } },
+    'chf-delete': el => deleteCharacter(el.dataset.id),
+    'chf-move': el => moveCharacter(el.dataset.id, el.dataset.dir),
+    'chf-pick-colors': () => pickCharacterColors(),
+    'chf-intro-save': () => saveCharactersIntro(),
+    'srf-save': () => saveSeries(),
+    'srf-cancel': () => { srfFill(null); renderSeriesParts(); renderSeriesPicker(); },
+    'srf-edit': el => { const s = siteSeries().find(x => String(x.id) === el.dataset.id); if (s) { srfFill(s); renderSeriesParts(); renderSeriesPicker(); byId('srf-name').focus(); byId('srf-heading').scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' }); } },
+    'srf-delete': el => deleteSeries(el.dataset.id),
+    'srf-move': el => moveSeries(el.dataset.id, el.dataset.dir),
+    'srf-toggle': el => seriesToggle(el.dataset.id),
+    'srf-part-move': el => seriesPartMove(el.dataset.index, el.dataset.dir),
+    'srf-part-remove': el => seriesPartRemove(el.dataset.index),
     'force-sync': () => forceSyncAll(),
     'open-cleanup': () => openCleanupPanel(),
     'download-backup': () => downloadBackup(),
@@ -3882,8 +4275,10 @@ function bindEvents() {
         const top = Modals.top(); if (!top) return;
         const id = top.el.id;
         if (id === 'reader') {
-            if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); crGo(ui.reader.page + 1); }
-            if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); crGo(ui.reader.page - 1); }
+            // In the long scroll, Space and Page Up/Down scroll the pages as usual
+            const scrolling = byId('reader').classList.contains('is-scroll');
+            if (e.key === 'ArrowRight' || (!scrolling && (e.key === 'PageDown' || e.key === ' '))) { e.preventDefault(); readerStep(1); }
+            if (e.key === 'ArrowLeft' || (!scrolling && e.key === 'PageUp')) { e.preventDefault(); readerStep(-1); }
         } else if (id === 'viewer') {
             if (e.key === 'ArrowRight') { e.preventDefault(); stepViewer(1); }
             if (e.key === 'ArrowLeft') { e.preventDefault(); stepViewer(-1); }
@@ -3898,6 +4293,9 @@ function bindEvents() {
     search.addEventListener('input', debounce(() => { ui.feed.q = search.value; ui.feed.limit = FEED_STEP; renderFeed(); }, 180));
     byId('feed-sort').addEventListener('change', e => { ui.feed.sort = e.target.value; ui.feed.limit = FEED_STEP; renderFeed(); });
     byId('mp-search').addEventListener('input', debounce(() => renderManagePosts(), 150));
+    byId('srf-search').addEventListener('input', debounce(() => { if (typeof renderSeriesPicker === 'function') renderSeriesPicker(); }, 150));
+    // A newly uploaded or pasted reference picture fills in the character's colors
+    byId('chf-img').addEventListener('input', debounce(() => { if (typeof pickCharacterColors === 'function') pickCharacterColors(true); }, 500));
 
     // One clock for every side slider on screen
     setInterval(stepSliders, 250);
@@ -3958,13 +4356,22 @@ function bindEvents() {
     wireDropzone(byId('ap-drop'), files => setComicFiles(files, 'ap'));
 
     onSwipe(byId('post-stage'), () => stepImage(1), () => stepImage(-1));
+    wireCompare();
     onSwipe(byId('viewer'), () => stepViewer(1), () => stepViewer(-1));
-    onSwipe(byId('rd-stage'), () => crGo(ui.reader.page + 1), () => crGo(ui.reader.page - 1));
+    onSwipe(byId('rd-stage'), () => readerStep(1), () => readerStep(-1));
+    const rdStage = byId('rd-stage');
+    let rdTick = false;
+    rdStage.addEventListener('scroll', () => { if (!rdTick) { rdTick = true; requestAnimationFrame(() => { rdTick = false; onReaderScroll(); }); } }, { passive: true });
+    ['wheel', 'touchstart', 'keydown'].forEach(t => rdStage.addEventListener(t, () => { ui.reader.settle = null; }, { passive: true }));
+    byId('rd-scroll').addEventListener('load', () => {
+        const s = ui.reader.settle; if (!s || Date.now() - s.t > 4000) return;
+        const im = $('#rd-scroll img[data-i="' + s.i + '"]'); if (im) rdStage.scrollTop = im.offsetTop;
+    }, true);
 
     window.addEventListener('hashchange', route);
     window.addEventListener('message', handleBridgeMessage);
     window.addEventListener('scroll', () => { if (!scrollTicking) { scrollTicking = true; requestAnimationFrame(updateScrollState); } }, { passive: true });
-    window.addEventListener('resize', debounce(() => { updateNavPill(); updateScrollState(); fitHome(); fitTitles(); }, 100));
+    window.addEventListener('resize', debounce(() => { updateNavPill(); updateScrollState(); fitHome(); fitTitles(); if (ui.reader.id != null && Modals.isOpen(byId('reader'))) renderReader(true); fitCompare(byId('post-media')); }, 100));
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { updateNavPill(); fitTitles(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && pendingOps.length) scheduleInteractionsSync(); });
 }

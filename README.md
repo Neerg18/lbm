@@ -26,6 +26,10 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Both Themes Everywhere:** Home, Gallery and Comics all switch with the light/dark button (the About covers keep their own colors)
 - **Zine Gallery:** The Gallery is a collage of colored paper cards, one per board with "All media" first, and each board opens into taped-on polaroids
 - **Zine Comics:** The Comics page matches the Gallery: a paper card for each comic with its cover stuck on, a reading progress bar, a "Continue" shortcut back to where you left off, and each comic's page list has a header in that comic's color
+- **Comic Reading Modes:** The comic reader has three ways to read: **Page** (one page at a time), **Scroll** (every page stacked, large enough to read, for long-scroll comics) and **Two pages** (side by side like an open book, with a page-turn animation). Visitors pick one with the buttons at the top and the site remembers their choice for each comic. Two pages only shows on wide screens; phones switch to one page. In **Admin → Comics** you choose which mode each comic opens in
+- **Sketch to Finished:** Add the sketch to a post and its first picture gets a slider: drag the line across to wipe from the sketch to the finished piece, or tap **Sketch**, **Half** or **Finished**. Posts with a sketch get a small "Sketch" badge on their tiles and polaroids
+- **Characters Page:** A page for your characters, with a paper card each. Opening one shows their reference picture, a short bio, a few facts, their colors (picked from the reference picture for you), who they're often drawn with, and every piece carrying their tag. The menu link only appears once you've added a character in **Admin → Characters**
+- **Series:** Group pieces into a numbered set, like an Inktober run, in **Admin → Series**. Each series gets its own card at the top of the Gallery, its pieces show as Part 01, 02 and onward, and a post in a series links to the parts before and after it
 - **Wide-Screen Layout:** Home, Gallery and Comics fill big monitors edge to edge, with more work per row
 - **Commissions Poster:** A zine-style Commissions page with a tier card for each kind of commission (example art, price badge, notes) and a terms box, plus a one-click switch that tapes the whole page off with hazard tape when you're closed
 - **One-Click Backup:** Download all four data files from the dashboard
@@ -113,9 +117,11 @@ All visual customization is done through the **Admin** dashboard. No code editin
 
 | Admin tab | What you can change |
 |---|---|
-| **New post** | Write captions (Markdown works), add tags, pin posts, upload images/video/audio |
+| **New post** | Write captions (Markdown works), add tags, pin posts, upload images/video/audio, add a sketch for the sketch-to-finished slider |
 | **Posts** | Find, edit, pin and delete existing posts |
-| **Comics** | Create comics, reorder pages by dragging, add new pages later |
+| **Comics** | Create comics, reorder pages by dragging, add new pages later, pick how each comic opens (one page, scroll or two pages) |
+| **Characters** | Add your characters with a reference picture, bio, colors, facts and the tag that links their art; reorder them and write the page intro |
+| **Series** | Make numbered sets of pieces, put them in order and give them a title and description |
 | **Commissions** | The open/closed switch, status badge, tiers (example art, price, notes, color), terms, request link, hazard-tape words and poster colors |
 | **Site info** | Site name, tagline, profile picture, About page cover design, bio, age check, comments, reactions, featured posts, recommended comic, Art of Today pop-up, theme for first-time visitors, search engine description, link preview picture, tab icon and RSS feed |
 | **Colors & style** | Dark and light palettes, presets, color generator, reaction button colors, profile ring |

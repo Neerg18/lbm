@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.23 · admin.js                                         ║
+ ║  NEERG 7.0.24 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home page, links and cleanup.    ║
  ║  logic.js loads this the first time Admin opens, so visitors     ║
@@ -66,6 +66,9 @@ async function createPost() {
     const content = byId('np-content').value.trim();
     if (byId('np-url').value.trim()) addUrlToQueue();
     if (!content && !currentPostMediaQueue.length) { showToast('Add a caption or some media first.', 'error'); return; }
+    // A sketch pairs with the first picture, so that has to be a picture
+    const sketch = safeUrl((byId('np-sketch') || {}).value || ''), firstItem = currentPostMediaQueue[0];
+    if (sketch && !(firstItem && (firstItem.type === 'file' ? /^image\//.test(firstItem.val.type) : getMediaType(firstItem.val) === 'image'))) { showToast('A sketch goes with the first picture, so put a picture first in this post.', 'error'); return; }
     const at = byId('np-later').checked ? new Date(byId('np-at').value).getTime() : 0;
     if (byId('np-later').checked && !(at > Date.now() + 30000)) { showToast('Pick a time in the future to schedule this post.', 'error'); return; }
     publishing = true;
@@ -83,9 +86,11 @@ async function createPost() {
     if (at) post.at = post.id;
     const alt = byId('np-alt').value.trim(); if (alt) post.alt = alt;
     if (media.length === 1) post.media = media[0]; else if (media.length > 1) post.media = media;
+    if (sketch) { post.sketch = sketch; const start = byId('np-sketch-start').value; if (start !== 'middle') post.sketchStart = start; }
     postsCache.push(post);
 
     byId('np-content').value = ''; byId('np-alt').value = ''; byId('np-custom-tags').value = ''; byId('np-pinned').checked = false;
+    byId('np-sketch').value = ''; byId('np-sketch-start').value = 'middle';
     byId('np-later').checked = false; syncScheduleField();
     $$('#np-tags .chip').forEach(b => b.setAttribute('aria-pressed', 'false'));
     currentPostMediaQueue = []; renderMediaQueue();
@@ -189,6 +194,8 @@ function editPostHTML(p) {
         + '<label class="field"><span>Picture description <em>(for screen readers)</em></span><input type="text" name="alt" value="' + esc(p.alt || '') + '"></label>'
         + '<label class="field"><span>Tags, separated by commas</span><input type="text" name="tags" value="' + esc(postTags(p).join(', ')) + '"></label>'
         + (isScheduled(p) ? '<label class="field"><span>Goes up at <em>(your time; clear it to put the post up now)</em></span><input type="datetime-local" name="at" value="' + localInputValue(p.at) + '"></label>' : '')
+        + '<div class="field"><span>Sketch <em>(optional: adds a slider that compares it with the first picture)</em></span><div class="inline-form"><input type="text" name="sketch" id="ep-sketch-' + p.id + '" value="' + esc(p.sketch || '') + '" placeholder="img/sketch.png" aria-label="Sketch link"><label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="ep-sketch-' + p.id + '" hidden></label></div></div>'
+        + '<label class="field"><span>The slider starts at</span><select name="sketchStart">' + [['middle', 'Half way'], ['sketch', 'The sketch'], ['finished', 'The finished piece']].map(([v, l]) => '<option value="' + v + '"' + ((p.sketchStart || 'middle') === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label>'
         + (media.length ? '<div class="field"><span>Media <em>(tap ✕ to remove from this post)</em></span><div class="m-media">' + media.map((u, i) => '<span class="mm" data-i="' + i + '">' + (getMediaType(u) === 'image' ? '<img src="' + esc(u) + '" alt="">' : '<i class="fa-solid fa-film" aria-hidden="true"></i>') + '<button type="button" data-action="edit-remove-media" aria-label="Remove">✕</button></span>').join('') + '</div></div>' : '')
         + '<div class="form-foot"><button type="button" class="btn btn-ghost small" data-action="edit-post" data-id="' + p.id + '">Cancel</button><button type="submit" class="btn btn-primary small">Save changes</button></div>'
         + '</form>';
@@ -203,6 +210,10 @@ function saveEditedPost(form) {
     post.content = form.elements.content.value.trim();
     const alt = form.elements.alt.value.trim(); if (alt) post.alt = alt; else delete post.alt;
     post.tags = form.elements.tags.value.split(',').map(t => t.trim()).filter(Boolean);
+    const sketch = safeUrl(form.elements.sketch ? form.elements.sketch.value : '');
+    if (sketch) post.sketch = sketch; else delete post.sketch;
+    const start = form.elements.sketchStart ? form.elements.sketchStart.value : 'middle';
+    if (sketch && start !== 'middle') post.sketchStart = start; else delete post.sketchStart;
     const removed = $$('.mm.is-removed', form).map(n => Number(n.dataset.i));
     if (removed.length) {
         const keep = mediaList(post).filter((_, i) => !removed.includes(i));
@@ -279,11 +290,14 @@ async function createComic() {
     const box = byId('nc-progress'), bar = byId('nc-progress-bar'), txt = byId('nc-progress-text');
     box.hidden = false;
     const comic = { id: Date.now(), title, cover: '', pages: [], tags, date: new Date().toLocaleDateString() };
+    const mode = byId('nc-mode') ? byId('nc-mode').value : 'page';
+    if (mode !== 'page') comic.mode = mode;
     const pages = await uploadFiles(comicPagesQueue.map(i => i.file), comicFolder(comic), (i, n) => { bar.style.width = (i / n * 100) + '%'; txt.textContent = i < n ? 'Uploading page ' + (i + 1) + ' of ' + n : 'Saving comic'; });
     if (!pages) { publishing = false; box.hidden = true; return; }
     comic.cover = cover || pages[0]; comic.pages = pages;
     comicsCache.push(comic);
     byId('nc-title').value = ''; byId('nc-cover').value = ''; byId('nc-tags').value = ''; byId('nc-files').value = '';
+    if (byId('nc-mode')) byId('nc-mode').value = 'page';
     comicPagesQueue = []; renderNewComicPages();
     bar.style.width = '100%';
     renderComicsAdmin(); renderComics();
@@ -311,7 +325,8 @@ function renderComicsAdmin() {
             + (editing ? '<form class="m-edit" data-form="edit-comic" data-id="' + c.id + '"><div class="form-grid">'
                 + '<label class="field"><span>Title</span><input type="text" name="title" value="' + esc(c.title || '') + '"></label>'
                 + '<label class="field"><span>Tags</span><input type="text" name="tags" value="' + esc((c.tags || []).join(', ')) + '"></label>'
-                + '<label class="field span-2"><span>Cover image link</span><input type="text" name="cover" value="' + esc(c.cover || '') + '"></label></div>'
+                + '<label class="field"><span>Cover image link</span><input type="text" name="cover" value="' + esc(c.cover || '') + '"></label>'
+                + '<label class="field"><span>Opens in <em>(readers can still switch)</em></span><select name="mode">' + [['page', 'One page at a time'], ['scroll', 'Long scroll'], ['spread', 'Two pages, like a comic book']].map(([v, l]) => '<option value="' + v + '"' + ((c.mode || 'page') === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>'
                 + '<div class="field"><span>Pages <em>(drag to reorder, tap <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> to swap an image, tap ✕ to remove a page)</em></span>'
                 + '<div class="page-sorter ec-sorter" id="ec-pages"></div>'
                 + '<input type="file" accept="image/*" id="ec-swap-file" hidden>'
@@ -368,6 +383,7 @@ async function saveEditedComic(form) {
     const title = form.elements.title.value.trim();
     const tags = form.elements.tags.value.split(',').map(t => t.trim()).filter(Boolean);
     const coverField = safeUrl(form.elements.cover.value);
+    const mode = form.elements.mode ? form.elements.mode.value : 'page';
     const oldPages = (c.pages || []).slice();
     const items = editPagesDraft.id === c.id ? editPagesDraft.items : oldPages.map(url => ({ url, orig: url, file: null, preview: null }));
     if (!items.length) { showToast('A comic needs at least one page.', 'error'); return; }
@@ -395,6 +411,7 @@ async function saveEditedComic(form) {
 
     c.title = title || c.title;
     c.tags = tags;
+    if (mode && mode !== 'page') c.mode = mode; else delete c.mode;
     c.pages = pages;
     c.cover = cover;
     editingComicId = null; resetEditPagesDraft();
@@ -431,6 +448,213 @@ async function submitAddPages() {
     Modals.close(byId('ap-modal'));
     addPagesQueue = []; addPagesComicId = null;
     showToast('Added ' + plural(pages.length, 'page') + ' to ' + (c.title || 'your comic'));
+}
+
+/* ═════════════════════════════════════════════
+   ADMIN: CHARACTERS
+   Saved in your settings (system.js) as characters: [{ id, name, role, bio, tag, img, colors, first, appears }].
+   ═════════════════════════════════════════════ */
+
+let chEditId = null;
+function renderCharsAdmin(fresh) {
+    const list = byId('chf-list'); if (!list) return;
+    if (fresh) { byId('chf-intro').value = currentConfig.charactersIntro || ''; chfFill(null); }
+    byId('chf-tags').innerHTML = knownTags().map(t => '<option value="' + esc(tagKey(t)) + '">').join('');
+    const chars = siteCharacters();
+    list.innerHTML = chars.length ? chars.map((c, i) => {
+        const img = safeUrl(c.img), n = characterPosts(c).length;
+        return '<div class="m-row" data-id="' + esc(c.id) + '">'
+            + '<div class="m-thumb">' + (img ? '<img src="' + esc(thumbOf(img)) + '" alt="" loading="lazy">' : '<i class="fa-regular fa-image" aria-hidden="true"></i>') + '</div>'
+            + '<div class="m-body"><span class="m-title">' + esc(c.name) + '</span><span class="m-meta">' + (c.tag ? '<span>#' + esc(tagKey(c.tag)) + '</span>' : '<span>No tag</span>') + '<span>' + plural(n, 'piece') + '</span></span></div>'
+            + '<div class="m-actions">'
+            + '<button class="q-btn" data-action="chf-move" data-id="' + esc(c.id) + '" data-dir="-1" aria-label="Move ' + esc(c.name) + ' up"' + (i === 0 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>'
+            + '<button class="q-btn" data-action="chf-move" data-id="' + esc(c.id) + '" data-dir="1" aria-label="Move ' + esc(c.name) + ' down"' + (i === chars.length - 1 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>'
+            + '<a class="btn small" href="#/characters/' + esc(c.id) + '">View</a>'
+            + '<button class="btn small" data-action="chf-edit" data-id="' + esc(c.id) + '">Edit</button>'
+            + '<button class="btn small danger" data-action="chf-delete" data-id="' + esc(c.id) + '">Delete</button>'
+            + '</div></div>';
+    }).join('') : '<div class="empty"><h3>No characters yet</h3><p>Add one above. The Characters page shows up in your menu once there is one.</p></div>';
+}
+function chfFill(c) {
+    chEditId = c ? c.id : null;
+    const set = (id, v) => { byId(id).value = v || ''; };
+    set('chf-name', c && c.name); set('chf-tag', c && tagKey(c.tag)); set('chf-role', c && c.role); set('chf-bio', c && c.bio);
+    set('chf-img', c && c.img); set('chf-first', c && c.first); set('chf-appears', c && c.appears);
+    const cols = c ? characterColors(c) : [];
+    ['chf-c1', 'chf-c2', 'chf-c3'].forEach((id, i) => { byId(id).value = cols[i] || '#000000'; });
+    byId('chf-heading').textContent = c ? 'Edit ' + c.name : 'New character';
+    byId('chf-save').textContent = c ? 'Save changes' : 'Add character';
+    byId('chf-cancel').hidden = !c;
+}
+function saveCharacterList(list) {
+    currentConfig.characters = list;
+    applyVisualConfig();
+    renderCharsAdmin();
+    if (ui.view === 'characters') renderCharacters();
+    return saveSystem();
+}
+async function saveCharacter() {
+    const name = byId('chf-name').value.trim();
+    if (!name) { showToast('Give the character a name.', 'error'); byId('chf-name').focus(); return; }
+    const colors = ['chf-c1', 'chf-c2', 'chf-c3'].map(id => byId(id).value.toLowerCase());
+    const c = { id: chEditId || Date.now(), name };
+    const opt = { role: byId('chf-role').value.trim(), bio: byId('chf-bio').value.trim(), tag: tagKey(byId('chf-tag').value),
+        img: safeUrl(byId('chf-img').value), first: byId('chf-first').value.trim(), appears: byId('chf-appears').value.trim() };
+    Object.keys(opt).forEach(k => { if (opt[k]) c[k] = opt[k]; });
+    if (colors.some(h => h !== '#000000')) c.colors = colors;
+    const list = (currentConfig.characters || []).slice(), i = list.findIndex(x => x.id === c.id);
+    if (i >= 0) list[i] = c; else list.push(c);
+    chfFill(null);
+    await saveCharacterList(list);
+}
+async function deleteCharacter(id) {
+    const c = siteCharacters().find(x => String(x.id) === String(id)); if (!c) return;
+    if (!await askConfirm('Their card and page go. Their art stays in your posts.', { hold: true, title: 'Delete ' + c.name + '?' })) return;
+    if (chEditId === c.id) chfFill(null);
+    await saveCharacterList((currentConfig.characters || []).filter(x => x.id !== c.id));
+}
+function moveCharacter(id, dir) {
+    const list = (currentConfig.characters || []).slice(), i = list.findIndex(x => String(x.id) === String(id)), j = i + Number(dir);
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    saveCharacterList(list);
+}
+async function saveCharactersIntro() {
+    const v = byId('chf-intro').value.trim();
+    if (v) currentConfig.charactersIntro = v; else delete currentConfig.charactersIntro;
+    if (ui.view === 'characters') renderCharacters();
+    await saveSystem();
+}
+// Three colors that stand apart, read from the reference picture
+async function paletteFromImage(url) {
+    try {
+        const res = await fetch(new URL(url, location.href));
+        if (!res.ok) return [];
+        const bmp = await createImageBitmap(await res.blob());
+        const cv = document.createElement('canvas'); cv.width = cv.height = 48;
+        const cx = cv.getContext('2d'); cx.drawImage(bmp, 0, 0, 48, 48);
+        if (bmp.close) bmp.close();
+        const d = cx.getImageData(0, 0, 48, 48).data, counts = new Map();
+        for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] < 128) continue;
+            const k = (d[i] >> 4) << 8 | (d[i + 1] >> 4) << 4 | (d[i + 2] >> 4);
+            counts.set(k, (counts.get(k) || 0) + 1);
+        }
+        const out = [];
+        for (const [k] of [...counts].sort((a, b) => b[1] - a[1])) {
+            const c = [(k >> 8 & 15) * 17, (k >> 4 & 15) * 17, (k & 15) * 17];
+            if (out.every(o => Math.abs(o[0] - c[0]) + Math.abs(o[1] - c[1]) + Math.abs(o[2] - c[2]) > 120)) out.push(c);
+            if (out.length === 3) break;
+        }
+        return out.map(c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''));
+    } catch (e) { return []; }
+}
+async function pickCharacterColors(quiet) {
+    const url = safeUrl(byId('chf-img').value);
+    if (!url) { if (!quiet) showToast('Add a reference picture first.', 'error'); return; }
+    const cols = await paletteFromImage(url);
+    if (!cols.length) { if (!quiet) showToast('Couldn\'t read colors from that picture.', 'error'); return; }
+    ['chf-c1', 'chf-c2', 'chf-c3'].forEach((id, i) => { byId(id).value = cols[i] || cols[0]; });
+    if (!quiet) showToast('Colors picked from the picture');
+}
+
+/* ═════════════════════════════════════════════
+   ADMIN: SERIES
+   Saved in your settings (system.js) as series: [{ id, name, desc, posts: [post ids, in order] }].
+   ═════════════════════════════════════════════ */
+
+let srDraft = { id: null, posts: [] };
+function renderSeriesAdmin(fresh) {
+    const list = byId('srf-list'); if (!list) return;
+    if (fresh) srfFill(null);
+    const all = siteSeries();
+    list.innerHTML = all.length ? all.map((s, i) => {
+        const posts = (s.posts || []).map(id => postsCache.find(p => p.id === Number(id))).filter(Boolean), cover = posts[0] && firstImage(posts[0]);
+        return '<div class="m-row" data-id="' + esc(s.id) + '">'
+            + '<div class="m-thumb">' + (cover ? '<img src="' + esc(thumbOf(cover)) + '" alt="" loading="lazy">' : '<i class="fa-regular fa-images" aria-hidden="true"></i>') + '</div>'
+            + '<div class="m-body"><span class="m-title">' + esc(s.name) + '</span><span class="m-meta"><span>' + plural(posts.length, 'part') + '</span>' + (s.desc ? '<span>' + esc(excerpt(s.desc, 60)) + '</span>' : '') + '</span></div>'
+            + '<div class="m-actions">'
+            + '<button class="q-btn" data-action="srf-move" data-id="' + esc(s.id) + '" data-dir="-1" aria-label="Move ' + esc(s.name) + ' up"' + (i === 0 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>'
+            + '<button class="q-btn" data-action="srf-move" data-id="' + esc(s.id) + '" data-dir="1" aria-label="Move ' + esc(s.name) + ' down"' + (i === all.length - 1 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>'
+            + '<button class="btn small" data-action="open-series" data-id="' + esc(s.id) + '">View</button>'
+            + '<button class="btn small" data-action="srf-edit" data-id="' + esc(s.id) + '">Edit</button>'
+            + '<button class="btn small danger" data-action="srf-delete" data-id="' + esc(s.id) + '">Delete</button>'
+            + '</div></div>';
+    }).join('') : '<div class="empty"><h3>No series yet</h3><p>Make one above. Series show up in your Gallery, ahead of the tag boards.</p></div>';
+    renderSeriesParts();
+    renderSeriesPicker();
+}
+function srfFill(s) {
+    srDraft = { id: s ? s.id : null, posts: s ? (s.posts || []).map(Number).filter(id => postsCache.some(p => p.id === id)) : [] };
+    byId('srf-name').value = s ? s.name : ''; byId('srf-desc').value = s ? s.desc || '' : '';
+    byId('srf-heading').textContent = s ? 'Edit ' + s.name : 'New series';
+    byId('srf-save').textContent = s ? 'Save changes' : 'Add series';
+    byId('srf-cancel').hidden = !s;
+}
+function renderSeriesParts() {
+    const box = byId('srf-parts'); if (!box) return;
+    const n = srDraft.posts.length;
+    box.innerHTML = n ? srDraft.posts.map((id, i) => {
+        const p = postsCache.find(x => x.id === id), img = p && firstImage(p), label = p ? (excerpt(p.content, 60) || formatDate(p)) : 'Missing post';
+        return '<li draggable="true" data-index="' + i + '">' + (img ? '<img class="thumb" src="' + esc(thumbOf(img)) + '" alt="">' : '<span class="thumb"><i class="fa-regular fa-image" aria-hidden="true"></i></span>')
+            + '<span class="name"><strong>Part ' + (i + 1) + '</strong> ' + esc(label) + '</span>'
+            + '<button class="q-btn" data-action="srf-part-move" data-index="' + i + '" data-dir="-1" aria-label="Move part ' + (i + 1) + ' up"' + (i === 0 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>'
+            + '<button class="q-btn" data-action="srf-part-move" data-index="' + i + '" data-dir="1" aria-label="Move part ' + (i + 1) + ' down"' + (i === n - 1 ? ' disabled' : '') + '><i class="fa-solid fa-arrow-down" aria-hidden="true"></i></button>'
+            + '<button class="q-btn del" data-action="srf-part-remove" data-index="' + i + '" aria-label="Take part ' + (i + 1) + ' out"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></li>';
+    }).join('') : '<li class="srf-empty">No pieces yet. Add some below.</li>';
+    if (n) enableDragSort(box, 'li', (from, to) => { const [m] = srDraft.posts.splice(from, 1); srDraft.posts.splice(to, 0, m); renderSeriesParts(); renderSeriesPicker(); });
+}
+function renderSeriesPicker() {
+    const box = byId('srf-pick'); if (!box) return;
+    const q = (byId('srf-search').value || '').toLowerCase().trim();
+    const posts = sortPosts(postsCache, 'newest').filter(p => firstImage(p) && (!q || (plainText(p.content) + ' ' + postTags(p).join(' ')).toLowerCase().includes(q)));
+    box.innerHTML = posts.length ? posts.map(p => {
+        const at = srDraft.posts.indexOf(p.id);
+        return '<button type="button" data-action="srf-toggle" data-id="' + p.id + '" aria-pressed="' + (at >= 0) + '" aria-label="' + esc((excerpt(p.content, 60) || 'Post from ' + formatDate(p)) + (at >= 0 ? ', part ' + (at + 1) : '')) + '">'
+            + '<img src="' + esc(thumbOf(firstImage(p))) + '" alt="" loading="lazy">' + (at >= 0 ? '<span class="srf-num">' + (at + 1) + '</span>' : '') + '</button>';
+    }).join('') : '<p class="hint">' + (q ? 'No posts match.' : 'Posts with pictures show up here.') + '</p>';
+}
+function seriesToggle(id) {
+    id = Number(id);
+    const i = srDraft.posts.indexOf(id);
+    if (i >= 0) srDraft.posts.splice(i, 1); else srDraft.posts.push(id);
+    renderSeriesParts(); renderSeriesPicker();
+}
+function seriesPartMove(i, dir) {
+    i = Number(i); const j = i + Number(dir);
+    if (j < 0 || j >= srDraft.posts.length) return;
+    [srDraft.posts[i], srDraft.posts[j]] = [srDraft.posts[j], srDraft.posts[i]];
+    renderSeriesParts(); renderSeriesPicker();
+}
+function seriesPartRemove(i) { srDraft.posts.splice(Number(i), 1); renderSeriesParts(); renderSeriesPicker(); }
+function saveSeriesList(list) {
+    currentConfig.series = list;
+    renderSeriesAdmin();
+    if (ui.view === 'gallery') renderGallery();
+    return saveSystem();
+}
+async function saveSeries() {
+    const name = byId('srf-name').value.trim();
+    if (!name) { showToast('Give the series a title.', 'error'); byId('srf-name').focus(); return; }
+    if (!srDraft.posts.length) { showToast('Add at least one piece.', 'error'); return; }
+    const s = { id: srDraft.id || Date.now(), name, posts: srDraft.posts.slice() };
+    const desc = byId('srf-desc').value.trim(); if (desc) s.desc = desc;
+    const list = (currentConfig.series || []).slice(), i = list.findIndex(x => x.id === s.id);
+    if (i >= 0) list[i] = s; else list.push(s);
+    srfFill(null);
+    await saveSeriesList(list);
+}
+async function deleteSeries(id) {
+    const s = siteSeries().find(x => String(x.id) === String(id)); if (!s) return;
+    if (!await askConfirm('The series goes. Its pieces stay in your posts.', { hold: true, title: 'Delete ' + s.name + '?' })) return;
+    if (srDraft.id === s.id) srfFill(null);
+    await saveSeriesList((currentConfig.series || []).filter(x => x.id !== s.id));
+}
+function moveSeries(id, dir) {
+    const list = (currentConfig.series || []).slice(), i = list.findIndex(x => String(x.id) === String(id)), j = i + Number(dir);
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    saveSeriesList(list);
 }
 
 /* ═════════════════════════════════════════════
@@ -1144,7 +1368,7 @@ function siteImagePath(u) {
 function shrinkableRefs(includeSkipped) {
     const refs = new Set(), skipped = includeSkipped ? [] : readJSON(KEYS.shrinkSkipped, []) || [];
     const add = u => { if (typeof u === 'string' && SHRINKABLE_EXT.test(siteImagePath(u)) && !skipped.includes(u)) refs.add(u); };
-    postsCache.forEach(p => mediaList(p).forEach(add));
+    postsCache.forEach(p => { mediaList(p).forEach(add); add(p.sketch); });
     comicsCache.forEach(c => { (c.pages || []).forEach(add); add(c.cover); });
     const c = currentConfig;
     [c.pfpImage, c.bgImage, c.bannerImage].forEach(add);
@@ -1159,6 +1383,7 @@ function swapImageRefs(map) {
     const olds = Object.keys(map);
     postsCache.forEach(p => {
         if (Array.isArray(p.media)) p.media = p.media.map(sw); else if (p.media) p.media = sw(p.media);
+        if (p.sketch) p.sketch = sw(p.sketch);
         if (p.content) olds.forEach(o => { if (p.content.includes(o)) p.content = p.content.split(o).join(map[o]); });
     });
     comicsCache.forEach(cm => { if (cm.pages) cm.pages = cm.pages.map(sw); if (cm.cover) cm.cover = sw(cm.cover); });
