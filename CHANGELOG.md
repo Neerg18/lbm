@@ -8,6 +8,14 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.24 · 2026-11-05
+**Reading modes, sketch slider, Characters and Series** · [#28](https://github.com/Neerg18/lbm/pull/28) · [code](https://github.com/Neerg18/lbm/tree/c88d468)
+- **Comic reading modes:** the comic reader has **Page**, **Scroll** and **Two pages** buttons at the top. Scroll stacks every page, up to 1100 pixels wide so the words stay readable, and remembers where you stopped. Two pages shows pages side by side like an open book (the cover sits on its own on the right) and turns the page with a flip animation; it needs a wide screen, so phones stay on one page, and visitors who ask for less motion get a plain page change. Each visitor's choice is saved per comic. In **Admin → Comics** you can set the mode a comic opens in, for new comics and in each comic's edit form.
+- **Sketch to finished:** New post and the post editor have a **Sketch** field. A post with a sketch shows a slider on its first picture: drag the line, or tap Sketch, Half or Finished. You can choose whether it starts on the sketch, the middle or the finished piece. Tiles and polaroids get a small "Sketch" badge.
+- **Characters page:** a new **Admin → Characters** tab. Each character has a name, a one-line description, a bio (Markdown works), a reference picture, three colors (filled in from the reference picture, change any of them), "First drawn" and "Appears in", and the tag that links their art. The Characters page shows a paper card for each, and each character's page shows their profile, who they're often drawn with and every piece with their tag. The menu link stays hidden until you add a character.
+- **Series:** a new **Admin → Series** tab. Pick pieces by tapping their pictures, put them in order, and add a title and description. Series show as cards at the top of the Gallery, open into polaroids marked Part 01, 02 and so on, and a post in a series says "Part 2 of 4" with links to the parts around it.
+- **Updating by hand:** upload `css/style.css`, `js/logic.js` and `js/admin.js`, then `index.html`. Installing a new `index.html` resets your link preview, and the next time you open Admin it puts it back by itself.
+
 ## 7.0.23 · 2026-11-02
 **Comic folders box removed** · [#26](https://github.com/Neerg18/lbm/pull/26) · [code](https://github.com/Neerg18/lbm/tree/96718f1)
 - **Done with the move:** every comic now lives in its own folder, so the **Comic folders** box and its **Move into folders** button are gone from Admin › Comics. New comics, added pages and swapped pages still go into the comic's own folder automatically.

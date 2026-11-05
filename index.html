@@ -11,7 +11,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    NEERG 7.0.23 · index.html
+    NEERG 7.0.24 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
     Upload index.html and the css, js and fonts folders to your Neocities root.
@@ -41,10 +41,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
     <!-- The ?v= tag makes browsers fetch fresh copies after an update. Set it to the new version (NEERG_VERSION in logic.js) with every update. -->
-    <link rel="stylesheet" href="css/style.css?v=7.0.23">
+    <link rel="stylesheet" href="css/style.css?v=7.0.24">
 
     <script defer src="js/marked.min.js"></script>
-    <script defer src="js/logic.js?v=7.0.23"></script>
+    <script defer src="js/logic.js?v=7.0.24"></script>
 </head>
 <body>
 
@@ -86,6 +86,7 @@
         <span class="mainnav-pill" id="mainnav-pill" aria-hidden="true"></span>
         <a href="#/" data-view-link="home">Home</a>
         <a href="#/gallery" data-view-link="gallery">Gallery</a>
+        <a href="#/characters" data-view-link="characters" hidden>Characters</a>
         <a href="#/comics" data-view-link="comics">Comics</a>
         <a href="#/commissions" data-view-link="commissions">Commissions</a>
         <a href="#/about" data-view-link="about">About</a>
@@ -113,10 +114,11 @@
             <ul>
                 <li style="--i:0"><a href="#/" data-view-link="home"><span class="mm-label">Home</span></a></li>
                 <li style="--i:1"><a href="#/gallery" data-view-link="gallery"><span class="mm-label">Gallery</span></a></li>
-                <li style="--i:2"><a href="#/comics" data-view-link="comics"><span class="mm-label">Comics</span></a></li>
-                <li style="--i:3"><a href="#/commissions" data-view-link="commissions"><span class="mm-label">Commissions</span></a></li>
-                <li style="--i:4"><a href="#/about" data-view-link="about"><span class="mm-label">About</span></a></li>
-                <li style="--i:5"><a href="#/admin" data-view-link="admin"><span class="mm-label">Admin</span></a></li>
+                <li style="--i:2" hidden><a href="#/characters" data-view-link="characters"><span class="mm-label">Characters</span></a></li>
+                <li style="--i:3"><a href="#/comics" data-view-link="comics"><span class="mm-label">Comics</span></a></li>
+                <li style="--i:4"><a href="#/commissions" data-view-link="commissions"><span class="mm-label">Commissions</span></a></li>
+                <li style="--i:5"><a href="#/about" data-view-link="about"><span class="mm-label">About</span></a></li>
+                <li style="--i:6"><a href="#/admin" data-view-link="admin"><span class="mm-label">Admin</span></a></li>
             </ul>
         </nav>
         <div class="mobile-menu-foot">
@@ -251,6 +253,7 @@
                     <div class="zg-hello"><h1 class="zg-rainbow" id="gallery-title">Gal&shy;lery</h1></div>
                 </div>
 
+                <div class="zg-boards" id="gallery-series" aria-label="Series" hidden></div>
                 <div class="zg-boards" id="gallery-boards"></div>
 
                 <div id="gallery-board" hidden>
@@ -258,11 +261,47 @@
                         <button class="zg-back" data-action="close-board"><span aria-hidden="true">←</span> All boards</button>
                         <h2 class="zg-card-title" id="board-title"></h2>
                         <p class="zg-board-count" id="board-count"></p>
+                        <p class="zs-board-desc" id="board-desc" hidden></p>
                     </section>
                     <div id="board-grid"></div>
                     <div class="feed-more">
                         <button class="btn" id="board-more" data-action="board-more" hidden>Show more</button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ CHARACTERS ═══════════ -->
+    <section class="view" data-view="characters" id="view-characters" hidden>
+        <!-- Zine collage, like the Gallery: an intro card and a rainbow title, then one paper card per character -->
+        <div class="zg">
+            <div class="wrap wide zg-inner">
+                <div class="zg-top" id="ch-top">
+                    <section class="zg-id zg-paper" aria-label="About the characters">
+                        <svg class="zg-flower" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 88S12 64 12 36a19 19 0 0 1 38-6 19 19 0 0 1 38 6c0 28-38 52-38 52z" fill="#E88AAE" stroke="#2B2B2B" stroke-width="3" stroke-linejoin="round"/><circle cx="40" cy="42" r="3" fill="#2B2B2B"/><circle cx="60" cy="42" r="3" fill="#2B2B2B"/><path d="M41 52q9 7 18 0" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round"/></svg>
+                        <div class="zg-id-body">
+                            <p class="zg-name">The cast</p>
+                            <p class="zg-desc" id="ch-desc"></p>
+                            <dl class="zg-stats">
+                                <div><dt>Characters</dt><dd id="ch-count">0</dd></div>
+                                <div><dt>Pieces</dt><dd id="ch-pieces">0</dd></div>
+                                <div><dt>Most drawn</dt><dd id="ch-most">-</dd></div>
+                            </dl>
+                        </div>
+                    </section>
+                    <div class="zg-hello"><h1 class="zg-rainbow">Charac&shy;ters</h1></div>
+                </div>
+                <div class="zg-boards" id="ch-grid"></div>
+                <div id="ch-detail" hidden>
+                    <section class="zg-card zg-paper zg-board-head" id="ch-head">
+                        <a class="zg-back" href="#/characters"><span aria-hidden="true">←</span> All characters</a>
+                        <h1 class="zg-card-title" id="ch-name"></h1>
+                        <p class="zg-board-count" id="ch-role"></p>
+                    </section>
+                    <section class="zg-card zg-paper zch-profile" id="ch-profile" aria-label="Profile"></section>
+                    <h2 class="zch-art-title" id="ch-art-title"></h2>
+                    <div id="ch-art"></div>
                 </div>
             </div>
         </div>
@@ -380,6 +419,8 @@
                     <button role="tab" data-action="admin-tab" data-tab="post" aria-selected="true">New post</button>
                     <button role="tab" data-action="admin-tab" data-tab="posts" aria-selected="false">Posts</button>
                     <button role="tab" data-action="admin-tab" data-tab="comics" aria-selected="false">Comics</button>
+                    <button role="tab" data-action="admin-tab" data-tab="chars" aria-selected="false">Characters</button>
+                    <button role="tab" data-action="admin-tab" data-tab="series" aria-selected="false">Series</button>
                     <button role="tab" data-action="admin-tab" data-tab="comm" aria-selected="false">Commissions</button>
                     <button role="tab" data-action="admin-tab" data-tab="site" aria-selected="false">Site info</button>
                     <button role="tab" data-action="admin-tab" data-tab="look" aria-selected="false">Colors &amp; style</button>
@@ -419,6 +460,14 @@
                                 <button class="btn" data-action="np-add-url">Add</button>
                             </div>
                             <ol class="queue" id="np-queue"></ol>
+                            <div class="field">
+                                <span>Sketch <em>(optional: adds a slider so visitors can compare it with the first picture)</em></span>
+                                <div class="inline-form">
+                                    <input type="text" id="np-sketch" placeholder="img/sketch.png or https://..." aria-label="Sketch link">
+                                    <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="np-sketch" hidden></label>
+                                </div>
+                            </div>
+                            <label class="field"><span>The slider starts at</span><select id="np-sketch-start"><option value="middle">Half way</option><option value="sketch">The sketch</option><option value="finished">The finished piece</option></select></label>
                         </div>
                     </div>
                     <div class="form-foot">
@@ -462,7 +511,8 @@
                         <div class="form-grid">
                             <label class="field"><span>Title</span><input type="text" id="nc-title" placeholder="Comic title"></label>
                             <label class="field"><span>Tags</span><input type="text" id="nc-tags" placeholder="fantasy, action"></label>
-                            <label class="field span-2"><span>Cover image link <em>(optional, page 1 is used if empty)</em></span><input type="url" id="nc-cover" placeholder="https://..."></label>
+                            <label class="field"><span>Cover image link <em>(optional, page 1 is used if empty)</em></span><input type="url" id="nc-cover" placeholder="https://..."></label>
+                            <label class="field"><span>Opens in <em>(readers can still switch)</em></span><select id="nc-mode"><option value="page">One page at a time</option><option value="scroll">Long scroll</option><option value="spread">Two pages, like a comic book</option></select></label>
                         </div>
                         <div class="dropzone small" id="nc-drop" data-input="nc-files" tabindex="0" role="button" aria-label="Choose comic pages">
                             <p><strong>Choose pages</strong> or drop them here, in reading order</p>
@@ -485,6 +535,74 @@
                         </div>
                     </div>
                     <div class="manage-list" id="mc-list"></div>
+                </div>
+
+                <!-- Characters -->
+                <div class="dash-panel" data-tab-panel="chars" role="tabpanel" hidden>
+                    <div class="form-card">
+                        <h2 id="chf-heading">New character</h2>
+                        <div class="form-grid">
+                            <label class="field"><span>Name</span><input type="text" id="chf-name" placeholder="Their name"></label>
+                            <label class="field"><span>Tag that links their art <em>(posts with this tag show on their page)</em></span><input type="text" id="chf-tag" list="chf-tags" placeholder="their-name"><datalist id="chf-tags"></datalist></label>
+                            <label class="field span-2"><span>One-line description</span><input type="text" id="chf-role" placeholder="Who they are, in a few words"></label>
+                            <label class="field span-2"><span>Bio <em>(Markdown works: **bold**, *italic*)</em></span><textarea id="chf-bio" rows="4" placeholder="A few sentences about them"></textarea></label>
+                            <div class="field span-2">
+                                <span>Reference picture</span>
+                                <div class="inline-form">
+                                    <input type="text" id="chf-img" placeholder="img/reference.png or https://..." aria-label="Reference picture link">
+                                    <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="chf-img" hidden></label>
+                                </div>
+                            </div>
+                            <div class="field span-2">
+                                <span>Colors <em>(picked from the reference picture; change any of them, or set all three to black to hide them)</em></span>
+                                <div class="chf-colors">
+                                    <input type="color" id="chf-c1" aria-label="First color">
+                                    <input type="color" id="chf-c2" aria-label="Second color">
+                                    <input type="color" id="chf-c3" aria-label="Third color">
+                                    <button class="btn small" data-action="chf-pick-colors"><i class="fa-solid fa-palette" aria-hidden="true"></i> Pick from the picture</button>
+                                </div>
+                            </div>
+                            <label class="field"><span>First drawn <em>(optional)</em></span><input type="text" id="chf-first" placeholder="Spring 2024"></label>
+                            <label class="field"><span>Appears in <em>(optional)</em></span><input type="text" id="chf-appears" placeholder="A comic or series"></label>
+                        </div>
+                        <div class="form-foot">
+                            <button class="btn btn-ghost" data-action="chf-cancel" id="chf-cancel" hidden>Cancel</button>
+                            <button class="btn btn-primary" data-action="chf-save" id="chf-save">Add character</button>
+                        </div>
+                    </div>
+                    <div class="section-head"><h2>Your characters</h2></div>
+                    <div class="manage-list" id="chf-list"></div>
+                    <div class="form-card">
+                        <h2>Page intro</h2>
+                        <label class="field"><span>A line at the top of the Characters page <em>(leave it empty for the standard one)</em></span><input type="text" id="chf-intro" placeholder="Everyone who shows up in my art"></label>
+                        <div class="form-foot"><button class="btn" data-action="chf-intro-save">Save intro</button></div>
+                    </div>
+                </div>
+
+                <!-- Series -->
+                <div class="dash-panel" data-tab-panel="series" role="tabpanel" hidden>
+                    <div class="form-card">
+                        <h2 id="srf-heading">New series</h2>
+                        <div class="form-grid">
+                            <label class="field"><span>Title</span><input type="text" id="srf-name" placeholder="Inktober 2026"></label>
+                            <label class="field"><span>Description <em>(optional)</em></span><input type="text" id="srf-desc" placeholder="What this series is about"></label>
+                        </div>
+                        <div class="field">
+                            <span>Pieces, in order <em>(the first one is the cover; use the arrows or drag to reorder)</em></span>
+                            <ol class="queue" id="srf-parts"></ol>
+                        </div>
+                        <div class="field">
+                            <span>Add pieces <em>(tap a picture to add it, tap again to take it out)</em></span>
+                            <input type="search" id="srf-search" placeholder="Search captions and tags" aria-label="Search your posts">
+                            <div class="srf-pick" id="srf-pick"></div>
+                        </div>
+                        <div class="form-foot">
+                            <button class="btn btn-ghost" data-action="srf-cancel" id="srf-cancel" hidden>Cancel</button>
+                            <button class="btn btn-primary" data-action="srf-save" id="srf-save">Add series</button>
+                        </div>
+                    </div>
+                    <div class="section-head"><h2>Your series</h2></div>
+                    <div class="manage-list" id="srf-list"></div>
                 </div>
 
                 <!-- Commissions -->
@@ -976,12 +1094,13 @@
         <nav class="footer-nav" aria-label="Footer">
             <a href="#/">Home</a>
             <a href="#/gallery">Gallery</a>
+            <a href="#/characters" data-nav="characters" hidden>Characters</a>
             <a href="#/comics">Comics</a>
             <a href="#/commissions">Commissions</a>
             <a href="#/about">About</a>
         </nav>
         <div class="social-icons" id="footer-social"></div>
-        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.23</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.24</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
     </div>
 </footer>
 
@@ -1046,10 +1165,17 @@
         <button class="icon-btn on-dark" data-action="close-reader" aria-label="Back to pages"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
         <span class="reader-title" id="rd-title">Comic</span>
         <span class="reader-page" id="rd-page"></span>
+        <div class="rd-modes" role="group" aria-label="Reading mode">
+            <button class="pg" data-action="reader-mode" data-mode="page" aria-pressed="true" aria-label="One page at a time" title="One page at a time"><i class="fa-regular fa-image" aria-hidden="true"></i><span>Page</span></button>
+            <button class="pg" data-action="reader-mode" data-mode="scroll" aria-pressed="false" aria-label="Long scroll" title="All the pages in one long scroll"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i><span>Scroll</span></button>
+            <button class="pg" data-action="reader-mode" data-mode="spread" aria-pressed="false" aria-label="Two pages" title="Two pages side by side, like a comic book"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span>Two pages</span></button>
+        </div>
         <button class="btn small on-dark" data-action="reader-fit" id="rd-fit" aria-pressed="false">Fit width</button>
     </div>
     <div class="reader-stage" id="rd-stage">
         <img id="rd-img" alt="">
+        <div class="rd-spread" id="rd-spread" hidden></div>
+        <div class="rd-scroll" id="rd-scroll" hidden></div>
         <button class="reader-tap left" data-action="reader-prev" aria-label="Previous page"></button>
         <button class="reader-tap right" data-action="reader-next" aria-label="Next page"></button>
     </div>
