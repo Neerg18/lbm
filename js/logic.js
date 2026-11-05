@@ -2299,6 +2299,11 @@ function wireCompare() {
         c.addEventListener('pointermove', move); c.addEventListener('pointerup', stop); c.addEventListener('pointercancel', stop);
     });
     document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('cmp-range')) cmpSet(e.target.closest('.cmp'), Number(e.target.value)); });
+    // A post's picture is drawn just before its window opens, when the box has no size yet. If the pictures are
+    // already saved in the browser, no "finished loading" comes later to measure again, so the slider refits
+    // whenever its box changes size: when the window opens, and when the browser window is resized
+    const box = byId('post-media');
+    if (box && window.ResizeObserver) new ResizeObserver(() => fitCompare(box)).observe(box);
 }
 
 function renderStage(post) {
@@ -4372,7 +4377,7 @@ function bindEvents() {
     window.addEventListener('hashchange', route);
     window.addEventListener('message', handleBridgeMessage);
     window.addEventListener('scroll', () => { if (!scrollTicking) { scrollTicking = true; requestAnimationFrame(updateScrollState); } }, { passive: true });
-    window.addEventListener('resize', debounce(() => { updateNavPill(); updateScrollState(); fitHome(); fitTitles(); if (ui.reader.id != null && Modals.isOpen(byId('reader'))) renderReader(true); fitCompare(byId('post-media')); }, 100));
+    window.addEventListener('resize', debounce(() => { updateNavPill(); updateScrollState(); fitHome(); fitTitles(); if (ui.reader.id != null && Modals.isOpen(byId('reader'))) renderReader(true); if (!window.ResizeObserver) fitCompare(byId('post-media')); }, 100));
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { updateNavPill(); fitTitles(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && pendingOps.length) scheduleInteractionsSync(); });
 }
