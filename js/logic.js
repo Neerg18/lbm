@@ -1967,7 +1967,7 @@ function renderGallery() {
         fitTitles(byId('board-head'));
         return;
     }
-    seriesEl.innerHTML = series.map((s, i) => seriesCardHTML(s, i)).join('');
+    seriesEl.innerHTML = series.map((s, i) => seriesCardHTML(s, i, i === 0 && series.length % 2 === 1)).join('');
     fitTitles(seriesEl);
     const previews = boardPreviews(boards);
     boardsEl.innerHTML = boards.length ? boards.map((b, i) => zineCardHTML(b, i, previews.get(b.key))).join('')
@@ -2090,10 +2090,11 @@ function seriesBoard(key) {
     const s = siteSeries().find(x => String(x.id) === m[1]); if (!s) return null;
     return { key, name: s.name, items: seriesItems(s), series: s };
 }
-function seriesCardHTML(s, i) {
+// wide: the card that would sit alone in its row is drawn like the "All media" card, pictures beside the title
+function seriesCardHTML(s, i, wide) {
     const items = seriesItems(s), blur = currentConfig.blurNsfw, pics = items.filter(m => m.type === 'image').slice(0, 3);
     const stickers = pics.map(m => '<span class="zg-sticker' + (blur && m.nsfw ? ' is-veiled' : '') + '"><img src="' + esc(thumbOf(m.url)) + '" alt="" loading="lazy" decoding="async"></span>').join('');
-    return '<button class="zg-card zg-paper zs-card" style="' + zineSlot(i + 2) + '" data-action="open-board" data-key="series:' + esc(s.id) + '">'
+    return '<button class="zg-card zg-paper zs-card' + (wide ? ' is-wide' : '') + '" style="' + zineSlot(i + 2) + '" data-action="open-board" data-key="series:' + esc(s.id) + '">'
         + '<span class="zg-card-text">'
         + '<span class="zs-kicker">Series</span>'
         + '<span class="zg-card-title">' + esc(s.name) + '</span>'
