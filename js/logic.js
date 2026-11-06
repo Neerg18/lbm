@@ -936,6 +936,7 @@ function renderCommissions() {
         ? tiers.map((t, i) => tierCardHTML(t, i)).join('')
         : info ? '<div class="cm-note prose">' + md(info) + '</div>'
         : '<div class="cm-empty"><h2>Details coming soon</h2><p>Prices and examples will be posted here.</p></div>';
+    checkPops(byId('cm-tiers'));
     const extra = byId('comm-info');
     extra.hidden = !(tiers.length && info);
     extra.innerHTML = tiers.length && info ? md(info) : '';
@@ -1004,8 +1005,10 @@ function commData() {
     const tiers = (cp.tiers || []).filter(t => t && (t.name || t.price || t.image || t.notes)).map((t, i) => {
         const notes = String(t.notes || '').trim(), img = safeUrl(t.image), price = String(t.price || '').trim();
         const limit = Math.max(0, parseInt(t.limit, 10) || 0), left = Math.max(0, limit - Math.max(0, parseInt(t.taken, 10) || 0));
+        const color = normalizeHex(t.color, TIER_COLORS[i % TIER_COLORS.length]);
         return {
             name: String(t.name || '').trim() || 'Tier ' + (i + 1), price: price || 'Ask', amount: commAmount(price),
+            color, ink: textOn(color),
             notes: notes ? md(notes) : '', short: notes.split('\n')[0].replace(/[*_`#>]|\[|\]\([^)]*\)/g, '').trim().slice(0, 70),
             img: img ? thumbOf(img) : '', full: img,
             spots: limit ? { full: left === 0, text: left ? left + ' of ' + limit + (limit === 1 ? ' spot' : ' spots') + ' left' : 'Full right now' } : null
@@ -1017,7 +1020,10 @@ function commData() {
     if (!sections.length && String(cp.terms || '').trim()) sections.push({ title: 'Terms', rules: lines(cp.terms).map(r => ({ html: md(r.replace(/^[-*]\s+/, '')) })) });
     const will = lines(cp.willDraw), wont = lines(cp.wontDraw);
     if (will.length || wont.length) sections.push({ title: 'What I will and won\'t draw', rules: (will.length ? [{ lead: 'Will draw:', html: esc(will.join(', ')) }] : []).concat(wont.length ? [{ lead: 'Won\'t draw:', html: esc(wont.join(', ')), wont: true }] : []) });
+    // The other designs are printed in reverse: the poster's Ink is their background and its Paper the terms box
+    const ink = normalizeHex(cp.ink, COMM_DEFAULTS.ink), paper = normalizeHex(cp.paper, COMM_DEFAULTS.paper);
     return {
+        colors: { bg: ink, fg: textOn(ink), paper, paperInk: textOn(paper) },
         design: commDesign(), name: siteName(), title: String(cp.title || '').trim() || 'Commissions',
         open: cp.open !== false, status: (cfg.commissionStatus || '').trim() || (cp.open !== false ? 'Open now' : 'Closed for now'),
         closedNote: String(cp.closedNote || '').trim(), contact: String(cp.contact || '').trim(),
@@ -1028,6 +1034,8 @@ function commData() {
         sections, agree: cp.agreeCheck !== false
     };
 }
+// Near-black or white, whichever reads better on a color
+function textOn(hex) { return inkFor(hex) === '#000000' ? '#111111' : '#FFFFFF'; }
 function startComm() {
     if (commDesign() === 'original') return;
     loadComm().then(c => {
@@ -1064,13 +1072,35 @@ function tierCardHTML(t, i) {
     } else {
         art = '<div class="cm-art is-empty" aria-hidden="true"><span>' + esc(name.charAt(0).toUpperCase()) + '</span></div>';
     }
-    return '<article class="cm-tier' + (img && t.pop ? ' is-pop' : '') + '" style="--tc:' + color + ';--chars:' + Math.max(name.length, 4) + '" data-glare>'
+    return '<article class="cm-tier' + (img && t.pop ? ' wants-pop' : '') + '" style="--tc:' + color + ';--chars:' + Math.max(name.length, 4) + '" data-glare>'
         + ARROWS_SVG
         + '<div class="cm-frame"><h2 class="cm-name"><span>' + esc(name) + '</span></h2>' + art + '</div>'
         + '<span class="cm-ticks" aria-hidden="true"></span>'
         + (notes ? '<div class="cm-info"><span class="cm-bang" aria-hidden="true">!</span><div class="cm-notes">' + md(notes) + '</div></div>' : '')
         + (price ? '<p class="cm-price" style="--pc:' + Math.max(price.length, 3) + '">' + burstSVG('cm-burst-' + i) + '<span class="sr-only">Price: </span><span class="cm-price-text">' + esc(price) + '</span></p>' : '')
         + '</article>';
+}
+
+// "Let the art pop out of its frame" is meant for cut-out art. A picture with a solid background would spill
+// over the tier's name and notes, so the art only pops out once its edges turn out to be see-through
+function seeThrough(img) {
+    try {
+        const n = 32, c = document.createElement('canvas');
+        c.width = c.height = n;
+        const x = c.getContext('2d', { willReadFrequently: true });
+        x.drawImage(img, 0, 0, n, n);
+        const px = x.getImageData(0, 0, n, n).data, alpha = (i, j) => px[(j * n + i) * 4 + 3];
+        let clear = 0;
+        for (let k = 0; k < n; k++) clear += [alpha(k, 0), alpha(k, n - 1), alpha(0, k), alpha(n - 1, k)].filter(a => a < 200).length;
+        return clear / (n * 4) > 0.1;
+    } catch (e) { return true; } // a picture from another website can't be checked, so the setting decides
+}
+function checkPops(root) {
+    $$('.cm-tier.wants-pop', root).forEach(card => {
+        const img = $('.cm-art img', card); if (!img) return;
+        const go = () => card.classList.toggle('is-pop', img.naturalWidth > 0 && seeThrough(img));
+        if (img.complete && img.naturalWidth) go(); else img.addEventListener('load', go, { once: true });
+    });
 }
 
 // Colors come from the tier's own color in CSS (.cm-burst rules); the attributes are only a fallback

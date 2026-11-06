@@ -122,7 +122,7 @@ All visual customization is done through the **Admin** dashboard. No code editin
 | **Comics** | Create comics, reorder pages by dragging, add new pages later, pick how each comic opens (one page, scroll or two pages) |
 | **Characters** | Add your characters with a reference picture, bio, colors, facts and the tag that links their art; reorder them and write the page intro |
 | **Series** | Make numbered sets of pieces, put them in order and give them a title and description |
-| **Commissions** | The open/closed switch, status badge, tiers (example art, price, notes, color), terms, request link, hazard-tape words and poster colors |
+| **Commissions** | The page design (original taped poster, Rounded panels, Poster frame or Character strips), the open/closed switch, status badge, tiers (example art, price, notes, color, spots), add-ons, terms, request link, hazard-tape words and poster colors. Tier colors and the poster's Ink and Paper show on every design |
 | **Site info** | Site name, tagline, profile picture, About page cover design, bio, age check, comments, reactions, featured posts, recommended comic, Art of Today pop-up, theme for first-time visitors, search engine description, link preview picture, tab icon and RSS feed |
 | **Colors & style** | Dark and light palettes, presets, color generator, reaction button colors, profile ring |
 | **Home page** | Header images (latest posts or your own picks), the scrolling text band and the side sliders |

@@ -4,7 +4,9 @@
    event   rounded panels: one frame cut into panels, with a white star where they meet
    signal  poster frame: a rounded poster over a yellow strip of tiers
    strips  character strips: slanted full-height posters, one per tier
- (The original taped poster is drawn by logic.js.) logic.js loads this file and comm.css the first time
+ (The original taped poster is drawn by logic.js.) Colors come from Admin › Commissions: each tier's own color
+ (with a readable text color on it), and the poster's Ink as the page background and Paper for the terms box.
+ logic.js loads this file and comm.css the first time
  Commissions opens with one of these designs, then calls NeergComm.show(root, data) each time the page is
  shown and NeergComm.hide() when it isn't.
  The main page shows only the tiers. Picking one opens that tier's page with its add-ons, terms of service
@@ -14,13 +16,13 @@
 'use strict';
 
 const FONTS = 'family=Anton&family=Archivo+Black&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;0,900;1,800;1,900';
-const STRIP_COLORS = ['#F08A24', '#8A5CF0', '#3DBE6C', '#25A9C9', '#E85AA8', '#E2483D'];
-const CARD_COLORS = ['#2E5BD6', '#F3D23C', '#D8453A', '#2F9C8F', '#7E5BE0', '#E69A2E'];
 
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const two = n => String(n).padStart(2, '0');
 const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const money = (cur, n) => cur + (Math.round(n * 100) % 100 ? n.toFixed(2) : String(Math.round(n)));
+// A tier's color and the text color that reads on it
+const tc = t => '--c:' + esc(t.color) + ';--ci:' + esc(t.ink);
 
 function ensureFonts() {
     if (document.getElementById('cx-fonts')) return;
@@ -117,25 +119,25 @@ function eventMain(d) {
     const big = t[0], yel = t[1], wish = t[2];
     const status = '<span class="cxe-chip"><i class="' + (d.open ? 'is-open' : '') + '"></i>' + esc(d.status) + '</span>';
     const slotBig = big
-        ? '<button type="button" class="cxe-card cxe-big cxe-btn" data-cx="open" data-i="0" aria-label="' + esc(big.name + ', ' + big.price + ': see options') + '">' + art(big, 'cxe-fill', true) + '<span class="cxe-shade"></span><span class="cxe-line" aria-hidden="true"></span><span class="cxe-word">' + esc(big.name.toLowerCase()) + '.</span>'
+        ? '<button type="button" class="cxe-card cxe-big cxe-btn" style="' + tc(big) + '" data-cx="open" data-i="0" aria-label="' + esc(big.name + ', ' + big.price + ': see options') + '">' + art(big, 'cxe-fill', true) + '<span class="cxe-shade"></span><span class="cxe-line" aria-hidden="true"></span><span class="cxe-word">' + esc(big.name.toLowerCase()) + '.</span>'
             + '<span class="cxe-bigtext"><small>✤ TIER 01</small><b>' + esc(big.price) + '</b><span>' + esc(big.short) + '</span>' + spotPill(big, 'cxe-pill') + '</span>'
             + '<svg class="cxe-badge" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="48" fill="#fff"/><text font-size="11" letter-spacing="1.2"><textPath href="#cx-ring">SEE OPTIONS ✦ SEE OPTIONS ✦</textPath></text><path d="M40 60 60 40M46 40H60V54" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
         : '<div class="cxe-card cxe-big cxe-empty"><b>Details coming soon</b><span>Prices and examples will be posted here.</span></div>';
     const slotYel = yel
-        ? '<button type="button" class="cxe-card cxe-yel cxe-btn" data-cx="open" data-i="1" aria-label="' + esc(yel.name + ', ' + yel.price + ': see options') + '"><span class="cxe-yeltext"><small>✤ TIER 02</small><b>' + esc(yel.name) + '</b><em>' + esc(yel.price) + '</em><span>' + esc(yel.short) + '</span>' + spotPill(yel, 'cxe-pill') + '</span>'
+        ? '<button type="button" class="cxe-card cxe-yel cxe-btn" style="' + tc(yel) + '" data-cx="open" data-i="1" aria-label="' + esc(yel.name + ', ' + yel.price + ': see options') + '"><span class="cxe-yeltext"><small>✤ TIER 02</small><b>' + esc(yel.name) + '</b><em>' + esc(yel.price) + '</em><span>' + esc(yel.short) + '</span>' + spotPill(yel, 'cxe-pill') + '</span>'
             + '<span class="cxe-round">' + art(yel, 'cxe-roundimg') + sticker('palette', ' class="cxe-wob cxe-pal"') + '</span></button>'
         : '<div class="cxe-card cxe-yel cxe-yelstatus"><b>' + (d.open ? 'open.' : 'closed.') + '</b><span>' + esc(d.open ? 'taking requests now' : 'back soon') + '</span></div>';
     const slotWish = wish
-        ? '<button type="button" class="cxe-card cxe-wish cxe-btn" data-cx="open" data-i="2" aria-label="' + esc(wish.name + ', ' + wish.price + ': see options') + '">' + art(wish, 'cxe-wishimg', true) + '<span class="cxe-wishtext"><span><i>Get your</i> <b>' + esc(wish.name) + '</b></span><em>' + esc(wish.price) + ' <small>· ' + esc(wish.short.toLowerCase()) + '</small></em>' + spotPill(wish, 'cxe-pill') + '</span>'
+        ? '<button type="button" class="cxe-card cxe-wish cxe-btn" style="' + tc(wish) + '" data-cx="open" data-i="2" aria-label="' + esc(wish.name + ', ' + wish.price + ': see options') + '">' + art(wish, 'cxe-wishimg', true) + '<span class="cxe-wishtext"><span><i>Get your</i> <b>' + esc(wish.name) + '</b></span><em>' + esc(wish.price) + ' <small>· ' + esc(wish.short.toLowerCase()) + '</small></em>' + spotPill(wish, 'cxe-pill') + '</span>'
             + '<svg class="cxe-tools cxe-wob" viewBox="0 0 220 110" aria-hidden="true"><use href="#cx-pencil" transform="translate(0 40) rotate(-14)"/><use href="#cx-brush" transform="translate(100 10) rotate(20)"/></svg></button>'
         : '<div class="cxe-card cxe-wish cxe-wishq"><b>Questions?</b><span>' + questions(d) + '</span></div>';
     const more = t.slice(3).map((x, k) => {
         const i = k + 3;
-        return '<button type="button" class="cxe-more cxe-btn" data-cx="open" data-i="' + i + '" style="--c:' + CARD_COLORS[i % CARD_COLORS.length] + '">' + art(x, 'cxe-moreimg') + '<span><small>✤ TIER ' + two(i + 1) + '</small><b>' + esc(x.name) + '</b><em>' + esc(x.price) + '</em>' + spotPill(x, 'cxe-pill') + '</span></button>';
+        return '<button type="button" class="cxe-more cxe-btn" data-cx="open" data-i="' + i + '" style="' + tc(x) + '">' + art(x, 'cxe-moreimg') + '<span><small>✤ TIER ' + two(i + 1) + '</small><b>' + esc(x.name) + '</b><em>' + esc(x.price) + '</em>' + spotPill(x, 'cxe-pill') + '</span></button>';
     }).join('');
     return '<h1 class="cx-sr">' + esc(d.title) + '</h1>'
         + '<div class="cxe-bento">'
-        + '<div class="cxe-card cxe-sky">' + status + '<p class="cxe-pick"><i>Pick a</i> <b>tier</b></p>' + (cheapest != null ? '<span class="cxe-from" aria-hidden="true"><small>From</small><b>' + esc(money(d.currency, cheapest)) + '</b></span>' : '') + '<span class="cxe-keys" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>'
+        + '<div class="cxe-card cxe-sky">' + status + '<p class="cxe-pick"><i>Pick a</i> <b>tier</b></p>' + (cheapest != null ? '<span class="cxe-from" aria-hidden="true"><small>From</small><b>' + esc(money(d.currency, cheapest)) + '</b></span>' : '') + '<span class="cxe-keys" aria-hidden="true">' + [0, 1, 2, 3].map(k => '<i' + (t[k] ? ' style="background:' + esc(t[k].color) + '"' : '') + '></i>').join('') + '</span></div>'
         + '<div class="cxe-card cxe-logo"><p>' + esc(d.name.slice(0, half)) + '<br><span>' + esc(d.name.slice(half)) + '</span></p></div>'
         + slotBig + slotYel + slotWish
         + '<svg class="cxe-star" viewBox="0 0 100 100" aria-hidden="true">' + STAR + '</svg>'
@@ -150,7 +152,7 @@ function eventDetail(d, st) {
         + '<div class="cxe-bento is-detail">'
         + '<div class="cxe-card cxe-sky cxe-addons"><p class="cxe-addtitle"><i>Add-ons</i></p>' + addonsHTML(d, st, 'cxe-ad') + '</div>'
         + '<div class="cxe-card cxe-logo"><p>' + esc(d.name.slice(0, half)) + '<br><span>' + esc(d.name.slice(half)) + '</span></p></div>'
-        + '<div class="cxe-card cxe-big" style="--c:' + CARD_COLORS[st.sel % CARD_COLORS.length] + '">' + art(t, 'cxe-fill', true) + '<span class="cxe-shade top"></span><span class="cxe-line" aria-hidden="true"></span><h1 class="cxe-word" tabindex="-1">' + esc(t.name.toLowerCase()) + '.</h1>' + (t.short ? '<p class="cxe-chipline">' + esc(t.short) + '</p>' : '') + '</div>'
+        + '<div class="cxe-card cxe-big" style="' + tc(t) + '">' + art(t, 'cxe-fill', true) + '<span class="cxe-shade top"></span><span class="cxe-line" aria-hidden="true"></span><h1 class="cxe-word" tabindex="-1">' + esc(t.name.toLowerCase()) + '.</h1>' + (t.short ? '<p class="cxe-chipline">' + esc(t.short) + '</p>' : '') + '</div>'
         + '<div class="cxe-card cxe-yel cxe-price"><small>✤ TIER ' + two(st.sel + 1) + '</small><b>' + esc(t.price) + '</b><span>' + (t.spots ? esc(t.spots.text) : 'one character included') + '</span></div>'
         + '<div class="cxe-card cxe-wish cxe-total"><p class="cxe-gety"><i>Get your</i> <b>total</b></p><div><p class="cxe-sum">' + esc(tot.summary) + '</p>' + (tot.total ? '<p class="cxe-tot">' + esc(tot.total) + '</p>' : '') + ctaHTML(d, st, 'cxe-cta') + '</div></div>'
         + '<svg class="cxe-star" viewBox="0 0 100 100" aria-hidden="true">' + STAR + '</svg>'
@@ -163,7 +165,7 @@ function eventDetail(d, st) {
 
 function signalFrame(d, st, detail) {
     const t = detail ? d.tiers[st.sel] : (d.tiers.find(x => x.img) || d.tiers[0]);
-    return '<section class="cxs-frame" aria-label="' + esc(d.title) + '">'
+    return '<section class="cxs-frame' + (detail ? ' is-tier' : '') + '"' + (detail && t ? ' style="' + tc(t) + '"' : '') + ' aria-label="' + esc(d.title) + '">'
         + '<span class="cxs-bar" aria-hidden="true"></span>'
         + '<svg class="cxs-orbit" viewBox="0 0 200 300" aria-hidden="true"><g fill="none" stroke="#F3D23C" stroke-width="2"><circle cx="100" cy="72" r="70"/><circle cx="100" cy="150" r="70"/><circle cx="100" cy="228" r="70"/></g><path class="cxs-pulse" d="M100 70C104 132 118 146 180 150 118 154 104 168 100 230 96 168 82 154 20 150 82 146 96 132 100 70z" fill="#fff"/></svg>'
         + '<div class="cxs-arch">' + (t ? art(t, 'cxs-archimg', true) : '') + '</div>'
@@ -176,7 +178,7 @@ function signalFrame(d, st, detail) {
         + '</div></section>';
 }
 function signalMain(d) {
-    const tiers = d.tiers.map((t, i) => '<button type="button" class="cxs-tier" data-cx="open" data-i="' + i + '">' + sticker(TOOLS[i % 3], ' class="cxs-icon"') + '<span><b>' + esc(t.name) + '</b><small>' + esc(t.price) + ' · ' + (t.spots ? '<em class="' + (t.spots.full ? 'is-full' : '') + '">' + esc(t.spots.text) + '</em>' : 'see options →') + '</small></span></button>').join('');
+    const tiers = d.tiers.map((t, i) => '<button type="button" class="cxs-tier" style="' + tc(t) + '" data-cx="open" data-i="' + i + '"><span class="cxs-dot">' + sticker(TOOLS[i % 3], ' class="cxs-icon"') + '</span><span><b>' + esc(t.name) + '</b><small>' + esc(t.price) + ' · ' + (t.spots ? '<em class="' + (t.spots.full ? 'is-full' : '') + '">' + esc(t.spots.text) + '</em>' : 'see options →') + '</small></span></button>').join('');
     return signalFrame(d, null, false)
         + '<div class="cxs-strip" style="--n:' + Math.min(Math.max(d.tiers.length, 1), 4) + '">' + (tiers || '<p class="cxs-empty">Details coming soon.</p>')
         + '<svg class="cxs-code" viewBox="0 0 151 38" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0h2v38H0zM4 0h2v38H4zM7 0h1v38H7zM9 0h2v38H9zM12 0h3v38h-3zM17 0h1v38h-1zM19 0h2v38h-2zM24 0h1v38h-1zM27 0h1v38h-1zM31 0h1v38h-1zM35 0h3v38h-3zM41 0h1v38h-1zM47 0h2v38h-2zM54 0h3v38h-3zM59 0h3v38h-3zM67 0h2v38h-2zM70 0h3v38h-3zM78 0h3v38h-3zM83 0h2v38h-2zM93 0h3v38h-3zM99 0h2v38h-2zM106 0h4v38h-4zM115 0h3v38h-3zM121 0h2v38h-2zM129 0h1v38h-1zM136 0h1v38h-1zM143 0h4v38h-4zM148 0h3v38h-3z" fill="#111"/></svg>'
@@ -186,7 +188,7 @@ function signalMain(d) {
 function signalDetail(d, st) {
     const tot = totals(d, st);
     return signalFrame(d, st, true)
-        + '<div class="cxs-strip is-detail"><button type="button" class="cxs-back" data-cx="back" aria-label="Back to all tiers">←</button>'
+        + '<div class="cxs-strip is-detail" style="' + tc(d.tiers[st.sel]) + '"><button type="button" class="cxs-back" data-cx="back" aria-label="Back to all tiers">←</button>'
         + '<div class="cxs-addons"><small>ADD-ONS</small>' + addonsHTML(d, st, 'cxs-ad') + '</div>'
         + '<div class="cxs-total"><small>' + esc(tot.summary) + '</small>' + (tot.total ? '<b>' + esc(tot.total) + '</b>' : '') + '</div>'
         + '<div class="cxs-ctabox">' + ctaHTML(d, st, 'cxs-cta') + '</div></div>'
@@ -197,8 +199,8 @@ function signalDetail(d, st) {
 /* ─── Design: character strips ─── */
 
 function stripsPanel(d, st) {
-    const t = d.tiers[st.sel], tot = totals(d, st), c = STRIP_COLORS[st.sel % STRIP_COLORS.length];
-    return '<section class="cxh-panel" aria-labelledby="cxh-det" style="--c:' + c + '">'
+    const t = d.tiers[st.sel], tot = totals(d, st);
+    return '<section class="cxh-panel" aria-labelledby="cxh-det" style="' + tc(t) + '">'
         + '<button type="button" class="cxh-back" data-cx="back">← All tiers</button>'
         + '<p class="cxh-it cxh-kicker">Tier ' + two(st.sel + 1) + ' of ' + two(d.tiers.length) + '</p>'
         + '<h2 id="cxh-det" class="cxh-name" tabindex="-1"><span>' + esc(t.name) + '</span><span class="cxh-c">' + esc(t.price) + '</span></h2>'
@@ -211,7 +213,7 @@ function stripsPanel(d, st) {
 function stripsHTML(d, st) {
     const strips = d.tiers.map((t, i) => {
         const top = i % 2 === 0;
-        return '<div class="cxh-strip" data-i="' + i + '" style="--c:' + STRIP_COLORS[i % STRIP_COLORS.length] + '">'
+        return '<div class="cxh-strip" data-i="' + i + '" style="' + tc(t) + '">'
             + '<div class="cxh-in" aria-hidden="true">' + art(t, 'cxh-img', true) + '<span class="cxh-shade"></span>'
             + '<div class="cxh-lock' + (top ? ' is-top' : ' is-bottom') + '"><span class="cxh-big cxh-l1">' + esc(t.name) + '</span><span class="cxh-big cxh-l2">' + esc(t.price) + '</span>'
             + '<span class="cxh-it cxh-l3">' + esc(t.short || 'One character') + (t.spots ? ' · ' + esc(t.spots.text) : '') + '</span><span class="cxh-see">See options →</span></div></div>'
@@ -248,6 +250,9 @@ function draw(focus) {
     const detail = cur.view === 'detail' && d.tiers[cur.sel];
     if (!detail) cur.view = 'main';
     root.className = 'cx cx-' + d.design + (detail ? ' is-detail' : '') + (d.open ? '' : ' is-closed');
+    const k = d.colors || {};
+    [['--cx-bg', k.bg], ['--cx-fg', k.fg], ['--cx-paper', k.paper], ['--cx-paper-ink', k.paperInk], ['--cx-accent', d.tiers[0] && d.tiers[0].color]]
+        .forEach(([name, v]) => { if (v) root.style.setProperty(name, v); else root.style.removeProperty(name); });
     if (d.design === 'strips') {
         if (!root.querySelector('.cxh-stage') || cur.drawn !== cur.key) { root.innerHTML = DEFS + '<div class="cx-wrap">' + stripsHTML(d, cur) + '</div>'; cur.drawn = cur.key; }
         updateStrips(root, d, cur);
@@ -299,7 +304,7 @@ function refocus(act, n) {
 
 function show(root, data) {
     ensureFonts();
-    const key = data.design + '|' + JSON.stringify(data.tiers.map(t => [t.name, t.price, t.img, t.short, t.spots && t.spots.text])) + data.title + data.name + data.status + data.open;
+    const key = data.design + '|' + JSON.stringify(data.tiers.map(t => [t.name, t.price, t.img, t.short, t.spots && t.spots.text, t.color])) + data.title + data.name + data.status + data.open;
     if (cur && cur.root === root && cur.data.design === data.design) {
         cur.data = data; cur.key = key;
         if (cur.sel >= data.tiers.length) { cur.sel = 0; cur.view = 'main'; }
@@ -316,6 +321,7 @@ function hide() {
     cur.root.removeEventListener('click', onClick);
     cur.root.innerHTML = '';
     cur.root.className = '';
+    cur.root.removeAttribute('style');
     cur = null;
 }
 
