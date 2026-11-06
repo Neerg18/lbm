@@ -9,7 +9,7 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 ---
 
 ## 7.0.25 · 2026-11-06
-**Your colors on every Commissions design** · PRLINK · CODELINK
+**Your colors on every Commissions design** · [#32](https://github.com/Neerg18/lbm/pull/32) · [code](https://github.com/Neerg18/lbm/tree/815eef7)
 - **Tier colors everywhere:** each tier's color from Admin › Commissions now shows on **Rounded panels**, **Poster frame** and **Character strips**, not just the original taped poster. Rounded panels colors each tier's panel (and the little squares under "Pick a tier"), Poster frame puts each tier's icon on its color and colors a tier's own page, and Character strips colors each strip, its page and its request button. Words on a tier's color turn dark or white, whichever reads better.
 - **Poster colors too:** on those three designs, **Ink** is the page background and **Paper** colors the terms box. The **Status color** colors the open dot. Left as they are, the page stays near-black with a light terms box. The corner tape only shows on the original poster.
 - **Fixed:** on Rounded panels, the second and third tiers' words were white on yellow and red, which was hard to read. They now follow the tier's color.
