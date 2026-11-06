@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.24 · admin.js                                         ║
+ ║  NEERG 7.0.25 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home page, links and cleanup.    ║
  ║  logic.js loads this the first time Admin opens, so visitors     ║
@@ -805,7 +805,7 @@ function tierRowHTML(t, i, n) {
         + '</div></div>'
         + '<div class="tier-pair span-2 tier-spots"><label class="field"><span>Spots <em>(how many you take; empty means no limit)</em></span><input type="number" name="limit" min="0" max="99" inputmode="numeric" value="' + esc(t.limit || '') + '" placeholder="No limit"></label>'
         + '<label class="field"><span>Filled</span><input type="number" name="taken" min="0" max="99" inputmode="numeric" value="' + esc(t.taken || '') + '" placeholder="0"></label></div>'
-        + '<label class="check span-2"><input type="checkbox" name="pop"' + (t.pop ? ' checked' : '') + '> <span>Let the art pop out of its frame <em>(for art with a see-through background)</em></span></label>'
+        + '<label class="check span-2"><input type="checkbox" name="pop"' + (t.pop ? ' checked' : '') + '> <span>Let the art pop out of its frame <em>(for cut-out art with a see-through background; a picture with a solid background stays in its frame)</em></span></label>'
         + '<label class="field span-2"><span>Details <em>(one per line; **bold** works)</em></span><textarea name="notes" rows="4" placeholder="Flat colors, one character.&#10;**Extra characters:** +$20 each.">' + esc(t.notes || '') + '</textarea></label>'
         + '</div>'
         + '<div class="tier-actions">'

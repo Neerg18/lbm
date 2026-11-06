@@ -8,6 +8,14 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.25 · 2026-11-06
+**Your colors on every Commissions design** · PRLINK · CODELINK
+- **Tier colors everywhere:** each tier's color from Admin › Commissions now shows on **Rounded panels**, **Poster frame** and **Character strips**, not just the original taped poster. Rounded panels colors each tier's panel (and the little squares under "Pick a tier"), Poster frame puts each tier's icon on its color and colors a tier's own page, and Character strips colors each strip, its page and its request button. Words on a tier's color turn dark or white, whichever reads better.
+- **Poster colors too:** on those three designs, **Ink** is the page background and **Paper** colors the terms box. The **Status color** colors the open dot. Left as they are, the page stays near-black with a light terms box. The corner tape only shows on the original poster.
+- **Fixed:** on Rounded panels, the second and third tiers' words were white on yellow and red, which was hard to read. They now follow the tier's color.
+- **Fixed: art that pops out of its frame.** The original poster's **Let the art pop out of its frame** box is meant for cut-out art. Ticked for a picture with a solid background, the picture spilled over the tier's name and notes. Now the art only pops out when its edges are see-through, so a picture with a background stays in its frame even with the box ticked.
+- **Updating by hand:** upload `css/comm.css`, `js/comm.js`, `js/logic.js` and `js/admin.js`, then `index.html`. Installing a new `index.html` resets your link preview, and the next time you open Admin it puts it back by itself.
+
 ## 7.0.24 · 2026-11-05
 **Reading modes, sketch slider, Characters and Series** · [#28](https://github.com/Neerg18/lbm/pull/28) · [code](https://github.com/Neerg18/lbm/tree/c88d468)
 - **Comic reading modes:** the comic reader has **Page**, **Scroll** and **Two pages** buttons at the top. Scroll stacks every page, up to 1100 pixels wide so the words stay readable, and remembers where you stopped. Two pages shows pages side by side like an open book (the cover sits on its own on the right) and turns the page with a flip animation; it needs a wide screen, so phones stay on one page, and visitors who ask for less motion get a plain page change. Each visitor's choice is saved per comic. In **Admin → Comics** you can set the mode a comic opens in, for new comics and in each comic's edit form.
