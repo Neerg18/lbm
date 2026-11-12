@@ -50,6 +50,8 @@ Looking for the old version? [NEERG 5.0](https://github.com/Neerg18/lbm/tree/219
 - **Button Tooltips:** Icon-only buttons show their name when you hover over them or tab to them. The first one waits a moment, then the next ones appear right away
 - **Glass Shine:** Commission tier pictures catch a diagonal glass glare as the mouse moves on and off them (and when you tab to them). Nothing else on the site gets it, and devices that ask for less motion skip it
 - **Staggered Phone Menu:** On phones, two color layers in your accent color sweep in, then the menu panel, then each link rises into place with its number. The Menu button rolls to Close and its plus turns into a cross
+- **Retro Loading Screen:** First-time visitors get a small `loading.exe` window in your colors: a big counter, a bar of blocks that light up one at a time, and a line each for your settings, artwork, comics, and likes and comments that turns to OK as it arrives. It hands over to the age check's `verify.exe`
+- **Loads Only What's Needed:** Visitors never download the Admin dashboard, and the Art of Today pop-up, the About covers and the other Commissions designs only load on a visit that shows them
 - **No Flash on Load:** Your saved theme and colors appear instantly for returning visitors
 
 ---
@@ -81,14 +83,17 @@ NEERG 7 stores your content in the same format as 6.0, so your posts, comics, li
 your-neocities-site/
 ├── index.html          ← main page
 ├── css/
-│   ├── style.css       ← all styles
+│   ├── style.css       ← the styles every visitor needs
+│   ├── admin.css       ← the admin tools' styles (loads only when Admin opens)
 │   ├── about.css       ← the About page covers (loads only when About opens)
+│   ├── aotd.css        ← the Art of Today pop-up (loads only on a day it shows)
 │   └── comm.css        ← the new Commissions designs (loads only when one is picked)
 ├── js/
 │   ├── logic.js        ← the site's logic
-│   ├── admin.js        ← the admin tools (loads only when Admin opens)
+│   ├── admin.js        ← the admin tools and the dashboard itself (loads only when Admin opens)
 │   ├── marked.min.js   ← turns Markdown captions into formatted text
 │   ├── about.js        ← the About page covers (loads only when About opens)
+│   ├── aotd.js         ← the Art of Today pop-up (loads only on a day it shows)
 │   ├── comm.js         ← the new Commissions designs (loads only when one is picked)
 │   └── vfx.min.js      ← WebGL picture effects for the About covers
 ├── fonts/              ← the site's icons (a trimmed Font Awesome)
@@ -107,7 +112,7 @@ Only the files above `system.js` live in this repository. The rest are created o
 
 ### Icons
 
-The site carries only the Font Awesome icons it uses (about 9 KB instead of about 300 KB). The list is at the top of `style.css`. To use an icon that isn't on it, add a line such as `.fa-star{--fa:"\f005"}` (the code is on the icon's page at fontawesome.com), then rebuild the files in `fonts/` from the free Font Awesome 6.7.2 download with the icon's code included, for example with fontTools: `pyftsubset fa-solid-900.woff2 --unicodes=U+F005,... --flavor=woff2`.
+The site carries only the Font Awesome icons it uses (about 9 KB instead of about 300 KB). The list is at the top of `style.css` (the icons only Admin uses are at the top of `admin.css`). To use an icon that isn't on it, add a line such as `.fa-star{--fa:"\f005"}` (the code is on the icon's page at fontawesome.com), then rebuild the files in `fonts/` from the free Font Awesome 6.7.2 download with the icon's code included, for example with fontTools: `pyftsubset fa-solid-900.woff2 --unicodes=U+F005,... --flavor=woff2`.
 
 ---
 

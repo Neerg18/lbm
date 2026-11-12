@@ -1,9 +1,10 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.24 · logic.js                                         ║
+ ║  NEERG 7.0.25 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
- ║  The admin tools live in admin.js, loaded when Admin opens.      ║
+ ║  Parts only some visits need load when they're used (see lazy):  ║
+ ║  admin.js, about.js, comm.js, aotd.js and their styles.          ║
  ║  Your content lives in four files on Neocities:                  ║
  ║    system.js        settings, admin hash, secure token           ║
  ║    posts.js         every post                                   ║
@@ -20,7 +21,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.24';
+const NEERG_VERSION = '7.0.25';
 // Where the code files live: the js folder beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // The files that load when they're needed (see lazy below) come from this same folder, their styles from the css folder beside it.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
@@ -3271,7 +3272,8 @@ async function restoreFromBackup() {
    LOADING SCREEN + AGE CHECK
    ═════════════════════════════════════════════ */
 
-const Gate = { active: false, shown: 0, target: 0, raf: 0, done: false };
+const Gate = { active: false, shown: 0, target: 0, raf: 0, done: false, drawn: -1 };
+const GATE_BLOCKS = 20; // the blocks in the loading bar (style.css draws them, 5% each)
 
 function ageAccepted() {
     const ok = parseInt(readText(KEYS.age) || '0', 10);
@@ -3285,14 +3287,26 @@ function gateInit() {
     const tick = () => {
         Gate.shown += (Gate.target - Gate.shown) * 0.12 + (Gate.shown < Gate.target ? 0.3 : 0);
         Gate.shown = Math.min(Gate.shown, Gate.target);
-        byId('gate-bar').style.width = Gate.shown + '%';
-        byId('gate-pct').textContent = Math.floor(Gate.shown) + '%';
-        if (Gate.shown >= 99.9 && Gate.done) { cancelAnimationFrame(Gate.raf); setTimeout(gateLoaded, 250); return; }
+        const pct = Math.floor(Gate.shown + .1);
+        if (pct !== Gate.drawn) {
+            Gate.drawn = pct;
+            const bar = byId('gate-bar');
+            // The count goes up one at a time; the bar lights a whole block at a time
+            bar.style.setProperty('--f', Math.round(pct / 100 * GATE_BLOCKS) / GATE_BLOCKS);
+            bar.setAttribute('aria-valuenow', pct);
+            byId('gate-pct').textContent = String(pct).padStart(3, '0');
+        }
+        if (Gate.shown >= 99.9 && Gate.done) { cancelAnimationFrame(Gate.raf); byId('gate-loader').classList.add('is-done'); setTimeout(gateLoaded, 350); return; }
         Gate.raf = requestAnimationFrame(tick);
     };
     Gate.raf = requestAnimationFrame(tick);
 }
 function gateProgress(pct) { if (Gate.active) Gate.target = Math.max(Gate.target, pct); }
+// A file's line in the loader's list: OK once it has arrived, -- when the site doesn't have it (yet)
+function gateFile(file, ok) {
+    const li = Gate.active && $('.gate-log [data-file="' + file + '"]');
+    if (li) li.dataset.state = ok ? 'ok' : 'none';
+}
 function gateDataReady() {
     if (!Gate.active) return;
     Gate.target = 100; Gate.done = true;
@@ -3602,7 +3616,7 @@ async function init() {
 
     let loaded = 0;
     const files = ['system.js', 'posts.js', 'comics.js', 'interactions.js'];
-    await Promise.all(files.map(f => loadScript(f).then(async ok => { if (!ok) await noteLoadFailure(f); loaded++; gateProgress(10 + loaded * 20); })));
+    await Promise.all(files.map(f => loadScript(f).then(async ok => { gateFile(f, ok); if (!ok) await noteLoadFailure(f); loaded++; gateProgress(10 + loaded * 20); })));
 
     const hasSystem = parseSystemData();
     applyVisualConfig();

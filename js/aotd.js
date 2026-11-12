@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.24 · aotd.js
+ NEERG 7.0.25 · aotd.js
  Art of Today: a pop-up with one piece from the archive, once a day per visitor.
  Ten designs from the mockup. Each one is drawn by a function below that returns its HTML; aotd.css lays it
  out as a wide poster on computers and a stacked card on phones, and gives it its own entrance and exit.

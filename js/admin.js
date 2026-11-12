@@ -1,10 +1,12 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.24 · admin.js                                         ║
+ ║  NEERG 7.0.25 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
- ║  info, commissions, colors, the Home page, links and cleanup.    ║
- ║  logic.js loads this the first time Admin opens, so visitors     ║
- ║  never download it. It shares logic.js's helpers and state.      ║
+ ║  info, commissions, colors, the Home page, links and cleanup,    ║
+ ║  and the dashboard itself (its markup is at the end of this      ║
+ ║  file). logic.js loads this and admin.css the first time Admin   ║
+ ║  opens, so visitors never download them. It shares logic.js's    ║
+ ║  helpers and state.                                              ║
  ╚══════════════════════════════════════════════════════════════════╝
 */
 'use strict';

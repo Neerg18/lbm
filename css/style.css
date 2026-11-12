@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.24 · style.css
+ NEERG 7.0.25 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -332,10 +332,30 @@ input[type="range"] { width: 100%; accent-color: var(--hl); }
 }
 .gate-passed .gate { display: none; }
 .gate.is-leaving { opacity: 0; pointer-events: none; }
-.gate-loader { width: min(820px, 100% - 4rem); }
-.gate-loader-row { display: flex; justify-content: space-between; font-size: .85rem; letter-spacing: .1em; margin-bottom: .45rem; }
-.gate-bar { height: 34px; border: 2px solid var(--text); border-radius: 3px; overflow: hidden; }
-.gate-bar-fill { height: 100%; width: 0; background: var(--text); }
+/* The loader is a retro window too: a count, a bar of 20 blocks that light up one at a time while the next
+   one blinks (logic.js sets --f, from 0 to 1), and a line for each of the site's four files that turns to
+   OK as it arrives. */
+.gate-loader { width: min(540px, 100% - 32px); }
+.gate-load { padding: 1.5rem 1.6rem 1.6rem; }
+.gate-count { display: flex; align-items: baseline; margin: 0 0 .9rem; font-size: clamp(3.2rem, 17vw, 4.8rem); font-weight: 700; line-height: .9; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.gate-count small { margin-left: .12em; font-size: .42em; letter-spacing: 0; color: var(--hl); }
+.gate-bar { --blocks: repeating-linear-gradient(90deg, #000 0 calc(5% - 3px), transparent 0 5%); position: relative; height: 36px; overflow: hidden; border: 2px solid var(--line-strong); border-radius: 3px; background: var(--bg); }
+.gate-bar::before, .gate-bar i { content: ''; position: absolute; inset: 4px 1px 4px 4px; -webkit-mask: var(--blocks); mask: var(--blocks); }
+.gate-bar::before { background: var(--line); }
+.gate-bar i { background: linear-gradient(100deg, transparent 38%, rgba(255, 255, 255, .7) 50%, transparent 62%) 0 0 / 300% 100% no-repeat, var(--hl); clip-path: inset(0 calc(100% - var(--f, 0) * 100%) 0 0); animation: gateShine 1.5s linear infinite; }
+.gate-bar::after { content: ''; position: absolute; top: 4px; bottom: 4px; left: calc(4px + (100% - 5px) * var(--f, 0)); width: calc((100% - 5px) * .05 - 3px); background: var(--hl); animation: gateBlink .8s steps(2, jump-none) infinite; }
+.gate-log { display: grid; gap: .32rem; margin: 1.1rem 0 0; padding: 0; list-style: none; font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); }
+.gate-log li { display: flex; align-items: baseline; gap: .7em; }
+.gate-log i { flex: 1; border-bottom: 2px dotted; opacity: .45; transform: translateY(-.28em); }
+.gate-log b { min-width: 2ch; text-align: right; }
+.gate-log b::before { content: '··'; animation: gateBlink 1s steps(2, jump-none) infinite; }
+.gate-log li[data-state] { color: var(--text); }
+.gate-log li[data-state] b::before { content: 'OK'; color: var(--hl); animation: none; }
+.gate-log li[data-state="none"] b::before { content: '--'; color: var(--text-3); }
+.gate-loader.is-done .gate-count { color: var(--hl); }
+.gate-loader.is-done .gate-bar i { animation: none; }
+@keyframes gateBlink { 50% { opacity: 0; } }
+@keyframes gateShine { from { background-position: 150% 0, 0 0; } to { background-position: -50% 0, 0 0; } }
 
 .gate-window {
     border: 2px solid var(--line-strong);

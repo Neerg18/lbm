@@ -11,7 +11,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    NEERG 7.0.24 · index.html
+    NEERG 7.0.25 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
     Upload index.html and the css, js and fonts folders to your Neocities root.
@@ -41,10 +41,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
     <!-- The ?v= tag makes browsers fetch fresh copies after an update. Set it to the new version (NEERG_VERSION in logic.js) with every update. -->
-    <link rel="stylesheet" href="css/style.css?v=7.0.24">
+    <link rel="stylesheet" href="css/style.css?v=7.0.25">
 
     <script defer src="js/marked.min.js"></script>
-    <script defer src="js/logic.js?v=7.0.24"></script>
+    <script defer src="js/logic.js?v=7.0.25"></script>
 </head>
 <body>
 
@@ -52,12 +52,18 @@
 
 <!-- ═══════════ LOADING + AGE CHECK ═══════════ -->
 <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-question">
-    <div class="gate-loader" id="gate-loader">
-        <div class="gate-loader-row">
-            <span id="gate-label">LOADING...</span>
-            <span id="gate-pct">0%</span>
+    <div class="gate-window gate-loader" id="gate-loader">
+        <div class="gate-titlebar"><span>loading.exe</span><span aria-hidden="true">✕</span></div>
+        <div class="gate-load">
+            <p class="gate-count" aria-hidden="true"><span id="gate-pct">000</span><small>%</small></p>
+            <div class="gate-bar" id="gate-bar" role="progressbar" aria-label="Loading the site" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+            <ul class="gate-log" aria-hidden="true">
+                <li data-file="system.js">Settings<i></i><b></b></li>
+                <li data-file="posts.js">Artwork<i></i><b></b></li>
+                <li data-file="comics.js">Comics<i></i><b></b></li>
+                <li data-file="interactions.js">Likes and comments<i></i><b></b></li>
+            </ul>
         </div>
-        <div class="gate-bar"><div class="gate-bar-fill" id="gate-bar"></div></div>
     </div>
     <div class="gate-window" id="gate-window" hidden>
         <div class="gate-titlebar"><span>verify.exe</span><span aria-hidden="true">✕</span></div>
@@ -420,7 +426,7 @@
             <a href="#/about">About</a>
         </nav>
         <div class="social-icons" id="footer-social"></div>
-        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.24</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.25</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
     </div>
 </footer>
 
