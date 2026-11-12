@@ -9,7 +9,7 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 ---
 
 ## 7.0.25 · 2026-11-12
-**A lighter site for visitors, and a new loading screen** · PRLINK · CODELINK
+**A lighter site for visitors, and a new loading screen** · [#33](https://github.com/Neerg18/lbm/pull/33) · [code](https://github.com/Neerg18/lbm/tree/5763cba)
 - **Visitors download about a third less:** the whole Admin dashboard and the Art of Today pop-up's ten designs used to be sent to every visitor on every visit. Now the dashboard only loads when Admin opens, and the pop-up only on a visit where it's due to show. What a visitor downloads before the site appears went from about 620 KB to about 420 KB (`index.html` 99 → 36 KB, `style.css` 207 → 132 KB, `logic.js` 274 → 213 KB). Nothing looks or works differently: every page, every Admin tab and all ten pop-up designs were compared against 7.0.24 element by element, on a computer and a phone.
 - **New loading screen:** the loading bar is now a small retro window, `loading.exe`, to go with the age check's `verify.exe`: a big counter, a bar of 20 blocks that light up one at a time, and a line each for your settings, artwork, comics, and likes and comments that turns to **OK** as it arrives. It uses your site's colors in both themes. As before, it shows to first-time visitors, and again after 30 days.
 - **Three new files:** `css/admin.css` (the admin tools' styles), and `css/aotd.css` and `js/aotd.js` (the Art of Today pop-up). `admin.js` now also holds the dashboard itself, so most future Admin changes won't need a new `index.html`.
