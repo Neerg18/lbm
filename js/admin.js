@@ -1,13 +1,299 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.24 · admin.js                                         ║
+ ║  NEERG 7.0.25 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
- ║  info, commissions, colors, the Home page, links and cleanup.    ║
- ║  logic.js loads this the first time Admin opens, so visitors     ║
- ║  never download it. It shares logic.js's helpers and state.      ║
+ ║  info, commissions, colors, the Home page, links and cleanup,    ║
+ ║  and the dashboard itself (its markup is at the end of this      ║
+ ║  file). logic.js loads this and admin.css the first time Admin   ║
+ ║  opens, so visitors never download them. It shares logic.js's    ║
+ ║  helpers and state.                                              ║
  ╚══════════════════════════════════════════════════════════════════╝
 */
 'use strict';
+
+/* ═════════════════════════════════════════════
+   HELPERS ONLY THE ADMIN TOOLS USE
+   ═════════════════════════════════════════════ */
+
+const PRESET_TAGS = ['SFW', 'NSFW', 'Sketch', 'Commissions', 'Animation', 'Fanart', 'OC', 'WIP'];
+
+const PALETTE_LABELS = {
+    bg: ['Background', 'Behind everything'],
+    text: ['Text', 'Body copy and headings'],
+    sidebar: ['Panels', 'Cards, menus, info panel'],
+    leaflet: ['Fields', 'Inputs and post backs'],
+    border: ['Lines', 'Borders and dividers'],
+    accent: ['Accent', 'Buttons and links'],
+    navActive: ['Highlight', 'Active tab and focus']
+};
+
+const LIGHT_PRESETS = [
+    { name: 'Paper & Ink', colors: ['#F6F4EF', '#16130F', '#ECE8E1', '#C8102E', '#FFFFFF', '#DCD5CA', '#16130F'] },
+    { name: 'Cream & Fire', colors: ['#F8F4EE', '#1A1410', '#EDE8E0', '#E85D26', '#FFFFFF', '#D8D0C4', '#1A1410'] },
+    { name: 'Cotton Candy', colors: ['#FFF0F8', '#2A0A1E', '#FCE0F0', '#D946A8', '#FFFFFF', '#E8C8DC', '#8B1A6A'] },
+    { name: 'Sky & Sand', colors: ['#F0F8FF', '#0A1A2E', '#E0F0FA', '#0E7FC0', '#FFFFFF', '#B8D8EE', '#B45309'] },
+    { name: 'Mint Garden', colors: ['#F0FDF4', '#0A1E12', '#DCFCE7', '#15803D', '#FFFFFF', '#BBF7D0', '#7C3AED'] },
+    { name: 'Lavender Mist', colors: ['#FAF5FF', '#1E0A3E', '#F3E8FF', '#7C3AED', '#FFFFFF', '#DDD6FE', '#5B21B6'] },
+    { name: 'Golden Hour', colors: ['#FFFBEB', '#1C0F04', '#FEF3C7', '#B45309', '#FFFFFF', '#FDE68A', '#DC2626'] },
+    { name: 'Evening Walk', colors: ['#F6E6C2', '#2A4343', '#F1D49A', '#D35E36', '#FBF3E1', '#C0C29D', '#416B66'] },
+    { name: 'Retro Poster', colors: ['#EFE6D3', '#1E2424', '#E3D5B8', '#C94E44', '#FAF5EA', '#C1AB85', '#3E6868'] },
+    { name: 'Aurora Pastel', colors: ['#F2F5FC', '#2A1640', '#E5EBF8', '#A94ACE', '#FFFFFF', '#D3CBF6', '#9881FF'] },
+    { name: 'Terracotta', colors: ['#FAEFDC', '#3A1E1E', '#F5DFBB', '#11686A', '#FFF8EC', '#E3C79A', '#F2542D'] },
+    { name: 'Palace Spring', colors: ['#FFF6E8', '#3B2414', '#FCEABC', '#D9622A', '#FFFFFF', '#F2D9A4', '#4A9BEF'] },
+    { name: 'Peach Fuzz', colors: ['#F8F7FF', '#2B2350', '#FFEEDD', '#6C5CE7', '#FFFFFF', '#FFD8BE', '#9381FF'] },
+    { name: 'Neon Lights', colors: ['#F2F2FF', '#1C1A4A', '#E4E4FB', '#E23D8B', '#FFFFFF', '#C9C8F0', '#2A28AD'] },
+    { name: 'Mysterious Depths', colors: ['#EEF0FA', '#0C0827', '#DFE3F5', '#5950B8', '#FFFFFF', '#C3C9EA', '#1EA598'] },
+    { name: 'Volcanic Ash', colors: ['#F1F3F5', '#212529', '#E9ECEF', '#8338EC', '#FFFFFF', '#D3D8DE', '#FB5607'] },
+    { name: 'Dragon Tales', colors: ['#EEF7F3', '#2E1F2E', '#D6EDE5', '#F93C0A', '#FFFFFF', '#ADDCCC', '#4886AB'] },
+    { name: 'Wildflower', colors: ['#EEF5FA', '#1B2B22', '#DCEBF5', '#264431', '#FFFFFF', '#BED9EB', '#EAA043'] }
+];
+
+const RING_PRESETS = [
+    { name: 'Neon Sunset', colors: ['#ff6b35', '#b8ff38', '#ff3c8e'] },
+    { name: 'Ocean', colors: ['#00d4ff', '#8b5cf6', '#00d4ff'] },
+    { name: 'Fire', colors: ['#ff6b35', '#ff3c8e', '#ffca28'] },
+    { name: 'Forest', colors: ['#b8ff38', '#00d4ff', '#8b5cf6'] },
+    { name: 'Mono', colors: ['#ffffff', '#aaaaaa', '#ffffff'] },
+    { name: 'Gold', colors: ['#f5a623', '#f8e71c', '#f5a623'] }
+];
+
+const STATUS_PRESETS = [
+    { text: 'AVAILABLE FOR COMMISSIONS', color: '#3DD68C', label: 'Open' },
+    { text: 'ON HIATUS', color: '#FFCA28', label: 'Hiatus' },
+    { text: 'IN TRAINING', color: '#00D4FF', label: 'Training' },
+    { text: 'BUSY, QUEUE FULL', color: '#FF9944', label: 'Busy' },
+    { text: 'OPEN FOR ART TRADES', color: '#8B5CF6', label: 'Art trades' },
+    { text: 'CLOSED', color: '#888888', label: 'Closed' }
+];
+
+const PLATFORM_OPTIONS = ['Twitter/X', 'Instagram', 'Bluesky', 'Tumblr', 'YouTube', 'TikTok', 'DeviantArt', 'Pixiv', 'Twitch', 'Ko-fi', 'Patreon', 'Discord', 'Threads', 'Cara', 'Email', 'Other'];
+
+function formatTime(ts) {
+    try { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); } catch (e) { return ''; }
+}
+
+function buildRingGradient(c1, c2, c3, dir) {
+    return dir === 'circle' ? 'radial-gradient(circle, ' + c1 + ', ' + c2 + ', ' + c3 + ')' : 'linear-gradient(' + dir + ', ' + c1 + ', ' + c2 + ', ' + c3 + ')';
+}
+
+/* Admin tools that rewrite interactions as a whole (cleanup, erase all) */
+async function saveInteractionsOverwrite() {
+    if (loadFailed.has('interactions.js')) { showToast(LOAD_FAILED_MSG, 'error'); return { success: false }; }
+    pendingOps = []; persistOps();
+    writeJSON(KEYS.interactions, interactionsCache);
+    if (!globalAuthToken || IS_LOCAL_FILE) return { success: false };
+    const r = await uploadToBridge('interactions', { data: interactionsCache });
+    if (r.success) interactionsRemote = clone(interactionsCache);
+    return r;
+}
+
+async function forceSyncAll() {
+    if (isLocalMode()) { downloadBackup(); return; }
+    saveDataLocally();
+    const t = showToast('Syncing all four files', 'loading');
+    const results = [];
+    results.push(await uploadToBridge('system', { quiet: true }));
+    results.push(await uploadToBridge('posts', { quiet: true }));
+    results.push(await uploadToBridge('comics', { quiet: true }));
+    if (pendingOps.length) { await syncInteractions(); results.push({ success: !pendingOps.length }); }
+    else results.push(await uploadToBridge('interactions', { data: interactionsCache, quiet: true }));
+    dismissToast(t);
+    const failed = results.filter(r => !r.success).length;
+    if (failed) showToast(failed + ' of 4 files didn\'t sync. Try again in a moment.', 'error');
+    else showToast('Everything synced');
+}
+
+function downloadBackup() {
+    downloadSystemJS();
+    setTimeout(downloadPostsJS, 300);
+    setTimeout(downloadComicsJS, 600);
+    setTimeout(downloadInteractionsJS, 900);
+    showToast('Downloading system.js, posts.js, comics.js and interactions.js');
+    writeJSON(KEYS.lastBackup, Date.now());
+    if (typeof renderBackupNudge === 'function') renderBackupNudge();
+}
+
+function downloadInteractionsJS() { downloadFile('window.AZUMINT_INTERACTIONS = "' + unicodeToBase64(JSON.stringify(interactionsCache)) + '";', 'interactions.js'); }
+
+/* Uploads a list of files one by one. onStep(i, total, file) reports progress. Returns paths, or null on failure. */
+async function uploadFiles(files, folder, onStep) {
+    const out = [];
+    for (let i = 0; i < files.length; i++) {
+        let f = files[i];
+        if (onStep) onStep(i, files.length, f);
+        if (!isLocalMode() && currentConfig.webpUploads !== false && canShrink(f.type, f.name)) {
+            const w = await toWebp(f, f.name);
+            if (w) f = new File([w], webpName(f.name), { type: 'image/webp' });
+        }
+        if (isLocalMode()) {
+            const b64 = await compressImage(f, folder.includes('comics') ? 1000 : 1200, 0.7, false);
+            if (!b64) { showToast('Couldn\'t read ' + f.name, 'error'); return null; }
+            out.push(b64);
+        } else {
+            const path = folder + safeFileName(f.name, f.type);
+            try { await promisifiedUpload(f, path); out.push(path); }
+            catch (err) { showToast('Upload failed for ' + f.name + '. ' + err, 'error'); return null; }
+            await addPreview(f, path);
+        }
+    }
+    if (onStep) onStep(files.length, files.length, null);
+    return out;
+}
+
+function promisifiedUpload(file, path) {
+    return uploadToBridge('media_only', { mediaFile: file, mediaPath: path }).then(r => { if (!r.success) throw (r.message || 'Upload failed'); return path; });
+}
+
+/* Image compression, used when running the site from your computer without uploads */
+function compressImage(file, maxWidth = 800, quality = 0.65, forceJPEG = true) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onerror = () => resolve(null);
+        reader.onload = () => {
+            const dataUri = reader.result;
+            if (!file.type || !file.type.startsWith('image/')) return resolve(dataUri);
+            const img = new Image();
+            img.onerror = () => resolve(dataUri);
+            img.onload = () => {
+                let w = img.naturalWidth, h = img.naturalHeight;
+                if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+                const c = document.createElement('canvas'); c.width = w; c.height = h;
+                c.getContext('2d').drawImage(img, 0, 0, w, h);
+                const mime = (!forceJPEG && file.type === 'image/png') ? 'image/png' : 'image/jpeg';
+                const out = c.toDataURL(mime, mime === 'image/png' ? undefined : quality);
+                resolve(out.length < dataUri.length ? out : dataUri);
+            };
+            img.src = dataUri;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Returns a smaller WebP blob, or null when converting wouldn't help (animated, already small, or the browser can't make WebP)
+async function toWebp(blob, name) {
+    if (!canShrink(blob.type, name)) return null;
+    try {
+        if (isAnimatedPng(await blob.arrayBuffer())) return null;
+        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+        const c = document.createElement('canvas');
+        c.width = bmp.width; c.height = bmp.height;
+        c.getContext('2d').drawImage(bmp, 0, 0);
+        if (bmp.close) bmp.close();
+        const out = await new Promise(res => c.toBlob(res, 'image/webp', WEBP_QUALITY));
+        return out && out.type === 'image/webp' && out.size < blob.size * 0.95 ? out : null;
+    } catch (e) { return null; }
+}
+
+/* WebP: PNG and JPG art re-encoded in the browser, usually a fraction of the size at a quality that looks the same */
+const WEBP_QUALITY = 0.9;
+
+function canShrink(type, name) { return /^image\/(png|jpeg|bmp)$/.test(type || '') || SHRINKABLE_EXT.test(name || ''); }
+
+const SHRINKABLE_EXT = /\.(png|jpe?g|bmp)(?=([?#].*)?$)/i;
+
+function webpName(name) { return String(name || 'image').replace(/\.[^./]*$/, '') + '.webp'; }
+
+// Makes and uploads the small copy of a picture stored at path (ref is how posts refer to it), and notes its size.
+// Quietly skips when it can't
+async function addPreview(blob, path, ref) {
+    const info = await readPicture(blob, path);
+    if (info) freshSizes.set(ref || path, [info.w, info.h]);
+    const small = info && info.small;
+    if (!small) return 'skip';
+    const to = previewPath(path);
+    const r = await uploadToBridge('media_only', { mediaFile: new File([small], to.split('/').pop(), { type: 'image/webp' }), mediaPath: to, quiet: true });
+    if (!r.success) return 'fail';
+    freshPreviews.set(ref || path, to);
+    return 'ok';
+}
+
+// img/ab12.png → img/p/ab12-png.webp (the old type stays in the name, so two pictures never share a copy)
+function previewPath(path) { return path.replace(/([^/]+)\.([a-z0-9]+)$/i, 'p/$1-$2.webp'); }
+
+// Reads a picture once: its size, and (when wanted) a small WebP copy if it is big and not animated. Null when it can't be read
+async function readPicture(blob, name, wantCopy = true) {
+    const plain = String(name || '').split(/[?#]/)[0];
+    if (!SIZEABLE.test(plain) && !/^image\//.test(blob.type || '')) return null;
+    try {
+        const buf = await blob.arrayBuffer();
+        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+        const info = { w: bmp.width, h: bmp.height, small: null };
+        const s = Math.min(PREVIEW_SIDE / Math.min(info.w, info.h), PREVIEW_MAX / Math.max(info.w, info.h));
+        const copyable = (PREVIEWABLE.test(plain) || /^image\/(png|jpeg|webp|bmp)$/.test(blob.type || '')) && !isAnimatedPng(buf) && !isAnimatedWebp(buf);
+        if (wantCopy && copyable && s <= 0.75) {
+            const c = document.createElement('canvas');
+            c.width = Math.round(info.w * s); c.height = Math.round(info.h * s);
+            const cx = c.getContext('2d'); cx.imageSmoothingQuality = 'high';
+            cx.drawImage(bmp, 0, 0, c.width, c.height);
+            const out = await new Promise(res => c.toBlob(res, 'image/webp', PREVIEW_QUALITY));
+            if (out && out.type === 'image/webp' && out.size < blob.size * 0.7) info.small = out;
+        }
+        if (bmp.close) bmp.close();
+        return info;
+    } catch (e) { return null; }
+}
+
+// Animated PNGs carry an acTL chunk before their first IDAT; a canvas would flatten them to one frame
+function isAnimatedPng(buf) {
+    const b = new Uint8Array(buf), dv = new DataView(buf);
+    if (b.length < 16 || b[1] !== 0x50 || b[2] !== 0x4E || b[3] !== 0x47) return false;
+    for (let i = 8; i + 8 <= b.length;) {
+        const type = String.fromCharCode(b[i + 4], b[i + 5], b[i + 6], b[i + 7]);
+        if (type === 'acTL') return true;
+        if (type === 'IDAT') return false;
+        i += 12 + dv.getUint32(i);
+    }
+    return false;
+}
+
+const PREVIEW_SIDE = 800, PREVIEW_MAX = 2400, PREVIEW_QUALITY = 0.82;
+
+const PREVIEWABLE = /\.(png|jpe?g|webp|bmp)$/i, SIZEABLE = /\.(png|jpe?g|webp|bmp|gif|avif)$/i;
+
+function isAnimatedWebp(buf) {
+    const b = new Uint8Array(buf), tag = i => String.fromCharCode(b[i], b[i + 1], b[i + 2], b[i + 3]);
+    return b.length > 21 && tag(8) === 'WEBP' && tag(12) === 'VP8X' && (b[20] & 2) === 2;
+}
+
+function readPreviews(files) {
+    return Promise.all(files.map(f => new Promise(res => {
+        if (!f.type || !f.type.startsWith('image/')) return res({ file: f, preview: null });
+        const r = new FileReader();
+        r.onload = e => res({ file: f, preview: e.target.result });
+        r.onerror = () => res({ file: f, preview: null });
+        r.readAsDataURL(f);
+    })));
+}
+
+function logoutAdmin() {
+    if (Studio.dirty) { Studio.draft = null; Studio.dirty = false; Studio.ring = null; applyTheme(); }
+    isAdminLoggedIn = false; sessionPassword = null;
+    renderAdminView();
+    renderFeed();
+    showToast('Logged out');
+}
+
+function enableDragSort(container, itemSel, onMove) {
+    let from = null;
+    $$(itemSel, container).forEach(item => {
+        item.addEventListener('dragstart', e => { from = Number(item.dataset.index); item.classList.add('is-drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(from)); } catch (x) {} });
+        item.addEventListener('dragend', () => { item.classList.remove('is-drag'); $$('.is-target', container).forEach(n => n.classList.remove('is-target')); });
+        item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; item.classList.add('is-target'); });
+        item.addEventListener('dragleave', () => item.classList.remove('is-target'));
+        item.addEventListener('drop', e => { e.preventDefault(); const to = Number(item.dataset.index); if (from !== null && from !== to) onMove(from, to); from = null; });
+    });
+}
+
+function wireDropzone(zone, onFiles) {
+    if (!zone) return;
+    const input = byId(zone.dataset.input);
+    zone.addEventListener('click', e => { if (e.target !== input) input.click(); });
+    zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+    ['dragenter', 'dragover'].forEach(t => zone.addEventListener(t, e => { e.preventDefault(); zone.classList.add('is-over'); }));
+    ['dragleave', 'drop'].forEach(t => zone.addEventListener(t, e => { e.preventDefault(); zone.classList.remove('is-over'); }));
+    zone.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) onFiles(e.dataTransfer.files); });
+    input.addEventListener('change', () => { if (input.files.length) onFiles(input.files); input.value = ''; });
+}
 
 /* ═════════════════════════════════════════════
    ADMIN: NEW POST
@@ -1859,5 +2145,1061 @@ async function checkLinkPreview() {
     renderLinkPreviewStatus('');
 }
 
+
+/* ═════════════════════════════════════════════
+   ADMIN: ART OF TODAY SETTINGS (Site info → Art of Today)
+   The pop-up itself is in aotd.js, which loads with this file.
+   ═════════════════════════════════════════════ */
+
+// The settings being edited in Site info, before they're saved
+const Aotd = { draft: null };
+async function previewAotd(designId) {
+    const s = aotdFormSettings();
+    const post = aotdPick(s);
+    if (!post) { showToast('Post some artwork first, then the pop-up has something to show.', 'error'); return; }
+    const design = aotdDesign(designId) || aotdDesignFor(s);
+    await aotdPrepare(design, post);
+    openAotd(post, design, s, true);
+}
+
+const AOTD_MINIS = {
+    botanical: '<span class="aotd-mini" style="background:#F4F2EC"><span style="position:absolute;left:0;right:0;top:8px;text-align:center;font:italic 17px \'Playfair Display\',serif;color:var(--mc)">Art of Today</span><span style="position:absolute;left:8px;right:8px;top:38px;height:32px;background:#6FA8E8"></span><span style="position:absolute;left:4px;top:30px;width:18px;height:26px;border-radius:50% 0;background:#5E9F86"></span><span style="position:absolute;right:6px;top:46px;width:18px;height:26px;border-radius:0 50%;background:#5E9F86"></span></span>',
+    cinema: '<span class="aotd-mini" style="display:grid;place-items:center;background:#B8652A"><span style="position:absolute;inset:6px;border:1px solid rgba(255,255,255,.7)"></span><span style="font:16px \'DM Serif Display\',serif;color:#FFF">Art of Today</span></span>',
+    calligraphy: '<span class="aotd-mini" style="background:#2E6A3C"><span style="position:absolute;left:10px;top:2px;font:46px \'Pinyon Script\',cursive;color:#FFF">Art</span><span style="position:absolute;left:34px;top:46px;font:30px \'Pinyon Script\',cursive;color:#FFF">Today</span></span>',
+    magazine: '<span class="aotd-mini" style="display:flex;flex-direction:column;background:#FFF"><span style="height:34px;padding:0 8px;font:300 26px/34px \'Cormorant Garamond\',serif;color:#1A1A1A">TODAY</span><span style="flex:1;background:#F0B62E"></span></span>',
+    caption: '<span class="aotd-mini" style="display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:6px 0;background:#FDFDFB"><span style="width:70%;height:4px;border-radius:2px;background:var(--mc)"></span><span style="display:grid;place-items:center;align-self:stretch;height:54px;background:#3F86DB;font:italic 15px \'Playfair Display\',serif;color:#FFF">art of today</span><span style="width:62%;height:4px;border-radius:2px;background:var(--mc)"></span></span>',
+    editorial: '<span class="aotd-mini" style="display:flex;flex-direction:column;justify-content:center;padding:0 10px;background:#93CBD0;font:24px/.95 \'DM Serif Display\',serif;color:#FFF"><span>Art of</span><span>Today</span></span>',
+    award: '<span class="aotd-mini" style="background:#FAFAF8"><span style="position:absolute;left:14px;right:0;top:32px;height:34px;background:#7FB9E0"></span><span style="position:absolute;left:8px;top:4px;display:flex;flex-direction:column;font:26px/.95 \'DM Serif Display\',serif;color:#1E3350"><span>A</span><span>R</span><span>T</span></span></span>',
+    chapter: '<span class="aotd-mini" style="background:var(--mc)"><span style="position:absolute;inset:6px;border-radius:6px;background:#2E6A3C"></span><span style="position:absolute;left:0;top:0;width:58px;height:36px;padding:4px 6px;border-radius:0 0 8px 0;background:var(--mc);font:11px/1 \'Permanent Marker\',cursive;color:#111">Art of Today</span><span style="position:absolute;left:0;bottom:0;width:70%;height:22px;border-radius:0 8px 0 0;background:var(--mc)"></span></span>',
+    tabloid: '<span class="aotd-mini" style="background:var(--mc)"><span style="position:absolute;left:6px;top:2px;font:22px Anton,sans-serif;color:#111;white-space:nowrap">ART OF TODAY</span><span style="position:absolute;left:34px;top:34px;width:70px;height:52px;background:#6B6B6B"></span></span>',
+    calendar: '<span class="aotd-mini" style="background:#E7E5E0"><span style="position:absolute;left:6px;top:6px;width:62%;height:44px;background:var(--mc)"></span><span style="position:absolute;right:6px;top:6px;width:26%;height:64px;background:var(--mc)"></span><span style="position:absolute;left:8px;top:48px;font:22px \'Archivo Black\',sans-serif;color:#111">10</span><span style="position:absolute;left:0;right:0;bottom:0;height:18px;background:#111"></span></span>'
+};
+
+function aotdBoards() {
+    const count = new Map();
+    postsCache.forEach(p => { if (firstImage(p)) postTags(p).forEach(t => { const k = t.toLowerCase(); const e = count.get(k) || { name: t, n: 0 }; e.n++; count.set(k, e); }); });
+    return Array.from(count.values()).sort((a, b) => b.n - a.n);
+}
+function renderAotdTiles() {
+    const s = Aotd.draft, box = byId('aotd-tiles'); if (!box) return;
+    const random = s.mode !== 'one';
+    const on = AOTD_DESIGNS.filter(d => random ? !s.off.includes(d.id) : s.design === d.id).length;
+    byId('aotd-mode-help').textContent = random
+        ? (on === 1 ? 'Only 1 design is' : on + ' of ' + AOTD_DESIGNS.length + ' designs are') + ' in the rotation. Tap a design to add it or leave it out.'
+        : 'Tap the design to use every day.';
+    box.innerHTML = AOTD_DESIGNS.map((d, i) => {
+        const chosen = random ? !s.off.includes(d.id) : s.design === d.id;
+        const color = aotdColor(d, s);
+        return '<div class="aotd-tile' + (chosen ? ' is-on' : '') + '">'
+            + '<button type="button" class="aotd-tile-main" data-action="aotd-tile" data-id="' + d.id + '" aria-pressed="' + chosen + '">'
+            + '<span class="aotd-mini-wrap" aria-hidden="true" style="--mc:' + (color || '#3B8FD9') + '">' + AOTD_MINIS[d.id] + '</span>'
+            + '<span class="aotd-tile-name">' + String(i + 1).padStart(2, '0') + ' ' + d.name + '</span>'
+            + '<span class="aotd-tile-status">' + (random ? (chosen ? 'In the rotation' : 'Left out') : (chosen ? 'Shown every day' : 'Not used')) + '</span></button>'
+            + '<div class="aotd-tile-tools">'
+            + (d.colors ? '<select class="aotd-tile-color" data-id="' + d.id + '" aria-label="' + d.name + ' ' + d.colors[0].toLowerCase() + ' color">' + d.colors[1].map(c => '<option value="' + c[0] + '"' + (c[0] === color ? ' selected' : '') + '>' + c[1] + '</option>').join('') + '</select>' : '<span class="aotd-tile-nocolor"></span>')
+            + '<button type="button" class="aotd-tile-peek" data-action="aotd-peek" data-id="' + d.id + '" aria-label="Preview ' + d.name + '"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>'
+            + '</div></div>';
+    }).join('');
+    $$('input[name="aotd-mode"]').forEach(r => { r.checked = r.value === (random ? 'random' : 'one'); r.closest('.aotd-mode').classList.toggle('is-on', r.checked); });
+}
+function syncAotdArtFields() {
+    const art = ($('input[name="aotd-art"]:checked') || {}).value || 'all';
+    byId('aotd-board-field').hidden = art !== 'board';
+    byId('aotd-pick-field').hidden = art !== 'pick';
+}
+function renderAotdPicked() {
+    const id = byId('s-aotd-post').value;
+    const p = postsCache.find(x => String(x.id) === String(id));
+    byId('aotd-pick-show').innerHTML = p && firstImage(p)
+        ? '<img src="' + esc(thumbOf(firstImage(p))) + '" alt=""><span>No.' + postNumbers().get(p.id) + ' · ' + esc(excerpt(p.content, 40) || 'Untitled piece') + '</span>'
+        : '<span class="hint">No piece chosen yet</span>';
+}
+function populateAotdForm() {
+    if (!byId('aotd-tiles')) return;
+    const s = aotdSettings();
+    Aotd.draft = clone(s);
+    AOTD_DESIGNS.forEach(aotdFonts);
+    byId('s-aotd').checked = currentConfig.artOfToday !== false;
+    $$('input[name="aotd-art"]').forEach(r => { r.checked = r.value === s.art; });
+    const boards = aotdBoards();
+    const board = byId('s-aotd-board');
+    board.innerHTML = boards.length ? boards.map(b => '<option value="' + esc(b.name) + '">' + esc(b.name) + ' (' + b.n + ')</option>').join('') : '<option value="">No boards yet</option>';
+    if (boards.some(b => b.name.toLowerCase() === String(s.board).toLowerCase())) board.value = boards.find(b => b.name.toLowerCase() === String(s.board).toLowerCase()).name;
+    byId('s-aotd-post').value = s.post || '';
+    renderAotdPicked();
+    byId('s-aotd-nsfw').checked = s.skipNsfw;
+    byId('s-aotd-headline').value = s.headline;
+    byId('s-aotd-message').value = s.message;
+    byId('s-aotd-delay').value = String(s.delay);
+    byId('s-aotd-anim').value = s.anim;
+    byId('s-aotd-phones').checked = s.phones;
+    syncAotdArtFields();
+    renderAotdTiles();
+}
+// The settings as they are in the form right now, saved or not (used by Preview and Save)
+function aotdFormSettings() {
+    if (!Aotd.draft || !byId('aotd-tiles') || ui.view !== 'admin') return aotdSettings();
+    return Object.assign({}, Aotd.draft, {
+        art: ($('input[name="aotd-art"]:checked') || {}).value || 'all',
+        board: byId('s-aotd-board').value, post: byId('s-aotd-post').value,
+        skipNsfw: byId('s-aotd-nsfw').checked,
+        headline: byId('s-aotd-headline').value.trim() || AOTD_DEFAULTS.headline,
+        message: byId('s-aotd-message').value.trim(),
+        delay: Number(byId('s-aotd-delay').value) || 2, anim: byId('s-aotd-anim').value,
+        phones: byId('s-aotd-phones').checked
+    });
+}
+function aotdTile(id) {
+    const s = Aotd.draft;
+    if (s.mode === 'one') s.design = id;
+    else if (s.off.includes(id)) s.off = s.off.filter(x => x !== id);
+    else if (s.off.length >= AOTD_DESIGNS.length - 1) { showToast('Keep at least one design in the rotation.', 'error'); return; }
+    else s.off = s.off.concat(id);
+    renderAotdTiles();
+    const btn = $('.aotd-tile-main[data-id="' + id + '"]'); if (btn) btn.focus({ preventScroll: true });
+}
+function openAotdPostPicker() {
+    const s = aotdFormSettings();
+    const list = sortPosts(postsCache, 'newest').filter(p => aotdAllowed(p, s));
+    const nums = postNumbers();
+    byId('picker-heading').textContent = 'Choose a piece';
+    byId('picker-grid').innerHTML = list.length
+        ? list.map(p => '<button type="button" data-action="aotd-pick-post" data-id="' + p.id + '" aria-label="No.' + nums.get(p.id) + ' ' + esc(excerpt(p.content, 40)) + '"><img src="' + esc(thumbOf(firstImage(p))) + '" alt="" loading="lazy"></button>').join('')
+        : '<p class="hint">No image posts yet.</p>';
+    Modals.open(byId('picker-modal'));
+}
+
+/* ═════════════════════════════════════════════
+   THE DASHBOARD
+   Its buttons, its markup and the listeners for its form fields. index.html keeps only the empty
+   #admin-panel box, so visitors never download any of this. It all goes in place as soon as this file
+   loads, before anything above is called.
+   ═════════════════════════════════════════════ */
+
+// What the dashboard's buttons do (logic.js has the rest, and runs them: see `actions` there)
+Object.assign(actions, {
+    'preview-aotd': () => previewAotd(),
+    'aotd-peek': el => previewAotd(el.dataset.id),
+    'aotd-tile': el => aotdTile(el.dataset.id),
+    'aotd-choose': () => openAotdPostPicker(),
+    'aotd-pick-post': el => { byId('s-aotd-post').value = el.dataset.id; renderAotdPicked(); Modals.close(byId('picker-modal')); },
+    // Admin
+    'logout': () => logoutAdmin(),
+    'chf-save': () => saveCharacter(),
+    'chf-cancel': () => chfFill(null),
+    'chf-edit': el => { const c = siteCharacters().find(x => String(x.id) === el.dataset.id); if (c) { chfFill(c); byId('chf-name').focus(); byId('chf-heading').scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' }); } },
+    'chf-delete': el => deleteCharacter(el.dataset.id),
+    'chf-move': el => moveCharacter(el.dataset.id, el.dataset.dir),
+    'chf-pick-colors': () => pickCharacterColors(),
+    'chf-intro-save': () => saveCharactersIntro(),
+    'srf-save': () => saveSeries(),
+    'srf-cancel': () => { srfFill(null); renderSeriesParts(); renderSeriesPicker(); },
+    'srf-edit': el => { const s = siteSeries().find(x => String(x.id) === el.dataset.id); if (s) { srfFill(s); renderSeriesParts(); renderSeriesPicker(); byId('srf-name').focus(); byId('srf-heading').scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' }); } },
+    'srf-delete': el => deleteSeries(el.dataset.id),
+    'srf-move': el => moveSeries(el.dataset.id, el.dataset.dir),
+    'srf-toggle': el => seriesToggle(el.dataset.id),
+    'srf-part-move': el => seriesPartMove(el.dataset.index, el.dataset.dir),
+    'srf-part-remove': el => seriesPartRemove(el.dataset.index),
+    'force-sync': () => forceSyncAll(),
+    'open-cleanup': () => openCleanupPanel(),
+    'download-backup': () => downloadBackup(),
+    'backup-snooze': () => { writeJSON(KEYS.backupSnooze, Date.now() + 7 * 864e5); renderBackupNudge(); },
+    'toggle-chip': el => el.setAttribute('aria-pressed', String(el.getAttribute('aria-pressed') !== 'true')),
+    'np-add-url': () => addUrlToQueue(),
+    'queue-move': el => { const i = Number(el.dataset.index), j = i + Number(el.dataset.dir); if (j < 0 || j >= currentPostMediaQueue.length) return; [currentPostMediaQueue[i], currentPostMediaQueue[j]] = [currentPostMediaQueue[j], currentPostMediaQueue[i]]; renderMediaQueue(); },
+    'queue-remove': el => { currentPostMediaQueue.splice(Number(el.dataset.index), 1); renderMediaQueue(); },
+    'publish-post': () => createPost(),
+    'bulk-upload': () => bulkUpload(),
+    'edit-post': el => { const id = Number(el.dataset.id); editingPostId = editingPostId === id ? null : id; renderManagePosts(); },
+    'edit-remove-media': el => el.closest('.mm').classList.toggle('is-removed'),
+    'toggle-pin': el => togglePin(el.dataset.id),
+    'comic-create': () => createComic(),
+    'comics-download': () => { downloadComicsJS(); showToast('Downloaded comics.js'); },
+    'comics-sync': () => saveComics(),
+    'edit-comic': el => { const id = Number(el.dataset.id); editingComicId = editingComicId === id ? null : id; resetEditPagesDraft(); renderComicsAdmin(); },
+    'ec-swap': el => editComicSwap(el.dataset.index),
+    'ec-remove': el => editComicRemove(el.dataset.index),
+    'delete-comic': el => deleteComic(el.dataset.id),
+    'open-add-pages': el => openAddPagesModal(el.dataset.id),
+    'ap-submit': () => submitAddPages(),
+    'sorter-remove': el => { const q = el.dataset.sorter === 'nc-pages' ? comicPagesQueue : addPagesQueue; q.splice(Number(el.dataset.index), 1); if (el.dataset.sorter === 'nc-pages') renderNewComicPages(); else renderAddPages(); },
+    'site-save': () => saveSiteSettings(),
+    'goto-admin-tab': (el, e) => { e.preventDefault(); showAdminTab(el.dataset.tab); window.scrollTo(0, 0); },
+    'status-preset': el => { byId('s-status-text').value = el.dataset.text; byId('s-status-color').value = el.dataset.color.toLowerCase(); },
+    'comm-toggle': () => toggleCommissions(),
+    'comm-save': () => saveCommSettings(),
+    'comm-colors-reset': () => setCommColors(COMM_DEFAULTS),
+    'tier-add': () => addTier(),
+    'tier-move': el => moveTier(el),
+    'tier-remove': el => removeTier(el),
+    'addon-add': () => addAddon(),
+    'addon-remove': el => el.closest('.addon-row').remove(),
+    'tsec-add': () => addTermSection(),
+    'tsec-move': el => moveTermSection(el),
+    'tsec-remove': el => removeTermSection(el),
+    'studio-mode': el => Studio.switchMode(el.dataset.mode),
+    'studio-preset': el => Studio.applyPreset(Number(el.dataset.index)),
+    'studio-generate': () => Studio.generate(),
+    'studio-save': () => Studio.save(),
+    'studio-discard': () => Studio.discard(),
+    'ring-preset': el => Studio.ringPreset(Number(el.dataset.index)),
+    'banner-mode': el => { bannerDraftMode = el.dataset.mode; syncBannerForm(); },
+    'banner-save': () => saveBannerSettings(),
+    'sl-pick': el => toggleSliderPick(el),
+    'sl-own-add': () => { addSliderOwnRow('', ''); syncSliderForm(); },
+    'sl-own-remove': el => { el.closest('.sl-own-row').remove(); syncSliderForm(); },
+    'pick-image': el => openPicker(el.dataset.target),
+    'pick-this': el => {
+        const t = byId(pickerTarget); if (t) { t.value = el.dataset.url; t.dispatchEvent(new Event('input', { bubbles: true })); }
+        Modals.close(byId('picker-modal'));
+    },
+    'link-add': () => addLinkRow('', '', ''),
+    'link-remove': el => el.closest('.link-row').remove(),
+    'links-save': () => saveSocialLinks(),
+    'cleanup': el => runCleanup(el.dataset.fn, el),
+    'shrink-start': () => runShrink(),
+    'pv-start': () => runPreviews(),
+    'lp-update': () => updateLinkPreview(),
+    'lp-download': () => downloadLinkPreviewPage(),
+    'pv-stop': el => { Previews.stop = true; el.disabled = true; el.textContent = 'Stopping'; setTimeout(() => { el.disabled = false; el.textContent = 'Stop after this one'; }, 1500); },
+    'shrink-stop': el => { Shrink.stop = true; el.disabled = true; el.textContent = 'Stopping'; setTimeout(() => { el.disabled = false; el.textContent = 'Stop after this one'; }, 1500); },
+    'shrink-copy': () => { const t = byId('shrink-list').value; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('List copied'), () => { byId('shrink-list').select(); showToast('Press Ctrl+C to copy the selected list'); }); },
+    'shrink-download': () => downloadFile(byId('shrink-list').value + '\n', 'old-images-to-delete.txt'),
+    'shrink-forget': async () => { if (!await askConfirm('Only do this once the old files are deleted from Neocities.', { title: 'Clear the list?', yes: 'Clear the list' })) return; writeJSON(KEYS.shrinkLeftovers, []); renderShrink(); }
+});
+
+const ADMIN_HTML = `
+<div class="dash-head">
+    <div class="dash-title">
+        <h1>Dashboard</h1>
+        <span class="sync-chip" id="sync-chip" data-state="idle">All changes synced</span>
+    </div>
+    <div class="dash-actions">
+        <button class="btn" data-action="force-sync"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Sync everything</button>
+        <button class="btn" data-action="open-cleanup"><i class="fa-solid fa-broom" aria-hidden="true"></i> Clean up</button>
+        <button class="btn" data-action="download-backup"><i class="fa-solid fa-download" aria-hidden="true"></i> Back up</button>
+        <button class="btn btn-ghost" data-action="logout">Log out</button>
+    </div>
+</div>
+
+<div class="notice" id="recovery" hidden></div>
+<div class="notice" id="backup-nudge" role="status" hidden></div>
+
+<div class="dash-tabs" role="tablist" aria-label="Admin sections">
+    <button role="tab" data-action="admin-tab" data-tab="post" aria-selected="true">New post</button>
+    <button role="tab" data-action="admin-tab" data-tab="posts" aria-selected="false">Posts</button>
+    <button role="tab" data-action="admin-tab" data-tab="comics" aria-selected="false">Comics</button>
+    <button role="tab" data-action="admin-tab" data-tab="chars" aria-selected="false">Characters</button>
+    <button role="tab" data-action="admin-tab" data-tab="series" aria-selected="false">Series</button>
+    <button role="tab" data-action="admin-tab" data-tab="comm" aria-selected="false">Commissions</button>
+    <button role="tab" data-action="admin-tab" data-tab="site" aria-selected="false">Site info</button>
+    <button role="tab" data-action="admin-tab" data-tab="look" aria-selected="false">Colors &amp; style</button>
+    <button role="tab" data-action="admin-tab" data-tab="banner" aria-selected="false">Home page</button>
+    <button role="tab" data-action="admin-tab" data-tab="links" aria-selected="false">Social links</button>
+</div>
+
+<!-- New post -->
+<div class="dash-panel" data-tab-panel="post" role="tabpanel">
+    <div class="compose">
+        <div class="compose-main">
+            <label class="field">
+                <span>Caption</span>
+                <textarea id="np-content" rows="7" placeholder="Say something about this piece. Markdown works: **bold**, *italic*, [link](https://...)"></textarea>
+            </label>
+            <label class="field">
+                <span>Picture description <em>(optional: read aloud to people who use screen readers)</em></span>
+                <input type="text" id="np-alt" placeholder="For example: a girl in a red coat walking a fox through snow">
+            </label>
+            <div class="field">
+                <span>Tags</span>
+                <div class="chips chips-toggle" id="np-tags"></div>
+                <input type="text" id="np-custom-tags" placeholder="More tags, separated by commas">
+            </div>
+            <label class="check"><input type="checkbox" id="np-pinned"> <span>Pin to the top of the feed</span></label>
+            <label class="check"><input type="checkbox" id="np-later"> <span>Schedule it to go up later</span></label>
+            <label class="field" id="np-at-field" hidden><span>Goes up at <em>(your time; until then only you can see it, in Posts)</em></span><input type="datetime-local" id="np-at"></label>
+        </div>
+        <div class="compose-media">
+            <div class="dropzone" id="np-drop" data-input="np-files" tabindex="0" role="button" aria-label="Add images, video or audio">
+                <i class="fa-regular fa-image" aria-hidden="true"></i>
+                <p><strong>Drop images or video here</strong><br>or click to browse. You can also paste an image.</p>
+                <input type="file" id="np-files" accept="image/*,video/*,audio/*" multiple hidden>
+            </div>
+            <div class="inline-form">
+                <input type="url" id="np-url" placeholder="Or paste a link to an image or video" aria-label="Media link">
+                <button class="btn" data-action="np-add-url">Add</button>
+            </div>
+            <ol class="queue" id="np-queue"></ol>
+            <div class="field">
+                <span>Sketch <em>(optional: adds a slider so visitors can compare it with the first picture)</em></span>
+                <div class="inline-form">
+                    <input type="text" id="np-sketch" placeholder="img/sketch.png or https://..." aria-label="Sketch link">
+                    <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="np-sketch" hidden></label>
+                </div>
+            </div>
+            <label class="field"><span>The slider starts at</span><select id="np-sketch-start"><option value="middle">Half way</option><option value="sketch">The sketch</option><option value="finished">The finished piece</option></select></label>
+        </div>
+    </div>
+    <div class="form-foot">
+        <button class="btn btn-primary" data-action="publish-post" id="np-publish"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publish post</button>
+    </div>
+
+    <details class="drawer">
+        <summary>Upload many images as separate posts</summary>
+        <div class="drawer-body">
+            <p class="hint">Each image becomes its own post. The tags you picked above are added to all of them.</p>
+            <div class="dropzone small" id="bulk-drop" data-input="bulk-files" tabindex="0" role="button" aria-label="Choose images for bulk upload">
+                <p><strong>Choose images</strong> or drop them here</p>
+                <input type="file" id="bulk-files" accept="image/*" multiple hidden>
+            </div>
+            <div class="thumb-row" id="bulk-preview"></div>
+            <div class="progress" id="bulk-progress" hidden>
+                <div class="progress-row"><span id="bulk-progress-text">Uploading</span><span id="bulk-progress-count"></span></div>
+                <div class="progress-bar"><div class="progress-fill" id="bulk-progress-bar"></div></div>
+            </div>
+            <button class="btn btn-primary" data-action="bulk-upload" id="bulk-btn" disabled>Upload as separate posts</button>
+        </div>
+    </details>
+</div>
+
+<!-- Manage posts -->
+<div class="dash-panel" data-tab-panel="posts" role="tabpanel" hidden>
+    <div class="list-tools">
+        <label class="search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="mp-search" placeholder="Find a post" aria-label="Find a post">
+        </label>
+        <span class="section-count" id="mp-count"></span>
+    </div>
+    <div class="manage-list" id="mp-list"></div>
+</div>
+
+<!-- Comics -->
+<div class="dash-panel" data-tab-panel="comics" role="tabpanel" hidden>
+    <div class="form-card">
+        <h2>New comic</h2>
+        <div class="form-grid">
+            <label class="field"><span>Title</span><input type="text" id="nc-title" placeholder="Comic title"></label>
+            <label class="field"><span>Tags</span><input type="text" id="nc-tags" placeholder="fantasy, action"></label>
+            <label class="field"><span>Cover image link <em>(optional, page 1 is used if empty)</em></span><input type="url" id="nc-cover" placeholder="https://..."></label>
+            <label class="field"><span>Opens in <em>(readers can still switch)</em></span><select id="nc-mode"><option value="page">One page at a time</option><option value="scroll">Long scroll</option><option value="spread">Two pages, like a comic book</option></select></label>
+        </div>
+        <div class="dropzone small" id="nc-drop" data-input="nc-files" tabindex="0" role="button" aria-label="Choose comic pages">
+            <p><strong>Choose pages</strong> or drop them here, in reading order</p>
+            <input type="file" id="nc-files" accept="image/*" multiple hidden>
+        </div>
+        <p class="hint">Drag thumbnails to reorder. Pages upload to the comic's own folder on your site, like img/comics/space-cats/ for a comic called Space Cats.</p>
+        <div class="page-sorter" id="nc-pages"></div>
+        <div class="progress" id="nc-progress" hidden>
+            <div class="progress-row"><span id="nc-progress-text">Uploading</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="nc-progress-bar"></div></div>
+        </div>
+        <button class="btn btn-primary" data-action="comic-create">Create comic</button>
+    </div>
+
+    <div class="section-head">
+        <h2>Your comics</h2>
+        <div class="row-actions">
+            <button class="btn small" data-action="comics-download"><i class="fa-solid fa-download" aria-hidden="true"></i> comics.js</button>
+            <button class="btn small" data-action="comics-sync"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Sync comics</button>
+        </div>
+    </div>
+    <div class="manage-list" id="mc-list"></div>
+</div>
+
+<!-- Characters -->
+<div class="dash-panel" data-tab-panel="chars" role="tabpanel" hidden>
+    <div class="form-card">
+        <h2 id="chf-heading">New character</h2>
+        <div class="form-grid">
+            <label class="field"><span>Name</span><input type="text" id="chf-name" placeholder="Their name"></label>
+            <label class="field"><span>Tag that links their art <em>(posts with this tag show on their page)</em></span><input type="text" id="chf-tag" list="chf-tags" placeholder="their-name"><datalist id="chf-tags"></datalist></label>
+            <label class="field span-2"><span>One-line description</span><input type="text" id="chf-role" placeholder="Who they are, in a few words"></label>
+            <label class="field span-2"><span>Bio <em>(Markdown works: **bold**, *italic*)</em></span><textarea id="chf-bio" rows="4" placeholder="A few sentences about them"></textarea></label>
+            <div class="field span-2">
+                <span>Reference picture</span>
+                <div class="inline-form">
+                    <input type="text" id="chf-img" placeholder="img/reference.png or https://..." aria-label="Reference picture link">
+                    <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="chf-img" hidden></label>
+                </div>
+            </div>
+            <div class="field span-2">
+                <span>Colors <em>(picked from the reference picture; change any of them, or set all three to black to hide them)</em></span>
+                <div class="chf-colors">
+                    <input type="color" id="chf-c1" aria-label="First color">
+                    <input type="color" id="chf-c2" aria-label="Second color">
+                    <input type="color" id="chf-c3" aria-label="Third color">
+                    <button class="btn small" data-action="chf-pick-colors"><i class="fa-solid fa-palette" aria-hidden="true"></i> Pick from the picture</button>
+                </div>
+            </div>
+            <label class="field"><span>First drawn <em>(optional)</em></span><input type="text" id="chf-first" placeholder="Spring 2024"></label>
+            <label class="field"><span>Appears in <em>(optional)</em></span><input type="text" id="chf-appears" placeholder="A comic or series"></label>
+        </div>
+        <div class="form-foot">
+            <button class="btn btn-ghost" data-action="chf-cancel" id="chf-cancel" hidden>Cancel</button>
+            <button class="btn btn-primary" data-action="chf-save" id="chf-save">Add character</button>
+        </div>
+    </div>
+    <div class="section-head"><h2>Your characters</h2></div>
+    <div class="manage-list" id="chf-list"></div>
+    <div class="form-card">
+        <h2>Page intro</h2>
+        <label class="field"><span>A line at the top of the Characters page <em>(leave it empty for the standard one)</em></span><input type="text" id="chf-intro" placeholder="Everyone who shows up in my art"></label>
+        <div class="form-foot"><button class="btn" data-action="chf-intro-save">Save intro</button></div>
+    </div>
+</div>
+
+<!-- Series -->
+<div class="dash-panel" data-tab-panel="series" role="tabpanel" hidden>
+    <div class="form-card">
+        <h2 id="srf-heading">New series</h2>
+        <div class="form-grid">
+            <label class="field"><span>Title</span><input type="text" id="srf-name" placeholder="Inktober 2026"></label>
+            <label class="field"><span>Description <em>(optional)</em></span><input type="text" id="srf-desc" placeholder="What this series is about"></label>
+        </div>
+        <div class="field">
+            <span>Pieces, in order <em>(the first one is the cover; use the arrows or drag to reorder)</em></span>
+            <ol class="queue" id="srf-parts"></ol>
+        </div>
+        <div class="field">
+            <span>Add pieces <em>(tap a picture to add it, tap again to take it out)</em></span>
+            <input type="search" id="srf-search" placeholder="Search captions and tags" aria-label="Search your posts">
+            <div class="srf-pick" id="srf-pick"></div>
+        </div>
+        <div class="form-foot">
+            <button class="btn btn-ghost" data-action="srf-cancel" id="srf-cancel" hidden>Cancel</button>
+            <button class="btn btn-primary" data-action="srf-save" id="srf-save">Add series</button>
+        </div>
+    </div>
+    <div class="section-head"><h2>Your series</h2></div>
+    <div class="manage-list" id="srf-list"></div>
+</div>
+
+<!-- Commissions -->
+<div class="dash-panel" data-tab-panel="comm" role="tabpanel" hidden>
+    <fieldset class="group">
+        <legend>Page design</legend>
+        <p class="hint">How your Commissions page looks. In the three new designs the page shows only your tiers; picking one opens its own page with your add-ons, terms of service and the request button. Press Save to switch.</p>
+        <div class="ab-picks" role="radiogroup" aria-label="Commissions page design">
+            <label class="ab-pick"><input type="radio" name="comm-design" value="original"><span class="ab-mini cmx-mini is-original" aria-hidden="true"><i></i><i></i><i></i></span><b>Original poster</b><small>Your taped poster with a card for each tier</small></label>
+            <label class="ab-pick"><input type="radio" name="comm-design" value="event"><span class="ab-mini cmx-mini is-event" aria-hidden="true"><i></i><i></i><i></i></span><b>Rounded panels</b><small>Bright panels with a white star, and art-tool stickers</small></label>
+            <label class="ab-pick"><input type="radio" name="comm-design" value="signal"><span class="ab-mini cmx-mini is-signal" aria-hidden="true"><i></i><i></i><i></i></span><b>Poster frame</b><small>A sky poster with orbit rings over a yellow strip of tiers</small></label>
+            <label class="ab-pick"><input type="radio" name="comm-design" value="strips"><span class="ab-mini cmx-mini is-strips" aria-hidden="true"><i></i><i></i><i></i></span><b>Character strips</b><small>Tall slanted posters; the one you pick slides left</small></label>
+        </div>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Open or closed</legend>
+        <button type="button" class="cm-switch" id="cm-switch" data-action="comm-toggle" aria-pressed="false">
+            <span class="cm-switch-tapes" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="cm-switch-text">
+                <strong id="cm-switch-label">Commissions are open</strong>
+                <span id="cm-switch-sub">Click to close them and tape off your Commissions page.</span>
+            </span>
+        </button>
+        <p class="hint">This button saves and syncs straight away. Your status badge flips between Open and Closed with it, unless you've written your own.</p>
+        <div class="field">
+            <span>Status badge</span>
+            <div class="chips" id="status-presets"></div>
+        </div>
+        <div class="form-grid">
+            <label class="field"><span>Status text</span><input type="text" id="s-status-text" placeholder="AVAILABLE FOR COMMISSIONS"></label>
+            <label class="field field-color"><span>Status color</span><input type="color" id="s-status-color"></label>
+        </div>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Page text</legend>
+        <div class="form-grid">
+            <label class="field"><span>Big title</span><input type="text" id="cm-f-title" placeholder="COMMISSIONS" maxlength="24"></label>
+            <label class="field"><span>Name on the blue tape</span><input type="text" id="cm-f-handle" placeholder="Your site name"></label>
+            <label class="field span-2"><span>Contact line on the blue tape</span><input type="text" id="cm-f-contact" placeholder="DM or you@email.com"></label>
+            <label class="field"><span>Request link <em>(a form, or mailto:you@site.com)</em></span><input type="text" id="s-comm-link" placeholder="https://..."></label>
+            <label class="field"><span>Request button text</span><input type="text" id="cm-f-button" placeholder="Request a commission"></label>
+        </div>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Tiers</legend>
+        <p class="hint">Each tier is a card with example art, its name running down the side, your notes and a price badge. Art with a see-through background (a PNG) can pop out of its frame like a sticker. <strong>Spots</strong> is how many of that tier you take at a time: when they're all filled, the new designs show "Full right now" and turn off its request button.</p>
+        <div class="tier-list" id="cm-tier-list"></div>
+        <button type="button" class="btn" data-action="tier-add" style="align-self:flex-start"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add tier</button>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Add-ons</legend>
+        <p class="hint">Extras buyers can add on a tier's page, like an extra character. The new designs add them to the total.</p>
+        <div class="addon-list" id="cm-addon-list"></div>
+        <button type="button" class="btn" data-action="addon-add" style="align-self:flex-start"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add an add-on</button>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Terms of service</legend>
+        <p class="hint">Sections like Ordering, Payment or Refunds. Each one opens and closes on the page.</p>
+        <div class="tier-list" id="cm-tsec-list"></div>
+        <button type="button" class="btn" data-action="tsec-add" style="align-self:flex-start"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add a section</button>
+        <div class="form-grid">
+            <label class="field"><span>Will draw <em>(one per line)</em></span><textarea id="cm-f-will" rows="3" placeholder="Original characters&#10;Fan art"></textarea></label>
+            <label class="field"><span>Won't draw <em>(one per line; shown in red)</em></span><textarea id="cm-f-wont" rows="3" placeholder="Gore&#10;Hateful content"></textarea></label>
+        </div>
+        <label class="check"><input type="checkbox" id="cm-f-agree"> <span>Buyers must tick "I've read the terms" before the request button works <em>(new designs)</em></span></label>
+        <label class="field"><span>Simple terms <em>(one per line; Markdown works; used only when you have no sections above)</em></span><textarea id="cm-f-terms" rows="4" placeholder="Payment upfront via PayPal or Ko-fi.&#10;No refunds once work has started."></textarea></label>
+        <div class="field">
+            <span>Picture beside the terms <em>(leave empty to use your profile picture)</em></span>
+            <div class="inline-form">
+                <input type="text" id="cm-f-termspic" placeholder="img/me.png or https://..." aria-label="Picture beside the terms">
+                <button type="button" class="btn small" data-action="pick-image" data-target="cm-f-termspic">From posts</button>
+                <label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="cm-f-termspic" hidden></label>
+            </div>
+        </div>
+        <label class="field"><span>Extra details <em>(optional, shown under the terms; Markdown works)</em></span><textarea id="s-comm-info" rows="5"></textarea></label>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>When closed</legend>
+        <div class="hz-sample" aria-hidden="true"><span id="cm-tape-sample">COMMISSIONS CLOSED</span></div>
+        <label class="field"><span>Words on the hazard tape <em>(one per line)</em></span><textarea id="cm-f-tape" rows="3" placeholder="COMMISSIONS CLOSED&#10;CLOSED&#10;CHECK BACK SOON"></textarea></label>
+        <label class="field"><span>Closed message <em>(optional, shown under the title)</em></span><input type="text" id="cm-f-closednote" placeholder="Back soon! Follow me to hear when slots open."></label>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Poster colors</legend>
+        <div class="swatches compact">
+            <label class="swatch"><input type="color" id="cm-f-paper"><span>Paper</span></label>
+            <label class="swatch"><input type="color" id="cm-f-ink"><span>Ink</span></label>
+            <label class="swatch"><input type="color" id="cm-f-tapecolor"><span>Corner tape</span></label>
+        </div>
+        <button type="button" class="btn small" data-action="comm-colors-reset" style="align-self:flex-start">Reset poster colors</button>
+    </fieldset>
+
+    <div class="form-foot sticky-foot">
+        <a class="btn btn-ghost" href="#/commissions">View page</a>
+        <button class="btn btn-primary" data-action="comm-save">Save &amp; sync</button>
+    </div>
+</div>
+
+<!-- Site info -->
+<div class="dash-panel" data-tab-panel="site" role="tabpanel" hidden>
+    <fieldset class="group">
+        <legend>Identity</legend>
+        <div class="form-grid">
+            <label class="field"><span>Site name</span><input type="text" id="s-sitename"></label>
+            <label class="field"><span>Tagline</span><input type="text" id="s-tagline"></label>
+            <label class="field"><span>Name for your posts</span><input type="text" id="s-feedname" placeholder="Works"></label>
+            <label class="field"><span>Copyright line</span><input type="text" id="s-copyright" placeholder="2026 NEERG"></label>
+            <div class="field span-2">
+                <span>Profile picture</span>
+                <div class="inline-form">
+                    <input type="text" id="s-pfp" placeholder="img/me.png or https://..." aria-label="Profile picture link">
+                    <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="s-pfp" hidden></label>
+                </div>
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>About page</legend>
+        <div class="field">
+            <span>Cover design</span>
+            <div class="ab-picks" role="radiogroup" aria-label="About page design">
+                <label class="ab-pick"><input type="radio" name="about-style" value="broadcast"><span class="ab-mini is-broadcast" aria-hidden="true"><i></i><i></i><i></i></span><b>Broadcast</b><small>A VHS screen with your newest art and TV listings</small></label>
+                <label class="ab-pick"><input type="radio" name="about-style" value="mixtape"><span class="ab-mini is-mixtape" aria-hidden="true"><i></i><i></i><i></i></span><b>Mixtape</b><small>A cassette label, a shelf of tapes and a label sheet</small></label>
+                <label class="ab-pick"><input type="radio" name="about-style" value="spectrum"><span class="ab-mini is-spectrum" aria-hidden="true"><i></i><i></i><i></i></span><b>Spectrum</b><small>A rainbow label poster with your posts as tour dates</small></label>
+            </div>
+        </div>
+        <label class="field"><span>Bio <em>(Markdown works)</em></span><textarea id="s-bio" rows="5" placeholder="Who you are, what you make, what you're into."></textarea></label>
+    </fieldset>
+
+    <p class="hint">Commission prices, status and terms now live in their own <a href="#/admin" data-action="goto-admin-tab" data-tab="comm">Commissions</a> tab.</p>
+
+    <fieldset class="group">
+        <legend>Visitors</legend>
+        <label class="check"><input type="checkbox" id="s-agegate"> <span>Ask first-time visitors to confirm they're 18 or older</span></label>
+        <label class="field"><span>Theme for first-time visitors <em>(they can still switch with the sun/moon button)</em></span>
+            <select id="s-start-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="device">Match their phone or computer</option></select>
+        </label>
+        <label class="check"><input type="checkbox" id="s-blur"> <span>Blur posts tagged NSFW until a visitor taps to reveal</span></label>
+        <label class="check"><input type="checkbox" id="s-comments"> <span>Allow comments</span></label>
+        <label class="check"><input type="checkbox" id="s-reactions"> <span>Show like and dislike buttons</span></label>
+        <div class="form-grid">
+            <label class="field"><span>Reaction style</span>
+                <select id="s-reaction-style">
+                    <option value="thumb">Thumbs</option>
+                    <option value="arrow">Arrows</option>
+                    <option value="faces">Custom text</option>
+                </select>
+            </label>
+            <label class="field"><span>Featured posts on Home</span>
+                <select id="s-featured">
+                    <option value="recent">Newest work</option>
+                    <option value="popular">Most liked</option>
+                    <option value="pinned">Pinned posts only</option>
+                    <option value="off">Hide featured</option>
+                </select>
+            </label>
+            <label class="field"><span>Recommended comic on Home</span>
+                <select id="s-rec-comic">
+                    <option value="">Newest comic</option>
+                    <option value="off">Don't show one</option>
+                </select>
+            </label>
+            <label class="field"><span>Like text <em>(custom text style)</em></span><input type="text" id="s-like-label"></label>
+            <label class="field"><span>Dislike text <em>(custom text style)</em></span><input type="text" id="s-dislike-label"></label>
+        </div>
+    </fieldset>
+
+    <fieldset class="group aotd-admin">
+        <legend>Art of Today pop-up</legend>
+        <label class="check"><input type="checkbox" id="s-aotd"> <span>Show a pop-up with one piece from your archive the first time someone visits each day <em>(closing it hides it until tomorrow)</em></span></label>
+
+        <div class="aotd-sec">
+            <h3 class="aotd-h">Design</h3>
+            <div class="aotd-modes" role="radiogroup" aria-label="How the design is picked">
+                <label class="aotd-mode"><input type="radio" name="aotd-mode" value="random"> A different design every day</label>
+                <label class="aotd-mode"><input type="radio" name="aotd-mode" value="one"> Always use one design</label>
+            </div>
+            <p class="hint" id="aotd-mode-help"></p>
+            <div class="aotd-tiles" id="aotd-tiles"></div>
+            <p class="hint">Some designs have a color to choose under their picture. The eye button previews that design.</p>
+        </div>
+
+        <div class="aotd-sec">
+            <h3 class="aotd-h">Artwork</h3>
+            <label class="check"><input type="radio" name="aotd-art" value="all"> <span>A random piece from all posts</span></label>
+            <label class="check"><input type="radio" name="aotd-art" value="board"> <span>A random piece from one board</span></label>
+            <label class="field aotd-indent" id="aotd-board-field"><span>Board</span><select id="s-aotd-board"></select></label>
+            <label class="check"><input type="radio" name="aotd-art" value="pick"> <span>The same piece I pick</span></label>
+            <div class="aotd-indent aotd-pick" id="aotd-pick-field">
+                <span class="aotd-pick-show" id="aotd-pick-show"></span>
+                <button type="button" class="btn small" data-action="aotd-choose">Choose a piece</button>
+                <input type="hidden" id="s-aotd-post">
+            </div>
+            <label class="check"><input type="checkbox" id="s-aotd-nsfw"> <span>Skip posts tagged NSFW <em>(the pop-up can appear on top of any page, so this keeps it safe to open anywhere)</em></span></label>
+        </div>
+
+        <div class="aotd-sec">
+            <h3 class="aotd-h">Words and timing</h3>
+            <div class="form-grid">
+                <label class="field"><span>Headline</span><input type="text" id="s-aotd-headline" maxlength="40" placeholder="Art of Today"></label>
+                <label class="field"><span>Message <em>(leave empty for none)</em></span><input type="text" id="s-aotd-message" maxlength="80" placeholder="One piece a day, picked just for you."></label>
+                <label class="field"><span>Show it after</span>
+                    <select id="s-aotd-delay">
+                        <option value="1">1 second</option>
+                        <option value="2">2 seconds</option>
+                        <option value="5">5 seconds</option>
+                    </select>
+                </label>
+                <label class="field"><span>Animation</span>
+                    <select id="s-aotd-anim">
+                        <option value="design">Each design's own entrance and exit</option>
+                        <option value="fade">Simple fade</option>
+                        <option value="none">No animation</option>
+                    </select>
+                </label>
+            </div>
+            <p class="hint">Visitors whose device asks for less motion always get a simple fade.</p>
+            <label class="check"><input type="checkbox" id="s-aotd-phones"> <span>Also show it on phones</span></label>
+            <p class="hint">Each visitor sees it once a day. Everyone gets the same piece and design on the same day.</p>
+            <div><button type="button" class="btn" data-action="preview-aotd"><i class="fa-regular fa-eye" aria-hidden="true"></i> Preview today's pop-up</button></div>
+        </div>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Search and sharing</legend>
+        <div class="form-grid">
+            <label class="field"><span>Browser tab title</span><input type="text" id="s-title"></label>
+            <label class="field"><span>Description for search engines</span><input type="text" id="s-desc"></label>
+        </div>
+        <p class="hint">When someone shares a link to your site on Discord, Bluesky, X or in a text message, it shows this title and description with a picture. Browsers show the tab icon next to the title.</p>
+        <div class="form-grid">
+            <label class="field"><span>Link picture</span>
+                <select id="lp-pic"><option value="newest">My newest piece</option><option value="pfp">My profile picture</option><option value="own">A picture I choose</option></select>
+            </label>
+            <label class="field"><span>Tab icon</span>
+                <select id="lp-icon"><option value="pfp">My profile picture</option><option value="pic">Same as the link picture</option><option value="own">A picture I choose</option></select>
+            </label>
+        </div>
+        <div class="field" id="lp-pic-field" hidden>
+            <span>Picture for links</span>
+            <div class="inline-form">
+                <input type="text" id="lp-pic-url" placeholder="img/..." aria-label="Picture for links">
+                <button type="button" class="btn small" data-action="pick-image" data-target="lp-pic-url">From posts</button>
+                <label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="lp-pic-url" hidden></label>
+            </div>
+        </div>
+        <div class="field" id="lp-icon-field" hidden>
+            <span>Picture for the tab icon <em>(a square one works best)</em></span>
+            <div class="inline-form">
+                <input type="text" id="lp-icon-url" placeholder="img/..." aria-label="Picture for the tab icon">
+                <button type="button" class="btn small" data-action="pick-image" data-target="lp-icon-url">From posts</button>
+                <label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="lp-icon-url" hidden></label>
+            </div>
+        </div>
+        <div class="lp-preview" aria-hidden="true">
+            <div class="lp-tab"><img id="lp-tab-icon" alt=""><span id="lp-tab-title"></span><i class="fa-solid fa-xmark"></i></div>
+            <div class="lp-card">
+                <small id="lp-card-site"></small>
+                <strong id="lp-card-title"></strong>
+                <span id="lp-card-desc"></span>
+                <img id="lp-card-img" alt="">
+            </div>
+        </div>
+        <p class="lp-status" id="lp-status" role="status"></p>
+        <label class="check"><input type="checkbox" id="s-feed"> <span>Keep an RSS feed, so people can follow your new posts in a feed reader <em>(feed.xml, updated whenever you save a post)</em></span></label>
+        <p class="lp-status" id="feed-status" role="status"></p>
+        <div class="row-actions">
+            <button class="btn" data-action="lp-update" id="lp-update"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Update link preview</button>
+            <button class="btn btn-ghost" data-action="lp-download" id="lp-download" hidden><i class="fa-solid fa-download" aria-hidden="true"></i> Download index.html</button>
+        </div>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Advanced</legend>
+        <div class="field">
+            <span>Page background image <em>(optional)</em></span>
+            <div class="inline-form">
+                <input type="text" id="s-bgimage" placeholder="https://..." aria-label="Background image link">
+                <label class="btn file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" data-upload-target="s-bgimage" hidden></label>
+            </div>
+        </div>
+        <label class="check"><input type="checkbox" id="s-webp"> <span>Save uploaded PNG and JPG images as smaller WebP files <em>(saves Neocities space; animated images are left alone)</em></span></label>
+        <label class="field"><span>Custom CSS</span><textarea id="s-css" rows="5" class="code" spellcheck="false"></textarea></label>
+        <label class="field"><span>New Neocities API key <em>(only if you regenerated it)</em></span><input type="password" id="s-newkey" autocomplete="off" placeholder="Leave empty to keep your current key"></label>
+    </fieldset>
+
+    <div class="form-foot sticky-foot">
+        <button class="btn btn-primary" data-action="site-save">Save &amp; sync</button>
+    </div>
+</div>
+
+<!-- Colors & style -->
+<div class="dash-panel" data-tab-panel="look" role="tabpanel" hidden>
+    <fieldset class="group">
+        <legend>Palette</legend>
+        <p class="hint">Your site has a dark and a light palette. Visitors switch between them with the sun and moon button. Changes preview live on this page.</p>
+        <div class="seg" role="group" aria-label="Palette to edit">
+            <button data-action="studio-mode" data-mode="dark" aria-pressed="true"><i class="fa-solid fa-moon" aria-hidden="true"></i> Dark palette</button>
+            <button data-action="studio-mode" data-mode="light" aria-pressed="false"><i class="fa-solid fa-sun" aria-hidden="true"></i> Light palette</button>
+        </div>
+        <div class="swatches" id="studio-swatches"></div>
+        <p class="contrast" id="studio-contrast"></p>
+
+        <div class="field">
+            <span>Start from a preset</span>
+            <div class="presets" id="studio-presets"></div>
+        </div>
+
+        <div class="generator">
+            <label class="field field-color"><span>Build from one color</span><input type="color" id="gen-base" value="#fb3640"></label>
+            <label class="field"><span>Color harmony</span>
+                <select id="gen-harmony">
+                    <option value="analogous">Analogous: neighbors, calm</option>
+                    <option value="complementary">Complementary: opposites, punchy</option>
+                    <option value="split">Split complementary: lively but balanced</option>
+                    <option value="triadic">Triadic: playful</option>
+                    <option value="tetradic">Tetradic: lots of variety</option>
+                    <option value="mono">Monochrome: one hue</option>
+                </select>
+            </label>
+            <button class="btn" data-action="studio-generate"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Generate</button>
+        </div>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Reaction buttons</legend>
+        <div class="swatches compact">
+            <label class="swatch"><input type="color" id="c-like"><span>Like</span></label>
+            <label class="swatch"><input type="color" id="c-like-ink"><span>Like text</span></label>
+            <label class="swatch"><input type="color" id="c-dislike"><span>Dislike</span></label>
+            <label class="swatch"><input type="color" id="c-dislike-ink"><span>Dislike text</span></label>
+        </div>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Profile ring</legend>
+        <div class="ring-editor">
+            <div class="ring ring-preview" id="ring-preview"><span class="ring-fallback" aria-hidden="true">✦</span></div>
+            <div class="ring-controls">
+                <div class="field">
+                    <span>Gradient colors</span>
+                    <div class="color-row">
+                        <input type="color" id="ring-c1" aria-label="Ring color 1">
+                        <input type="color" id="ring-c2" aria-label="Ring color 2">
+                        <input type="color" id="ring-c3" aria-label="Ring color 3">
+                    </div>
+                </div>
+                <div class="presets ring-presets" id="ring-presets"></div>
+                <div class="form-grid">
+                    <label class="field"><span>Direction</span>
+                        <select id="ring-dir">
+                            <option value="135deg">Diagonal ↘</option>
+                            <option value="to right">Horizontal →</option>
+                            <option value="to bottom">Vertical ↓</option>
+                            <option value="to top right">Diagonal ↗</option>
+                            <option value="circle">Radial</option>
+                        </select>
+                    </label>
+                    <label class="field"><span>Thickness <output id="ring-width-out">4px</output></span><input type="range" id="ring-width" min="2" max="12" value="4"></label>
+                    <label class="field"><span>Glow <output id="ring-glow-out">8px</output></span><input type="range" id="ring-glow" min="0" max="30" value="8"></label>
+                </div>
+            </div>
+        </div>
+    </fieldset>
+
+    <div class="form-foot sticky-foot">
+        <span class="unsaved" id="studio-unsaved" hidden>Unsaved color changes</span>
+        <button class="btn btn-ghost" data-action="studio-discard">Discard</button>
+        <button class="btn btn-primary" data-action="studio-save">Save &amp; sync</button>
+    </div>
+</div>
+
+<!-- Home page: header, text band and side sliders -->
+<div class="dash-panel" data-tab-panel="banner" role="tabpanel" hidden>
+    <fieldset class="group">
+        <legend>Header panels</legend>
+        <div class="seg" role="group" aria-label="Where header images come from">
+            <button data-action="banner-mode" data-mode="auto" aria-pressed="true">Latest posts</button>
+            <button data-action="banner-mode" data-mode="manual" aria-pressed="false">Pick my own</button>
+        </div>
+        <label class="field narrow"><span>Number of panels</span>
+            <select id="bn-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+        </label>
+        <p class="hint" id="bn-auto-hint">Your newest image posts fill the header automatically.</p>
+        <div class="banner-rows" id="bn-manual" hidden></div>
+        <p class="hint" id="bn-manual-hint" hidden>Any panel you leave empty uses one of your newest posts.</p>
+    </fieldset>
+
+    <fieldset class="group">
+        <legend>Scrolling text band</legend>
+        <label class="check"><input type="checkbox" id="bn-marquee"> <span>Show a scrolling text band under the header</span></label>
+        <div id="bn-marquee-fields" hidden>
+            <label class="field"><span>Text, one item per line</span><textarea id="bn-items" rows="4" placeholder="NEW WORK EVERY WEEK&#10;COMMISSIONS OPEN"></textarea></label>
+            <div class="form-grid">
+                <label class="field"><span>Speed <output id="bn-speed-out">20s per loop</output></span><input type="range" id="bn-speed" min="5" max="60" value="20"></label>
+                <label class="field narrow"><span>Separator</span><input type="text" id="bn-sep" maxlength="3" value="✦"></label>
+                <label class="field field-color"><span>Band color</span><input type="color" id="bn-bg"></label>
+                <label class="field field-color"><span>Text color</span><input type="color" id="bn-fg"></label>
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="group sl-admin">
+        <legend>Side sliders</legend>
+        <p class="hint">Tall sliders beside Recent works that show one picture at a time and keep moving to the next. Laptops show only the right one, and phones show one sideways under the comics bar.</p>
+        <div class="sl-layout">
+            <div class="sl-fields">
+                <div class="form-grid">
+                    <label class="field"><span>Where they sit</span>
+                        <select id="sl-where">
+                            <option value="both">Both sides</option>
+                            <option value="right">Right only</option>
+                            <option value="left">Left only</option>
+                            <option value="off">Off</option>
+                        </select>
+                    </label>
+                    <label class="field"><span>What they show</span>
+                        <select id="sl-show">
+                            <option value="random">Random art, a new mix every visit</option>
+                            <option value="newest">Newest art</option>
+                            <option value="pick">Pieces I pick</option>
+                            <option value="comics">Comics</option>
+                            <option value="mix">Art, comics and a commissions ad</option>
+                            <option value="own">My own images</option>
+                        </select>
+                    </label>
+                    <label class="field"><span>Change every <output id="sl-secs-out">3 seconds</output></span><input type="range" id="sl-secs" min="2" max="10" value="3"></label>
+                    <label class="field"><span>Slide direction</span>
+                        <select id="sl-dir">
+                            <option value="up">Up</option>
+                            <option value="down">Down</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="field" id="sl-pick-field">
+                    <span>Pieces I pick <em id="sl-pick-count"></em></span>
+                    <div class="sl-picks" id="sl-picks"></div>
+                </div>
+                <div class="field" id="sl-own-field">
+                    <span>My own images <em>(each can link anywhere)</em></span>
+                    <div class="sl-own" id="sl-own"></div>
+                    <button type="button" class="btn small" data-action="sl-own-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add image</button>
+                </div>
+            </div>
+            <div class="sl-preview">
+                <span class="sl-preview-label">Preview</span>
+                <div class="ha-rail" id="sl-preview"></div>
+            </div>
+        </div>
+    </fieldset>
+
+    <div class="form-foot sticky-foot">
+        <button class="btn btn-primary" data-action="banner-save">Save &amp; sync</button>
+    </div>
+</div>
+
+<!-- Social links -->
+<div class="dash-panel" data-tab-panel="links" role="tabpanel" hidden>
+    <fieldset class="group">
+        <legend>Social links</legend>
+        <p class="hint">These show on your header, About page, Commissions page and footer.</p>
+        <div class="links-editor" id="links-editor"></div>
+        <button class="btn" data-action="link-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add link</button>
+    </fieldset>
+    <div class="form-foot sticky-foot">
+        <button class="btn btn-primary" data-action="links-save">Save &amp; sync</button>
+    </div>
+</div>
+`;
+
+// The windows only Admin opens: add pages to a comic, then clean up and the picture picker
+const ADMIN_WINDOWS = [`<div class="overlay modal" id="ap-modal" role="dialog" aria-modal="true" aria-labelledby="ap-heading" hidden>
+    <div class="modal-card">
+        <div class="modal-head">
+            <div>
+                <h2 id="ap-heading">Add pages</h2>
+                <p class="modal-sub"><span id="ap-title"></span> <span id="ap-count"></span></p>
+            </div>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="dropzone small" id="ap-drop" data-input="ap-files" tabindex="0" role="button" aria-label="Choose new pages">
+            <p><strong>Choose new pages</strong> or drop them here</p>
+            <input type="file" id="ap-files" accept="image/*" multiple hidden>
+        </div>
+        <p class="hint">New pages go after the last page. Drag to reorder before uploading.</p>
+        <div class="page-sorter" id="ap-pages"></div>
+        <div class="progress" id="ap-progress" hidden>
+            <div class="progress-row"><span id="ap-progress-text">Uploading</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="ap-progress-bar"></div></div>
+        </div>
+        <div class="form-foot">
+            <button class="btn btn-ghost" data-action="modal-close">Cancel</button>
+            <button class="btn btn-primary" data-action="ap-submit">Upload &amp; add pages</button>
+        </div>
+    </div>
+</div>`, `<div class="overlay modal" id="cleanup-modal" role="dialog" aria-modal="true" aria-labelledby="cleanup-heading" hidden>
+    <div class="modal-card">
+        <div class="modal-head">
+            <h2 id="cleanup-heading">Clean up your data</h2>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <h3 class="mini-head">Storage</h3>
+        <div class="bars" id="cleanup-bars"></div>
+        <p class="hint" id="cleanup-total"></p>
+        <h3 class="mini-head">What we found</h3>
+        <div class="issues" id="cleanup-issues"></div>
+        <h3 class="mini-head">Tools</h3>
+        <div class="tool-grid">
+            <button class="btn small" data-action="cleanup" data-fn="trim"><i class="fa-solid fa-scissors" aria-hidden="true"></i> Trim extra spaces</button>
+            <button class="btn small" data-action="cleanup" data-fn="dupes"><i class="fa-solid fa-copy" aria-hidden="true"></i> Remove duplicates</button>
+            <button class="btn small" data-action="cleanup" data-fn="orphans"><i class="fa-solid fa-ghost" aria-hidden="true"></i> Clear orphaned likes</button>
+            <button class="btn small" data-action="cleanup" data-fn="empty"><i class="fa-solid fa-broom" aria-hidden="true"></i> Strip empty fields</button>
+            <button class="btn small" data-action="cleanup" data-fn="compact"><i class="fa-solid fa-compress" aria-hidden="true"></i> Compact data</button>
+            <button class="btn small" data-action="cleanup" data-fn="base64"><i class="fa-solid fa-image" aria-hidden="true"></i> Strip inline images</button>
+            <button class="btn small danger" data-action="cleanup" data-fn="old"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i> Delete old posts</button>
+            <button class="btn small danger" data-action="cleanup" data-fn="nuke"><i class="fa-solid fa-fire" aria-hidden="true"></i> Erase all likes &amp; comments</button>
+        </div>
+        <h3 class="mini-head">Shrink images</h3>
+        <div class="shrink">
+            <p class="hint" id="shrink-info">Makes smaller WebP copies of the PNG and JPG images on your site and switches your posts over to them.</p>
+            <div class="progress" id="shrink-progress" hidden>
+                <div class="progress-row"><span id="shrink-text">Shrinking</span><span id="shrink-count"></span></div>
+                <div class="progress-bar"><div class="progress-fill" id="shrink-bar"></div></div>
+            </div>
+            <div class="row-actions">
+                <button class="btn small" data-action="shrink-start" id="shrink-start"><i class="fa-solid fa-feather" aria-hidden="true"></i> Shrink images to WebP</button>
+                <button class="btn small btn-ghost" data-action="shrink-stop" id="shrink-stop" hidden>Stop after this one</button>
+            </div>
+            <div class="shrink-left" id="shrink-left" hidden>
+                <p><strong id="shrink-left-count"></strong> Your posts no longer use these, so delete them in your <a href="https://neocities.org/dashboard" target="_blank" rel="noopener">Neocities dashboard</a> to free up the space.</p>
+                <textarea id="shrink-list" class="code" rows="5" readonly aria-label="Old image files to delete"></textarea>
+                <div class="row-actions">
+                    <button class="btn small" data-action="shrink-copy"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy list</button>
+                    <button class="btn small" data-action="shrink-download"><i class="fa-solid fa-download" aria-hidden="true"></i> Download list</button>
+                    <button class="btn small btn-ghost" data-action="shrink-forget">I've deleted them</button>
+                </div>
+            </div>
+        </div>
+        <h3 class="mini-head">Small previews</h3>
+        <div class="shrink">
+            <p class="hint" id="pv-info">Makes small copies of your pictures for cards, boards and sliders, so pages load faster.</p>
+            <div class="progress" id="pv-progress" hidden>
+                <div class="progress-row"><span id="pv-text">Making previews</span><span id="pv-count"></span></div>
+                <div class="progress-bar"><div class="progress-fill" id="pv-bar"></div></div>
+            </div>
+            <div class="row-actions">
+                <button class="btn small" data-action="pv-start" id="pv-start"><i class="fa-solid fa-image" aria-hidden="true"></i> Make small previews</button>
+                <button class="btn small btn-ghost" data-action="pv-stop" id="pv-stop" hidden>Stop after this one</button>
+            </div>
+        </div>
+        <h3 class="mini-head">Activity</h3>
+        <div class="log" id="cleanup-log"><div class="log-entry dim">Nothing run yet.</div></div>
+        <div class="form-foot">
+            <button class="btn btn-primary btn-block" data-action="cleanup" data-fn="full">Run all safe cleanups &amp; sync</button>
+        </div>
+    </div>
+</div>
+
+<div class="overlay modal" id="picker-modal" role="dialog" aria-modal="true" aria-labelledby="picker-heading" hidden>
+    <div class="modal-card wide">
+        <div class="modal-head">
+            <h2 id="picker-heading">Choose an image</h2>
+            <button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="picker-grid" id="picker-grid"></div>
+    </div>
+</div>`];
+
+function buildDashboard() {
+    byId('admin-panel').innerHTML = ADMIN_HTML;
+    // index.html marks where each window goes, so the page ends up in the same order as before
+    ADMIN_WINDOWS.forEach((html, i) => { byId('admin-window-' + i).outerHTML = html; });
+
+    byId('mp-search').addEventListener('input', debounce(() => renderManagePosts(), 150));
+    byId('srf-search').addEventListener('input', debounce(() => renderSeriesPicker(), 150));
+    // A newly uploaded or pasted reference picture fills in the character's colors
+    byId('chf-img').addEventListener('input', debounce(() => pickCharacterColors(true), 500));
+
+    // Admin form inputs
+    document.addEventListener('input', e => {
+        const t = e.target;
+        if (t.dataset && t.dataset.studioKey) Studio.setKey(t.dataset.studioKey, t.value);
+        else if (t.id === 'c-like') Studio.setShared('like', t.value);
+        else if (t.id === 'c-like-ink') Studio.setShared('likeBtn', t.value);
+        else if (t.id === 'c-dislike') Studio.setShared('dislike', t.value);
+        else if (t.id === 'c-dislike-ink') Studio.setShared('dislikeBtn', t.value);
+        else if (/^ring-/.test(t.id)) Studio.readRing();
+        else if (t.id === 'bn-speed') byId('bn-speed-out').textContent = t.value + 's per loop';
+        else if (t.id === 'np-later') syncScheduleField();
+        else if (t.id === 's-feed') renderFeedStatus();
+        else if (/^lp-|^s-(title|desc|sitename|tagline|pfp)$/.test(t.id)) linkPreviewSoon();
+        else if (/^sl-/.test(t.id) || t.closest('.sl-own')) syncSliderForm();
+        else if (/^bn-img-\d$/.test(t.id)) { const prev = t.parentElement.querySelector('.prev'); if (prev) prev.style.backgroundImage = 'url("' + safeUrl(t.value).replace(/"/g, '%22') + '")'; }
+        else if (t.id === 's-status-color') document.documentElement.style.setProperty('--status', t.value);
+        else if (t.id === 'cm-f-tape') syncTapeSample();
+        else if (/^(image|color|name)$/.test(t.name) && t.closest('.tier-row')) refreshTierThumb(t.closest('.tier-row'));
+    });
+    document.addEventListener('change', e => {
+        const t = e.target;
+        if (t.dataset && t.dataset.uploadTarget) uploadIntoField(t);
+        else if (t.id === 'ec-swap-file') editComicSwapPicked(t);
+        else if (t.id === 'bn-count' || t.id === 'bn-marquee') syncBannerForm();
+        else if (t.id === 'ring-dir') Studio.readRing();
+        else if (t.name === 'aotd-mode' && Aotd.draft) { Aotd.draft.mode = t.value; renderAotdTiles(); }
+        else if (t.name === 'aotd-art') syncAotdArtFields();
+        else if (t.classList && t.classList.contains('aotd-tile-color') && Aotd.draft) { Aotd.draft.colors[t.dataset.id] = t.value; const m = t.closest('.aotd-tile').querySelector('.aotd-mini-wrap'); if (m) m.style.setProperty('--mc', t.value); }
+    });
+
+    // Paste images straight into a new post
+    byId('np-content').addEventListener('paste', e => {
+        const files = Array.from((e.clipboardData && e.clipboardData.files) || []).filter(f => /^image\//.test(f.type));
+        if (files.length) { e.preventDefault(); addFilesToQueue(files); showToast('Image added to the post'); }
+    });
+
+    wireDropzone(byId('np-drop'), files => addFilesToQueue(files));
+    wireDropzone(byId('bulk-drop'), files => setBulkFiles(files));
+    wireDropzone(byId('nc-drop'), files => setComicFiles(files, 'nc'));
+    wireDropzone(byId('ap-drop'), files => setComicFiles(files, 'ap'));
+}
+buildDashboard();
 
 window.NEERG_ADMIN = true;

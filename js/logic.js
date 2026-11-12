@@ -1,9 +1,10 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.24 · logic.js                                         ║
+ ║  NEERG 7.0.25 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
- ║  The admin tools live in admin.js, loaded when Admin opens.      ║
+ ║  Parts only some visits need load when they're used (see lazy):  ║
+ ║  admin.js, about.js, comm.js, aotd.js and their styles.          ║
  ║  Your content lives in four files on Neocities:                  ║
  ║    system.js        settings, admin hash, secure token           ║
  ║    posts.js         every post                                   ║
@@ -20,9 +21,9 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.24';
+const NEERG_VERSION = '7.0.25';
 // Where the code files live: the js folder beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
-// admin.js, about.js and comm.js load from this same folder; about.css and comm.css from the css folder beside it.
+// The files that load when they're needed (see lazy below) come from this same folder, their styles from the css folder beside it.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
 const FIXED_BRIDGE_URL = 'https://applchu.link/lbm/0.4/bridge.html?v=' + Date.now();
 const BRIDGE_ORIGIN = new URL(FIXED_BRIDGE_URL).origin;
@@ -59,7 +60,6 @@ const KEYS = {
 const AGE_OK_DAYS = 30;
 const FEED_STEP = 12;
 const BOARD_STEP = 48;
-const PRESET_TAGS = ['SFW', 'NSFW', 'Sketch', 'Commissions', 'Animation', 'Fanart', 'OC', 'WIP'];
 const VIEWS = ['home', 'gallery', 'characters', 'comics', 'commissions', 'about', 'admin'];
 
 const DEFAULT_DARK = {
@@ -73,15 +73,6 @@ const DEFAULT_LIGHT = {
 
 /* Palette order in presets: [bg, text, cards, accent, post bg, borders, highlight] */
 const PALETTE_KEYS = ['bg', 'text', 'sidebar', 'accent', 'leaflet', 'border', 'navActive'];
-const PALETTE_LABELS = {
-    bg: ['Background', 'Behind everything'],
-    text: ['Text', 'Body copy and headings'],
-    sidebar: ['Panels', 'Cards, menus, info panel'],
-    leaflet: ['Fields', 'Inputs and post backs'],
-    border: ['Lines', 'Borders and dividers'],
-    accent: ['Accent', 'Buttons and links'],
-    navActive: ['Highlight', 'Active tab and focus']
-};
 const DARK_PRESETS = [
     { name: 'Night & Imperial Red', colors: ['#000F08', '#F0F0F0', '#0A1A10', '#FB3640', '#0A1A10', '#1A3322', '#FB3640'] },
     { name: 'Neon Night', colors: ['#0D0D0D', '#F0F0F0', '#1A1A1A', '#FF6B35', '#141414', '#2A2A2A', '#C8FF00'] },
@@ -102,42 +93,6 @@ const DARK_PRESETS = [
     { name: 'Dragon Tales', colors: ['#2A1D2A', '#F6EEDC', '#4B344B', '#F93C0A', '#3A283A', '#5E465E', '#ADDCCC'] },
     { name: 'Wildflower', colors: ['#172A1F', '#EAF3F8', '#264431', '#EAA043', '#1F3829', '#3A5A47', '#BED9EB'] }
 ];
-const LIGHT_PRESETS = [
-    { name: 'Paper & Ink', colors: ['#F6F4EF', '#16130F', '#ECE8E1', '#C8102E', '#FFFFFF', '#DCD5CA', '#16130F'] },
-    { name: 'Cream & Fire', colors: ['#F8F4EE', '#1A1410', '#EDE8E0', '#E85D26', '#FFFFFF', '#D8D0C4', '#1A1410'] },
-    { name: 'Cotton Candy', colors: ['#FFF0F8', '#2A0A1E', '#FCE0F0', '#D946A8', '#FFFFFF', '#E8C8DC', '#8B1A6A'] },
-    { name: 'Sky & Sand', colors: ['#F0F8FF', '#0A1A2E', '#E0F0FA', '#0E7FC0', '#FFFFFF', '#B8D8EE', '#B45309'] },
-    { name: 'Mint Garden', colors: ['#F0FDF4', '#0A1E12', '#DCFCE7', '#15803D', '#FFFFFF', '#BBF7D0', '#7C3AED'] },
-    { name: 'Lavender Mist', colors: ['#FAF5FF', '#1E0A3E', '#F3E8FF', '#7C3AED', '#FFFFFF', '#DDD6FE', '#5B21B6'] },
-    { name: 'Golden Hour', colors: ['#FFFBEB', '#1C0F04', '#FEF3C7', '#B45309', '#FFFFFF', '#FDE68A', '#DC2626'] },
-    { name: 'Evening Walk', colors: ['#F6E6C2', '#2A4343', '#F1D49A', '#D35E36', '#FBF3E1', '#C0C29D', '#416B66'] },
-    { name: 'Retro Poster', colors: ['#EFE6D3', '#1E2424', '#E3D5B8', '#C94E44', '#FAF5EA', '#C1AB85', '#3E6868'] },
-    { name: 'Aurora Pastel', colors: ['#F2F5FC', '#2A1640', '#E5EBF8', '#A94ACE', '#FFFFFF', '#D3CBF6', '#9881FF'] },
-    { name: 'Terracotta', colors: ['#FAEFDC', '#3A1E1E', '#F5DFBB', '#11686A', '#FFF8EC', '#E3C79A', '#F2542D'] },
-    { name: 'Palace Spring', colors: ['#FFF6E8', '#3B2414', '#FCEABC', '#D9622A', '#FFFFFF', '#F2D9A4', '#4A9BEF'] },
-    { name: 'Peach Fuzz', colors: ['#F8F7FF', '#2B2350', '#FFEEDD', '#6C5CE7', '#FFFFFF', '#FFD8BE', '#9381FF'] },
-    { name: 'Neon Lights', colors: ['#F2F2FF', '#1C1A4A', '#E4E4FB', '#E23D8B', '#FFFFFF', '#C9C8F0', '#2A28AD'] },
-    { name: 'Mysterious Depths', colors: ['#EEF0FA', '#0C0827', '#DFE3F5', '#5950B8', '#FFFFFF', '#C3C9EA', '#1EA598'] },
-    { name: 'Volcanic Ash', colors: ['#F1F3F5', '#212529', '#E9ECEF', '#8338EC', '#FFFFFF', '#D3D8DE', '#FB5607'] },
-    { name: 'Dragon Tales', colors: ['#EEF7F3', '#2E1F2E', '#D6EDE5', '#F93C0A', '#FFFFFF', '#ADDCCC', '#4886AB'] },
-    { name: 'Wildflower', colors: ['#EEF5FA', '#1B2B22', '#DCEBF5', '#264431', '#FFFFFF', '#BED9EB', '#EAA043'] }
-];
-const RING_PRESETS = [
-    { name: 'Neon Sunset', colors: ['#ff6b35', '#b8ff38', '#ff3c8e'] },
-    { name: 'Ocean', colors: ['#00d4ff', '#8b5cf6', '#00d4ff'] },
-    { name: 'Fire', colors: ['#ff6b35', '#ff3c8e', '#ffca28'] },
-    { name: 'Forest', colors: ['#b8ff38', '#00d4ff', '#8b5cf6'] },
-    { name: 'Mono', colors: ['#ffffff', '#aaaaaa', '#ffffff'] },
-    { name: 'Gold', colors: ['#f5a623', '#f8e71c', '#f5a623'] }
-];
-const STATUS_PRESETS = [
-    { text: 'AVAILABLE FOR COMMISSIONS', color: '#3DD68C', label: 'Open' },
-    { text: 'ON HIATUS', color: '#FFCA28', label: 'Hiatus' },
-    { text: 'IN TRAINING', color: '#00D4FF', label: 'Training' },
-    { text: 'BUSY, QUEUE FULL', color: '#FF9944', label: 'Busy' },
-    { text: 'OPEN FOR ART TRADES', color: '#8B5CF6', label: 'Art trades' },
-    { text: 'CLOSED', color: '#888888', label: 'Closed' }
-];
 
 // Commissions poster (Admin, Commissions). New tiers take these colors in turn.
 const TIER_COLORS = ['#35E04A', '#5B2EE8', '#C04BFF', '#FF6B2C', '#00B8F5', '#FF3D7F'];
@@ -149,7 +104,6 @@ const HAZARD_LAYOUT = [['y', 5, -6], ['s', 13, 10], ['k', 21, 3], ['y', 30, -9],
 const BURST_PATH = 'M37 67 61 62 60 51 75 49 74 33 97 44 108 36 120 41 138 32 141 50 183 42 156 64 178 71 164 79 182 89 154 92 156 102 141 104 135 118 115 107 101 114 90 107 68 114 73 97 56 94 55 81Z';
 const ARROWS_SVG = '<svg class="cm-arrows" viewBox="0 0 44 18" aria-hidden="true"><path d="M2 16 14 4M5 3h10v10" fill="none" stroke="currentColor" stroke-width="3.4"/><path d="M26 16 38 4M29 3h10v10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 
-const PLATFORM_OPTIONS = ['Twitter/X', 'Instagram', 'Bluesky', 'Tumblr', 'YouTube', 'TikTok', 'DeviantArt', 'Pixiv', 'Twitch', 'Ko-fi', 'Patreon', 'Discord', 'Threads', 'Cara', 'Email', 'Other'];
 const PLATFORMS = {
     'twitter': { icon: 'fa-brands fa-x-twitter', color: '#1d9bf0' },
     'x': { icon: 'fa-brands fa-x-twitter', color: '#1d9bf0' },
@@ -269,6 +223,22 @@ function clamp(n, min, max) { return Math.min(max, Math.max(min, n)); }
 function plural(n, word, many) { return n + ' ' + (n === 1 ? word : (many || word + 's')); }
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+/* Parts only some visits need (the other Commissions designs, the About covers, the Art of Today pop-up, the
+   admin tools) load the first time they're used. `files` are names in the js and css folders; `ready` hands
+   back the part once every file has arrived, and a file that failed is fetched again on the next try. */
+const lazyFiles = {};
+function lazyFile(name) {
+    return lazyFiles[name] || (lazyFiles[name] = new Promise(resolve => {
+        const css = /\.css$/.test(name), el = document.createElement(css ? 'link' : 'script');
+        if (css) el.rel = 'stylesheet';
+        el[css ? 'href' : 'src'] = CODE_BASE + (css ? '../css/' : '') + name + '?v=' + NEERG_VERSION;
+        el.onload = () => resolve(true);
+        el.onerror = () => { el.remove(); delete lazyFiles[name]; resolve(false); };
+        document.head.appendChild(el);
+    }));
+}
+function lazy(files, ready) { return Promise.all(files.map(lazyFile)).then(all => (all.every(Boolean) && ready()) || null); }
+
 function getMediaType(url) {
     if (!url) return 'none';
     const u = String(url).split('?')[0].toLowerCase();
@@ -299,9 +269,6 @@ function formatDate(post) {
         try { return new Date(id).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) {}
     }
     return (post && post.date) || '';
-}
-function formatTime(ts) {
-    try { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); } catch (e) { return ''; }
 }
 
 function md(text) {
@@ -806,9 +773,6 @@ function applyRingStyle(style) {
     root.style.setProperty('--ring-glow', (style.glowSize != null ? Number(style.glowSize) : 8) + 'px');
     root.style.setProperty('--ring-glow-color', rgba(style.c2 || '#b8ff38', 0.4));
 }
-function buildRingGradient(c1, c2, c3, dir) {
-    return dir === 'circle' ? 'radial-gradient(circle, ' + c1 + ', ' + c2 + ', ' + c3 + ')' : 'linear-gradient(' + dir + ', ' + c1 + ', ' + c2 + ', ' + c3 + ')';
-}
 
 /* ═════════════════════════════════════════════
    APPLY SITE SETTINGS TO THE PAGE
@@ -978,26 +942,8 @@ const COMM_DESIGNS = ['original', 'event', 'signal', 'strips'];
 function commDesign() { const d = commPage().design; return COMM_DESIGNS.includes(d) ? d : 'original'; }
 // The number in a price like "$35" or "From 20€"; null for "CUSTOM"
 function commAmount(text) { const m = String(text || '').replace(/,/g, '').match(/\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; }
-let commLoading = null, commShown = '';
-function loadComm() {
-    if (window.NeergComm) return Promise.resolve(window.NeergComm);
-    if (commLoading) return commLoading;
-    const css = new Promise(resolve => {
-        const l = document.createElement('link');
-        l.rel = 'stylesheet'; l.href = CODE_BASE + '../css/comm.css?v=' + NEERG_VERSION;
-        l.onload = l.onerror = resolve;
-        document.head.appendChild(l);
-    });
-    const js = new Promise(resolve => {
-        const s = document.createElement('script');
-        s.src = CODE_BASE + 'comm.js?v=' + NEERG_VERSION;
-        s.onload = resolve;
-        s.onerror = () => { commLoading = null; resolve(); };
-        document.head.appendChild(s);
-    });
-    commLoading = Promise.all([css, js]).then(() => window.NeergComm || null);
-    return commLoading;
-}
+let commShown = '';
+const loadComm = () => lazy(['comm.css', 'comm.js'], () => window.NeergComm);
 // Everything the page shows, as plain values
 function commData() {
     const cfg = currentConfig, cp = commPage();
@@ -1314,26 +1260,8 @@ function route() {
    ═════════════════════════════════════════════ */
 
 const ABOUT_STYLES = ['broadcast', 'mixtape', 'spectrum'];
-let aboutLoading = null, aboutShown = '';
-function loadAbout() {
-    if (window.NeergAbout) return Promise.resolve(window.NeergAbout);
-    if (aboutLoading) return aboutLoading;
-    const css = new Promise(resolve => {
-        const l = document.createElement('link');
-        l.rel = 'stylesheet'; l.href = CODE_BASE + '../css/about.css?v=' + NEERG_VERSION;
-        l.onload = l.onerror = resolve;
-        document.head.appendChild(l);
-    });
-    const js = new Promise(resolve => {
-        const s = document.createElement('script');
-        s.src = CODE_BASE + 'about.js?v=' + NEERG_VERSION;
-        s.onload = resolve;
-        s.onerror = () => { aboutLoading = null; resolve(); };
-        document.head.appendChild(s);
-    });
-    aboutLoading = Promise.all([css, js]).then(() => window.NeergAbout || null);
-    return aboutLoading;
-}
+let aboutShown = '';
+const loadAbout = () => lazy(['about.css', 'about.js'], () => window.NeergAbout);
 // Everything a cover shows, as plain values
 function aboutData() {
     const cfg = currentConfig, name = siteName();
@@ -2578,17 +2506,6 @@ async function syncInteractions() {
     if (interactionsAgain) { interactionsAgain = false; scheduleInteractionsSync(); }
 }
 
-/* Admin tools that rewrite interactions as a whole (cleanup, erase all) */
-async function saveInteractionsOverwrite() {
-    if (loadFailed.has('interactions.js')) { showToast(LOAD_FAILED_MSG, 'error'); return { success: false }; }
-    pendingOps = []; persistOps();
-    writeJSON(KEYS.interactions, interactionsCache);
-    if (!globalAuthToken || IS_LOCAL_FILE) return { success: false };
-    const r = await uploadToBridge('interactions', { data: interactionsCache });
-    if (r.success) interactionsRemote = clone(interactionsCache);
-    return r;
-}
-
 function reactTo(postId, type, btn) {
     postId = Number(postId);
     const mine = myReactions();
@@ -3075,10 +2992,6 @@ async function uploadToBridge(target, opts = {}) {
     return result;
 }
 
-function promisifiedUpload(file, path) {
-    return uploadToBridge('media_only', { mediaFile: file, mediaPath: path }).then(r => { if (!r.success) throw (r.message || 'Upload failed'); return path; });
-}
-
 /* ═════════════════════════════════════════════
    SAVING
    ═════════════════════════════════════════════ */
@@ -3113,92 +3026,9 @@ function saveSystem() { return syncFile('system', ['Saving settings', 'Settings 
 function savePosts() { return syncFile('posts', ['Saving posts', 'Posts synced']); }
 function saveComics() { return syncFile('comics', ['Saving comics', 'Comics synced']); }
 
-async function forceSyncAll() {
-    if (isLocalMode()) { downloadBackup(); return; }
-    saveDataLocally();
-    const t = showToast('Syncing all four files', 'loading');
-    const results = [];
-    results.push(await uploadToBridge('system', { quiet: true }));
-    results.push(await uploadToBridge('posts', { quiet: true }));
-    results.push(await uploadToBridge('comics', { quiet: true }));
-    if (pendingOps.length) { await syncInteractions(); results.push({ success: !pendingOps.length }); }
-    else results.push(await uploadToBridge('interactions', { data: interactionsCache, quiet: true }));
-    dismissToast(t);
-    const failed = results.filter(r => !r.success).length;
-    if (failed) showToast(failed + ' of 4 files didn\'t sync. Try again in a moment.', 'error');
-    else showToast('Everything synced');
-}
-
 function downloadSystemJS() { downloadFile('window.AZUMINT_SYSTEM = "' + unicodeToBase64(JSON.stringify(systemPayload())) + '";', 'system.js'); }
 function downloadPostsJS() { sanitizeBeforeSave(); downloadFile('window.AZUMINT_POSTS = "' + unicodeToBase64(JSON.stringify(postsCache)) + '";', 'posts.js'); }
 function downloadComicsJS() { downloadFile('window.AZUMINT_COMICS = "' + unicodeToBase64(JSON.stringify(comicsCache)) + '";', 'comics.js'); }
-function downloadInteractionsJS() { downloadFile('window.AZUMINT_INTERACTIONS = "' + unicodeToBase64(JSON.stringify(interactionsCache)) + '";', 'interactions.js'); }
-function downloadBackup() {
-    downloadSystemJS();
-    setTimeout(downloadPostsJS, 300);
-    setTimeout(downloadComicsJS, 600);
-    setTimeout(downloadInteractionsJS, 900);
-    showToast('Downloading system.js, posts.js, comics.js and interactions.js');
-    writeJSON(KEYS.lastBackup, Date.now());
-    if (typeof renderBackupNudge === 'function') renderBackupNudge();
-}
-
-/* Image compression, used when running the site from your computer without uploads */
-function compressImage(file, maxWidth = 800, quality = 0.65, forceJPEG = true) {
-    return new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onerror = () => resolve(null);
-        reader.onload = () => {
-            const dataUri = reader.result;
-            if (!file.type || !file.type.startsWith('image/')) return resolve(dataUri);
-            const img = new Image();
-            img.onerror = () => resolve(dataUri);
-            img.onload = () => {
-                let w = img.naturalWidth, h = img.naturalHeight;
-                if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-                const c = document.createElement('canvas'); c.width = w; c.height = h;
-                c.getContext('2d').drawImage(img, 0, 0, w, h);
-                const mime = (!forceJPEG && file.type === 'image/png') ? 'image/png' : 'image/jpeg';
-                const out = c.toDataURL(mime, mime === 'image/png' ? undefined : quality);
-                resolve(out.length < dataUri.length ? out : dataUri);
-            };
-            img.src = dataUri;
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-/* WebP: PNG and JPG art re-encoded in the browser, usually a fraction of the size at a quality that looks the same */
-const WEBP_QUALITY = 0.9;
-const SHRINKABLE_EXT = /\.(png|jpe?g|bmp)(?=([?#].*)?$)/i;
-function canShrink(type, name) { return /^image\/(png|jpeg|bmp)$/.test(type || '') || SHRINKABLE_EXT.test(name || ''); }
-// Animated PNGs carry an acTL chunk before their first IDAT; a canvas would flatten them to one frame
-function isAnimatedPng(buf) {
-    const b = new Uint8Array(buf), dv = new DataView(buf);
-    if (b.length < 16 || b[1] !== 0x50 || b[2] !== 0x4E || b[3] !== 0x47) return false;
-    for (let i = 8; i + 8 <= b.length;) {
-        const type = String.fromCharCode(b[i + 4], b[i + 5], b[i + 6], b[i + 7]);
-        if (type === 'acTL') return true;
-        if (type === 'IDAT') return false;
-        i += 12 + dv.getUint32(i);
-    }
-    return false;
-}
-// Returns a smaller WebP blob, or null when converting wouldn't help (animated, already small, or the browser can't make WebP)
-async function toWebp(blob, name) {
-    if (!canShrink(blob.type, name)) return null;
-    try {
-        if (isAnimatedPng(await blob.arrayBuffer())) return null;
-        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
-        const c = document.createElement('canvas');
-        c.width = bmp.width; c.height = bmp.height;
-        c.getContext('2d').drawImage(bmp, 0, 0);
-        if (bmp.close) bmp.close();
-        const out = await new Promise(res => c.toBlob(res, 'image/webp', WEBP_QUALITY));
-        return out && out.type === 'image/webp' && out.size < blob.size * 0.95 ? out : null;
-    } catch (e) { return null; }
-}
-function webpName(name) { return String(name || 'image').replace(/\.[^./]*$/, '') + '.webp'; }
 
 /* ═════════════════════════════════════════════
    PREVIEWS
@@ -3210,8 +3040,6 @@ function webpName(name) { return String(name || 'image').replace(/\.[^./]*$/, ''
    the right space for a picture before it loads.
    ═════════════════════════════════════════════ */
 
-const PREVIEW_SIDE = 800, PREVIEW_MAX = 2400, PREVIEW_QUALITY = 0.82;
-const PREVIEWABLE = /\.(png|jpe?g|webp|bmp)$/i, SIZEABLE = /\.(png|jpe?g|webp|bmp|gif|avif)$/i;
 const freshPreviews = new Map(), freshSizes = new Map(); // made this visit and not saved yet
 let previewIndex = null, previewFrom = [];
 function pictureIndex() {
@@ -3234,47 +3062,6 @@ function sizeOf(url) { return (url && (freshSizes.get(url) || pictureIndex().siz
 function fullOf(thumb) {
     for (const m of [freshPreviews, previewMap()]) for (const [k, v] of m) if (v === thumb) return k;
     return '';
-}
-// img/ab12.png → img/p/ab12-png.webp (the old type stays in the name, so two pictures never share a copy)
-function previewPath(path) { return path.replace(/([^/]+)\.([a-z0-9]+)$/i, 'p/$1-$2.webp'); }
-function isAnimatedWebp(buf) {
-    const b = new Uint8Array(buf), tag = i => String.fromCharCode(b[i], b[i + 1], b[i + 2], b[i + 3]);
-    return b.length > 21 && tag(8) === 'WEBP' && tag(12) === 'VP8X' && (b[20] & 2) === 2;
-}
-// Reads a picture once: its size, and (when wanted) a small WebP copy if it is big and not animated. Null when it can't be read
-async function readPicture(blob, name, wantCopy = true) {
-    const plain = String(name || '').split(/[?#]/)[0];
-    if (!SIZEABLE.test(plain) && !/^image\//.test(blob.type || '')) return null;
-    try {
-        const buf = await blob.arrayBuffer();
-        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
-        const info = { w: bmp.width, h: bmp.height, small: null };
-        const s = Math.min(PREVIEW_SIDE / Math.min(info.w, info.h), PREVIEW_MAX / Math.max(info.w, info.h));
-        const copyable = (PREVIEWABLE.test(plain) || /^image\/(png|jpeg|webp|bmp)$/.test(blob.type || '')) && !isAnimatedPng(buf) && !isAnimatedWebp(buf);
-        if (wantCopy && copyable && s <= 0.75) {
-            const c = document.createElement('canvas');
-            c.width = Math.round(info.w * s); c.height = Math.round(info.h * s);
-            const cx = c.getContext('2d'); cx.imageSmoothingQuality = 'high';
-            cx.drawImage(bmp, 0, 0, c.width, c.height);
-            const out = await new Promise(res => c.toBlob(res, 'image/webp', PREVIEW_QUALITY));
-            if (out && out.type === 'image/webp' && out.size < blob.size * 0.7) info.small = out;
-        }
-        if (bmp.close) bmp.close();
-        return info;
-    } catch (e) { return null; }
-}
-// Makes and uploads the small copy of a picture stored at path (ref is how posts refer to it), and notes its size.
-// Quietly skips when it can't
-async function addPreview(blob, path, ref) {
-    const info = await readPicture(blob, path);
-    if (info) freshSizes.set(ref || path, [info.w, info.h]);
-    const small = info && info.small;
-    if (!small) return 'skip';
-    const to = previewPath(path);
-    const r = await uploadToBridge('media_only', { mediaFile: new File([small], to.split('/').pop(), { type: 'image/webp' }), mediaPath: to, quiet: true });
-    if (!r.success) return 'fail';
-    freshPreviews.set(ref || path, to);
-    return 'ok';
 }
 // Every picture the site settings use (posts and comics list their own)
 function configImageRefs() {
@@ -3299,41 +3086,6 @@ function attachPreviews() {
     });
     comicsCache.forEach(c => put(c, (c.pages || []).concat(c.cover || [])));
     put(currentConfig, configImageRefs());
-}
-
-/* Uploads a list of files one by one. onStep(i, total, file) reports progress. Returns paths, or null on failure. */
-async function uploadFiles(files, folder, onStep) {
-    const out = [];
-    for (let i = 0; i < files.length; i++) {
-        let f = files[i];
-        if (onStep) onStep(i, files.length, f);
-        if (!isLocalMode() && currentConfig.webpUploads !== false && canShrink(f.type, f.name)) {
-            const w = await toWebp(f, f.name);
-            if (w) f = new File([w], webpName(f.name), { type: 'image/webp' });
-        }
-        if (isLocalMode()) {
-            const b64 = await compressImage(f, folder.includes('comics') ? 1000 : 1200, 0.7, false);
-            if (!b64) { showToast('Couldn\'t read ' + f.name, 'error'); return null; }
-            out.push(b64);
-        } else {
-            const path = folder + safeFileName(f.name, f.type);
-            try { await promisifiedUpload(f, path); out.push(path); }
-            catch (err) { showToast('Upload failed for ' + f.name + '. ' + err, 'error'); return null; }
-            await addPreview(f, path);
-        }
-    }
-    if (onStep) onStep(files.length, files.length, null);
-    return out;
-}
-
-function readPreviews(files) {
-    return Promise.all(files.map(f => new Promise(res => {
-        if (!f.type || !f.type.startsWith('image/')) return res({ file: f, preview: null });
-        const r = new FileReader();
-        r.onload = e => res({ file: f, preview: e.target.result });
-        r.onerror = () => res({ file: f, preview: null });
-        r.readAsDataURL(f);
-    })));
 }
 
 /* ═════════════════════════════════════════════
@@ -3385,28 +3137,9 @@ async function loginAdmin() {
     showToast('Welcome back');
 }
 
-function logoutAdmin() {
-    if (Studio.dirty) { Studio.draft = null; Studio.dirty = false; Studio.ring = null; applyTheme(); }
-    isAdminLoggedIn = false; sessionPassword = null;
-    renderAdminView();
-    renderFeed();
-    showToast('Logged out');
-}
-
-/* The admin tools (admin.js) load the first time Admin opens, so visitors never download them. */
-let adminLoading = null;
-function loadAdmin() {
-    if (window.NEERG_ADMIN) return Promise.resolve(true);
-    if (adminLoading) return adminLoading;
-    adminLoading = new Promise(resolve => {
-        const s = document.createElement('script');
-        s.src = CODE_BASE + 'admin.js?v=' + NEERG_VERSION;
-        s.onload = () => resolve(!!window.NEERG_ADMIN);
-        s.onerror = () => { adminLoading = null; resolve(false); };
-        document.head.appendChild(s);
-    });
-    return adminLoading;
-}
+/* The admin tools load the first time Admin opens, so visitors never download them. Admin's settings and previews
+   for the Art of Today pop-up need the pop-up's files too. */
+const loadAdmin = () => lazy(['admin.css', 'admin.js', 'aotd.css', 'aotd.js'], () => !!(window.NEERG_ADMIN && window.NEERG_AOTD));
 
 function renderAdminView() {
     byId('admin-login').hidden = isAdminLoggedIn;
@@ -3539,7 +3272,8 @@ async function restoreFromBackup() {
    LOADING SCREEN + AGE CHECK
    ═════════════════════════════════════════════ */
 
-const Gate = { active: false, shown: 0, target: 0, raf: 0, done: false };
+const Gate = { active: false, shown: 0, target: 0, raf: 0, done: false, drawn: -1 };
+const GATE_BLOCKS = 20; // the blocks in the loading bar (style.css draws them, 5% each)
 
 function ageAccepted() {
     const ok = parseInt(readText(KEYS.age) || '0', 10);
@@ -3553,14 +3287,26 @@ function gateInit() {
     const tick = () => {
         Gate.shown += (Gate.target - Gate.shown) * 0.12 + (Gate.shown < Gate.target ? 0.3 : 0);
         Gate.shown = Math.min(Gate.shown, Gate.target);
-        byId('gate-bar').style.width = Gate.shown + '%';
-        byId('gate-pct').textContent = Math.floor(Gate.shown) + '%';
-        if (Gate.shown >= 99.9 && Gate.done) { cancelAnimationFrame(Gate.raf); setTimeout(gateLoaded, 250); return; }
+        const pct = Math.floor(Gate.shown + .1);
+        if (pct !== Gate.drawn) {
+            Gate.drawn = pct;
+            const bar = byId('gate-bar');
+            // The count goes up one at a time; the bar lights a whole block at a time
+            bar.style.setProperty('--f', Math.round(pct / 100 * GATE_BLOCKS) / GATE_BLOCKS);
+            bar.setAttribute('aria-valuenow', pct);
+            byId('gate-pct').textContent = String(pct).padStart(3, '0');
+        }
+        if (Gate.shown >= 99.9 && Gate.done) { cancelAnimationFrame(Gate.raf); byId('gate-loader').classList.add('is-done'); setTimeout(gateLoaded, 350); return; }
         Gate.raf = requestAnimationFrame(tick);
     };
     Gate.raf = requestAnimationFrame(tick);
 }
 function gateProgress(pct) { if (Gate.active) Gate.target = Math.max(Gate.target, pct); }
+// A file's line in the loader's list: OK once it has arrived, -- when the site doesn't have it (yet)
+function gateFile(file, ok) {
+    const li = Gate.active && $('.gate-log [data-file="' + file + '"]');
+    if (li) li.dataset.state = ok ? 'ok' : 'none';
+}
 function gateDataReady() {
     if (!Gate.active) return;
     Gate.target = 100; Gate.done = true;
@@ -3605,451 +3351,30 @@ function ageGateDeny() {
 
 /* ═════════════════════════════════════════════
    ART OF TODAY (a pop-up with one piece from the archive, once a day per visitor)
-   Ten designs from the mockup. Each one is drawn by a function below that returns
-   its HTML; style.css lays it out as a wide poster on computers and a stacked
-   card on phones, and gives it its own entrance and exit.
+   Its ten designs are in aotd.js and aotd.css. Those load only on a day the pop-up is due, and with Admin
+   (for its settings and previews), so other visits never download them.
    ═════════════════════════════════════════════ */
 
-// `fonts` is the Google Fonts query a design needs (loaded only when it's shown), `check` the faces to wait for,
-// `colors` the choices offered in Admin (the first is the default)
-const AOTD_DESIGNS = [
-    { id: 'botanical', name: 'Botanical', fonts: 'family=Cormorant+Garamond:ital,wght@0,500;1,400&family=Playfair+Display:ital@1', check: ['italic 40px "Playfair Display"', '500 20px "Cormorant Garamond"'], colors: ['Ink', [['#3E7FE0', 'Blue'], ['#2F6A55', 'Green'], ['#B4467A', 'Berry'], ['#1E3350', 'Navy']]] },
-    { id: 'cinema', name: 'Cinema', fonts: 'family=Cormorant+Garamond:ital,wght@1,500&family=DM+Serif+Display', check: ['40px "DM Serif Display"', 'italic 500 20px "Cormorant Garamond"'] },
-    { id: 'calligraphy', name: 'Calligraphy', fonts: 'family=Courier+Prime:wght@400;700&family=Pinyon+Script', check: ['40px "Pinyon Script"', '20px "Courier Prime"', '700 20px "Courier Prime"'] },
-    { id: 'magazine', name: 'Magazine', fonts: 'family=Cormorant+Garamond:ital,wght@0,300;0,500;1,400', check: ['300 40px "Cormorant Garamond"', '500 20px "Cormorant Garamond"', 'italic 20px "Cormorant Garamond"'] },
-    { id: 'caption', name: 'Caption strip', fonts: 'family=Cormorant+Garamond:wght@600&family=Playfair+Display:ital@1', check: ['italic 40px "Playfair Display"', '600 20px "Cormorant Garamond"'], colors: ['Caption', [['#2E7BC4', 'Blue'], ['#B4467A', 'Berry'], ['#2F6A55', 'Green'], ['#1A1A1A', 'Black']]] },
-    { id: 'editorial', name: 'Editorial', fonts: 'family=DM+Serif+Display&family=Josefin+Sans:wght@400;600', check: ['40px "DM Serif Display"', '600 20px "Josefin Sans"'] },
-    { id: 'award', name: 'Award band', fonts: 'family=Archivo+Black&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,300&family=DM+Serif+Display&family=Pinyon+Script', check: ['40px "DM Serif Display"', '40px "Pinyon Script"', '600 20px "Cormorant Garamond"', 'italic 300 40px "Cormorant Garamond"', '20px "Archivo Black"'] },
-    { id: 'chapter', name: 'Chapter frame', fonts: 'family=Archivo+Black&family=Permanent+Marker', check: ['40px "Permanent Marker"', '20px "Archivo Black"'], colors: ['Frame', [['#F4A6C8', 'Pink'], ['#F2C230', 'Yellow'], ['#9ED6C8', 'Mint'], ['#C9A7F5', 'Lilac']]] },
-    { id: 'tabloid', name: 'Tabloid', fonts: '', check: ['40px Anton'], colors: ['Paper', [['#FFE53B', 'Yellow'], ['#FF8CC6', 'Pink'], ['#7FD3F7', 'Blue'], ['#F3EBDD', 'Cream']]] },
-    { id: 'calendar', name: 'Calendar', fonts: 'family=Archivo+Black&family=Caveat:wght@600', check: ['20px "Archivo Black"', '600 40px Caveat', '40px "Dela Gothic One"'], colors: ['Accent', [['#8B6CF6', 'Violet'], ['#E5483A', 'Red'], ['#8FD19E', 'Green']]] }
-];
-const AOTD_DEFAULTS = { mode: 'random', off: [], design: 'tabloid', art: 'all', board: '', post: '', skipNsfw: true, headline: 'Art of Today', message: 'One piece a day, picked just for you.', delay: 2, anim: 'design', phones: true, colors: {} };
-const AOTD_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const AOTD_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const AOTD_ARROW = '<svg class="aotd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
-const AOTD_SPARK = 'M12 1C12.8 8.5 15.5 11.2 23 12C15.5 12.8 12.8 15.5 12 23C11.2 15.5 8.5 12.8 1 12C8.5 11.2 11.2 8.5 12 1Z';
 const AOTD_PHONE = '(max-width: 819.98px), (max-height: 519.98px)';
-const Aotd = { draft: null, timer: 0 };
-
-function aotdSettings(cfg = currentConfig) {
-    const s = Object.assign({}, AOTD_DEFAULTS, cfg.aotd || {});
-    s.off = Array.isArray(s.off) ? s.off.filter(id => AOTD_DESIGNS.some(d => d.id === id)) : [];
-    // The first version only had a Tabloid paper color
-    s.colors = Object.assign({}, cfg.aotdColor ? { tabloid: cfg.aotdColor } : {}, s.colors || {});
-    s.delay = [1, 2, 5].includes(Number(s.delay)) ? Number(s.delay) : 2;
-    if (!['design', 'fade', 'none'].includes(s.anim)) s.anim = 'design';
-    return s;
-}
-function aotdDesign(id) { return AOTD_DESIGNS.find(d => d.id === id) || null; }
-function aotdColor(design, s) {
-    if (!design.colors) return '';
-    const list = design.colors[1].map(c => c[0]);
-    return list.includes(s.colors[design.id]) ? s.colors[design.id] : list[0];
-}
-function aotdDayNumber() {
-    const d = new Date();
-    return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
-}
+const loadAotd = () => lazy(['aotd.css', 'aotd.js'], () => !!window.NEERG_AOTD);
 function aotdToday() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
-// Everyone gets the same design on the same day. The designs take turns in a fixed shuffled order, so one never shows twice in a row.
-function aotdDesignFor(s) {
-    if (s.mode === 'one') return aotdDesign(s.design) || aotdDesign('tabloid');
-    let list = AOTD_DESIGNS.filter(d => !s.off.includes(d.id));
-    if (!list.length) list = AOTD_DESIGNS.slice();
-    let seed = 20261010;
-    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-    for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
-    return list[aotdDayNumber() % list.length];
-}
-function aotdAllowed(p, s) { return !!firstImage(p) && !isScheduled(p) && !(s.skipNsfw && isNsfw(p)); }
-// Everyone gets the same piece on the same day. Stepping by a large prime walks through every post before repeating.
-function aotdPick(s) {
-    if (s.art === 'pick') {
-        const p = postsCache.find(x => String(x.id) === String(s.post));
-        if (p && aotdAllowed(p, s)) return p;
-    }
-    let pool = postsCache.filter(p => aotdAllowed(p, s));
-    if (s.art === 'board' && s.board) {
-        const k = s.board.toLowerCase();
-        const onBoard = pool.filter(p => postTags(p).some(t => t.toLowerCase() === k));
-        if (onBoard.length) pool = onBoard;
-    }
-    if (!pool.length) return null;
-    pool.sort((a, b) => a.id - b.id);
-    return pool[(aotdDayNumber() * 7919) % pool.length];
-}
-
-/* ─── The ten designs ─── */
-
-function aotdData(post, design, s) {
-    const now = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    const cap = excerpt(post.content, 60);
-    const tag = stampTag(post);
-    const head = String(s.headline || '').trim() || AOTD_DEFAULTS.headline;
-    const words = head.split(/\s+/);
-    const days = [];
-    const len = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    for (let n = 1; n <= len; n++) days.push({ n: pad(n), wd: AOTD_DAYS[new Date(now.getFullYear(), now.getMonth(), n).getDay()].slice(0, 3).toUpperCase(), today: n === now.getDate() });
-    return {
-        id: post.id, img: esc(firstImage(post)), alt: esc(post.alt || cap ? 'Today\'s artwork: ' + (post.alt || cap) : 'Today\'s artwork'),
-        title: esc(cap || 'Untitled piece'), titleLen: (cap || 'Untitled piece').length, tag: esc(tag), posted: esc(formatDate(post)), no: postNumbers().get(post.id) || '', site: esc(siteName()),
-        head: esc(head), letters: Array.from(Array.from(words[0]).filter(ch => /[\p{L}\p{N}]/u.test(ch)).slice(0, 6).join('') || 'Art'), first: esc(words[0]), rest: esc(words.slice(1).join(' ')), lead: esc(words.slice(0, -1).join(' ')), last: esc(words[words.length - 1]),
-        msg: esc(String(s.message || '').trim()), msgWords: String(s.message || '').trim().split(/\s+/).filter(Boolean).map(esc),
-        y: now.getFullYear(), m: pad(now.getMonth() + 1), dd: pad(now.getDate()), day: now.getDate(),
-        month: AOTD_MONTHS[now.getMonth()], mon: AOTD_MONTHS[now.getMonth()].slice(0, 3), weekday: AOTD_DAYS[now.getDay()], wd: AOTD_DAYS[now.getDay()].slice(0, 3),
-        days, link: 'href="#/post/' + post.id + '" data-action="aotd-view" data-id="' + post.id + '"'
-    };
-}
-const aotdBoard = d => d.tag ? 'From the ' + d.tag + ' board' : 'From the archive';
-const aotdImg = (d, cls) => '<img' + (cls ? ' class="' + cls + '"' : '') + ' src="' + d.img + '" alt="' + d.alt + '" decoding="async">';
-const aotdLeaf = (cls, mirror) => '<svg class="bt-leaf ' + cls + '" viewBox="0 0 230 330" aria-hidden="true">' + (mirror
-    ? '<path d="M60 330 C40 240 90 170 160 140" fill="none" stroke="#4F8F78" stroke-width="7" stroke-linecap="round"/><g fill="#7DBBA2" stroke="#2F6A55" stroke-width="2"><path d="M160 140 C180 80 222 64 228 70 C228 120 200 160 160 140 Z"/><path d="M70 250 C20 236 0 176 8 172 C64 170 90 214 70 250 Z"/></g><g fill="none" stroke="#2F6A55" stroke-width="1.5"><path d="M162 138 C185 110 205 92 224 74"/><path d="M68 246 C48 222 30 200 12 176"/></g><path d="M120 40 C140 18 180 22 186 40 C166 58 132 58 120 40 Z" fill="#FFFFFF" stroke="#B9C7D8" stroke-width="1.5"/>'
-    : '<path d="M40 330 C30 250 70 170 150 120" fill="none" stroke="#4F8F78" stroke-width="7" stroke-linecap="round"/><g fill="#7DBBA2" stroke="#2F6A55" stroke-width="2"><path d="M150 120 C170 60 220 40 226 46 C230 100 200 140 150 120 Z"/><path d="M60 230 C10 210 -4 150 4 146 C60 150 80 190 60 230 Z"/><path d="M95 175 C120 120 190 120 196 128 C180 190 130 200 95 175 Z"/></g><g fill="none" stroke="#2F6A55" stroke-width="1.5"><path d="M152 118 C175 90 200 70 222 50"/><path d="M58 226 C40 200 22 175 8 150"/><path d="M98 173 C130 155 160 140 192 130"/></g><path d="M20 290 C40 270 80 272 90 290 C70 306 36 306 20 290 Z" fill="#FFFFFF" stroke="#B9C7D8" stroke-width="1.5"/>') + '</svg>';
-
-const AOTD_RENDER = {
-    botanical: d => '<span class="bt-date">(' + d.mon + ' ' + d.day + ' — ' + d.y + ')</span>'
-        + '<span class="bt-stamp">© ' + d.site + '</span>'
-        + '<h2 class="bt-title aotd-fit aotd-fit2" id="aotd-title">' + d.head + '<span class="bt-star-at"><svg class="bt-star" viewBox="0 0 24 24" aria-hidden="true"><path d="' + AOTD_SPARK + '"/></svg></span></h2>'
-        + '<div class="bt-stage">' + aotdImg(d, 'bt-art') + aotdLeaf('bt-leafL') + aotdLeaf('bt-leafR', true) + '</div>'
-        + '<div class="bt-row"><span class="bt-sign">' + d.site + '</span><div class="bt-mid">' + (d.msg ? '<span class="bt-msg">' + d.msg + '</span>' : '')
-        + '<span class="bt-meta">' + [d.tag, 'No.' + d.no, d.title, d.posted && 'Posted ' + d.posted].filter(Boolean).join(' / ') + '</span></div>'
-        + '<a class="bt-view" ' + d.link + '>View post ' + AOTD_ARROW + '</a></div>',
-
-    cinema: d => aotdImg(d, 'cn-art')
-        + '<span class="cn-corner cn-date">' + d.wd.toUpperCase() + ' · ' + d.mon.toUpperCase() + ' ' + d.day + ' · ' + d.y + '</span><span class="cn-corner cn-no">NO.' + d.no + '</span>'
-        + '<div class="cn-plaque"><h2 class="cn-title aotd-fit aotd-fit2" id="aotd-title">' + d.head + '</h2>'
-        + '<div class="cn-row"><span>' + d.site + ' artwork</span><span class="cn-line"></span><span class="cn-dot"></span><span class="cn-board">' + (d.tag ? 'Part of the ' + d.tag + ' board' : 'From the archive') + '</span></div>'
-        + (d.msg ? '<p class="cn-msg">' + d.msg + '</p>' : '') + '</div>'
-        + '<div class="cn-foot"><a class="cn-view" ' + d.link + '>View post ' + AOTD_ARROW + '</a><span class="cn-cap">' + d.title + (d.posted ? ' · posted ' + d.posted : '') + '</span></div>',
-
-    calligraphy: d => {
-        const column = d.msgWords.length && d.msgWords.length <= 10;
-        return aotdImg(d, 'cl-art') + '<span class="cl-shade"></span>'
-            + (column ? '<p class="cl-words" aria-label="' + d.msg + '">' + d.msgWords.map(w => '<span aria-hidden="true">' + w + '</span>').join('') + '</p>' : '')
-            + '<h2 class="cl-title" id="aotd-title"><span class="cl-t1 aotd-fit">' + d.first + '</span>' + (d.rest ? '<span class="cl-t2 aotd-fit aotd-fit2">' + d.rest + '</span>' : '') + '</h2>'
-            + '<svg class="cl-swirl" viewBox="0 0 420 170" aria-hidden="true"><path d="M10 120 C60 60 140 50 190 90 C240 130 320 140 410 70"/><path d="M40 150 C90 110 170 105 230 130 C290 155 350 150 400 120"/><path d="M90 92 C70 70 74 40 100 36 C126 32 132 64 108 74"/><circle cx="64" cy="58" r="22"/><path class="cl-spark" d="M64 30 L68 52 L90 58 L68 64 L64 86 L60 64 L38 58 L60 52 Z"/></svg>'
-            + '<div class="cl-info">' + (d.msg && !column ? '<i>' + d.msg + '</i>' : '') + '<span>Today: <b>' + d.title + '</b>, No.' + d.no + '.</span><span>' + (d.tag || 'From the archive') + (d.posted ? ' · posted ' + d.posted : '') + '.</span></div>'
-            + '<div class="cl-foot"><span class="cl-date">' + d.dd + ' · ' + d.m + ' · ' + d.y + '</span><a class="cl-view" ' + d.link + '>View post ' + AOTD_ARROW + '</a></div>';
-    },
-
-    magazine: d => '<div class="mg-top"><h2 class="mg-title aotd-fit" id="aotd-title" aria-label="' + d.head + '">' + d.last + '</h2>'
-        + '<div class="mg-col">' + (d.msg ? '<p class="mg-msg">' + d.msg + '</p>' : '') + '<span class="mg-note">No.' + d.no + (d.tag ? ' · ' + d.tag : '') + '&#160;&#160;&#160; Presented by ' + d.site + '</span></div>'
-        + '<div class="mg-side"><span class="mg-label">' + d.head + '</span><span class="mg-date">' + d.weekday + ', ' + d.month + ' ' + d.day + ', ' + d.y + '</span>'
-        + '<svg class="mg-flower" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12c0-4 1.5-8 4-9-1 3-2 6-4 9zM12 12c4 0 8 1.5 9 4-3-1-6-2-9-4zM12 12c0 4-1.5 8-4 9 1-3 2-6 4-9zM12 12c-4 0-8-1.5-9-4 3 1 6 2 9 4zM12 12c2.8-2.8 6.4-4.6 9-4-2.4 1.2-5.6 2.8-9 4zM12 12c-2.8 2.8-6.4 4.6-9 4 2.4-1.2 5.6-2.8 9-4z"/></svg>'
-        + '<a class="mg-view" ' + d.link + '>View post ' + AOTD_ARROW + '</a></div></div>'
-        + '<div class="mg-art">' + aotdImg(d) + '<span class="mg-cap"><b>' + d.title + '</b><i>' + (d.posted ? 'Posted ' + d.posted : 'From the archive') + (d.tag ? ' · ' + d.tag : '') + '</i></span></div>'
-        + '<button type="button" class="mg-later" data-action="close-aotd">See you tomorrow</button>',
-
-    caption: d => '<p class="cp-top aotd-fit">' + (d.msg || 'today\'s pick from ' + d.site) + '</p>'
-        + '<div class="cp-band">' + aotdImg(d) + '<span class="cp-date">' + d.dd + ' · ' + d.m + ' · ' + d.y + '</span>'
-        + '<h2 class="cp-title" id="aotd-title">' + (d.lead ? '<span class="cp-l1 aotd-fit aotd-fit2"><span class="cp-star-at"><svg class="cp-star" viewBox="0 0 24 24" aria-hidden="true"><path d="' + AOTD_SPARK + '"/></svg></span>' + d.lead + '</span>' : '') + '<span class="cp-l2 aotd-fit">' + d.last + '</span></h2>'
-        + '<div class="cp-foot"><span class="cp-name">' + d.title + ' · No.' + d.no + '</span><a class="cp-view" ' + d.link + '>view post ' + AOTD_ARROW + '</a></div></div>'
-        + '<p class="cp-bot">come back tomorrow for another</p>',
-
-    editorial: d => aotdImg(d, 'ed-art') + '<span class="ed-shade"></span>'
-        + '<div class="ed-a">' + (d.msg ? '<p class="ed-lead">' + d.msg + '</p>' : '') + '<h2 class="ed-title" id="aotd-title">' + (d.lead ? '<span class="ed-t1 aotd-fit aotd-fit2">' + d.lead + '</span>' : '') + '<span class="ed-t2 aotd-fit">' + d.last + '</span></h2></div>'
-        + '<div class="ed-b"><span>here is one</span><span>piece from</span><span>the archive:</span><span class="ed-no">No.' + d.no + '</span></div>'
-        + '<div class="ed-c"><a class="ed-view" ' + d.link + '>View post ' + AOTD_ARROW + '</a><span class="ed-cap">' + d.title + (d.tag ? ' · ' + d.tag : '') + ' · ' + d.wd + ', ' + d.mon + ' ' + d.day + ', ' + d.y + '</span></div>',
-
-    award: d => {
-        const letters = d.letters;
-        return (d.msg ? '<p class="aw-top">' + d.msg + '</p>' : '')
-            + '<div class="aw-band">' + aotdImg(d) + '</div>'
-            + '<h2 class="aw-title" id="aotd-title" aria-label="' + d.head + '" style="--n: ' + Math.max(3, letters.length) + '">' + letters.map(l => '<span aria-hidden="true">' + esc(l) + '</span>').join('') + '</h2>'
-            + '<span class="aw-script aotd-fit" aria-hidden="true">' + d.head + '</span>'
-            + '<div class="aw-date"><span class="aw-pick">Today\'s pick</span><span class="aw-num">' + d.m + '.' + d.dd + '</span><span class="aw-wd">' + d.wd + '</span></div>'
-            + '<div class="aw-tags"><span class="aw-site">' + d.site + '</span><span>/ ' + (d.tag ? d.tag + ' / ' : '') + 'No.' + d.no + ' / ' + d.title + ' /</span>'
-            + '<span>/ ' + (d.posted ? 'Posted ' + d.posted + ' / ' : '') + '<a class="aw-view" ' + d.link + '>View post</a> /</span></div>';
-    },
-
-    chapter: d => '<div class="ch-art">' + aotdImg(d) + '</div>'
-        + '<a class="ch-view" ' + d.link + '>View post ' + AOTD_ARROW + '</a>'
-        + '<div class="ch-tl"><span class="ch-presents">' + d.site + '<br>presents</span><h2 class="ch-title" id="aotd-title">' + (d.lead ? '<span class="aotd-fit aotd-fit2">' + d.lead + '</span>' : '') + '<span class="aotd-fit">' + d.last + '</span></h2></div>'
-        + '<div class="ch-bl"><span class="ch-when">' + d.weekday + ',<br>' + d.month + ' ' + d.day + ', ' + d.y + '<br>' + (d.msg || 'Today\'s pick') + '</span>'
-        + '<span class="ch-name"><span class="ch-big" style="--len: ' + Math.max(8, d.titleLen) + '">' + d.title + '</span><span class="ch-small">' + (d.tag ? d.tag + ' · ' : '') + (d.posted ? 'posted ' + d.posted : 'from the archive') + '</span></span></div>'
-        + '<div class="ch-br"><span>Piece</span><span class="ch-no aotd-fit">' + d.no + '</span></div>',
-
-    tabloid: d => '<h2 class="tb-top aotd-fit" id="aotd-title">' + d.head + '</h2>'
-        + '<a class="tb-art" ' + d.link + '>' + aotdImg(d) + '</a>'
-        + '<span class="tb-vert" aria-hidden="true">Today\'s art</span>'
-        + '<span class="tb-side aotd-fit aotd-fit-v" aria-hidden="true">' + d.site + ' · Daily pick</span>'
-        + '<svg class="tb-face" viewBox="0 0 74 74" fill="none" stroke="#111111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 40c0-17 10-28 24-28s22 11 22 26c0 17-10 28-23 28S14 56 14 40z" fill="#FFFFFF"/><path d="M20 26c6-10 22-14 34-6 4-6 10-6 12-2-6 0-8 4-10 8"/><path d="M28 40v3M46 40v3"/><path d="M30 53c5 4 11 4 15 0"/></svg>'
-        + '<div class="tb-info"><p class="tb-date">' + d.y + '.' + d.m + '.' + d.dd + ' <small>(' + d.wd.toUpperCase() + ')</small></p>' + (d.msg ? '<p class="tb-msg">' + d.msg + '</p>' : '') + '<ol class="tb-list">'
-        + '<li><b>01</b><mark>' + d.title + '</mark></li>'
-        + '<li><b>02</b><span>' + aotdBoard(d) + '</span></li>'
-        + '<li><b>03</b><span>' + (d.posted ? 'Posted ' + d.posted : 'From the vault') + '</span></li>'
-        + '<li><b>04</b><span>Post</span><mark>No.' + d.no + '</mark></li></ol></div>'
-        + '<a class="tb-view" ' + d.link + '>View post ' + AOTD_ARROW + '</a>'
-        + '<span class="tb-bot" aria-hidden="true">Pick of the day</span>',
-
-    calendar: d => {
-        const day = x => '<span class="ca-d' + (x.today ? ' is-today' : (x.wd === 'SUN' || x.wd === 'SAT') ? ' is-weekend' : '') + '"><small>' + x.wd + '</small><b>' + x.n + '</b></span>';
-        return '<span class="ca-ghost" aria-hidden="true">ART</span>'
-            + '<div class="ca-panel ca-p1">' + aotdImg(d) + (d.msg ? '<span class="ca-say">' + d.msg + '</span>' : '') + '</div>'
-            + '<div class="ca-panel ca-p2"><img src="' + d.img + '" alt="" style="object-position: 30% 80%"></div>'
-            + '<div class="ca-panel ca-p3"><img src="' + d.img + '" alt="" style="object-position: 62% 50%"><span class="ca-copy">©' + d.site + '</span></div>'
-            + '<div class="ca-info"><span class="ca-label">Calendar</span><span class="ca-sub">' + d.head + ' · ' + d.m + '/' + d.dd + '</span>'
-            + '<svg class="ca-burst" viewBox="0 0 120 120" aria-hidden="true"><polygon points="60.0,2.0 69.8,17.1 85.2,7.7 87.4,25.6 105.3,23.8 99.6,40.9 116.5,47.1 104.0,60.0 116.5,72.9 99.6,79.1 105.3,96.2 87.4,94.4 85.2,112.3 69.8,102.9 60.0,118.0 50.2,102.9 34.8,112.3 32.6,94.4 14.7,96.2 20.4,79.1 3.5,72.9 16.0,60.0 3.5,47.1 20.4,40.9 14.7,23.8 32.6,25.6 34.8,7.7 50.2,17.1" fill="#E7E5E0" stroke="#111111" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-family="Archivo Black, sans-serif" font-size="20" fill="#111111">' + d.site.slice(0, 6) + '</text></svg>'
-            + '<h2 class="ca-big" id="aotd-title" aria-label="' + d.head + ', ' + d.month + ' ' + d.day + '">' + d.dd + '</h2><span class="ca-oct" aria-hidden="true">' + d.mon + '.</span>'
-            + '<span class="ca-tag">■ Piece</span><span class="ca-name"><span>' + d.title + '</span>No.' + d.no + '</span></div>'
-            + '<div class="ca-strip"><svg class="ca-slash" viewBox="0 0 44 60" aria-hidden="true"><path d="M18 4 L4 56 M40 4 L26 56"/></svg>'
-            + '<div class="ca-days"><div class="ca-row">' + d.days.slice(0, 16).map(day).join('') + '</div><div class="ca-row">' + d.days.slice(16).map(day).join('') + '</div></div>'
-            + '<div class="ca-end"><span class="ca-today"><b>Today</b><span>[ ' + d.y + ' ]</span></span><a class="ca-view" ' + d.link + '>View post ' + AOTD_ARROW + '</a></div></div>';
-    }
-};
-
-/* ─── Showing and closing ─── */
-
-function aotdFonts(design) {
-    if (design.fonts && !byId('aotd-font-' + design.id)) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet'; link.id = 'aotd-font-' + design.id;
-        link.href = 'https://fonts.googleapis.com/css2?' + design.fonts + '&display=swap';
-        document.head.appendChild(link);
-    }
-    if (!document.fonts || !document.fonts.load) return Promise.resolve();
-    // Give the fonts a moment; if they're slow the pop-up still opens with a stand-in font
-    const loaded = new Promise(r => { if (!design.fonts) return r(); const l = byId('aotd-font-' + design.id); if (l.sheet) return r(); l.addEventListener('load', r, { once: true }); l.addEventListener('error', r, { once: true }); })
-        .then(() => Promise.all(design.check.map(f => document.fonts.load(f).catch(() => {}))));
-    return Promise.race([loaded, wait(2500)]);
-}
-function aotdImage(url) {
-    return new Promise(r => { const img = new Image(); img.onload = img.onerror = r; img.src = url; setTimeout(r, 2500); });
-}
-function aotdPrepare(design, post) { return Promise.all([aotdFonts(design), aotdImage(firstImage(post))]); }
-
-// Shrinks a headline until it fits its box, for long custom headlines. Headlines marked aotd-fit2 shrink a
-// little on one line first, then take a second line if they still don't fit. When the pop-up opens, the
-// entrance animations are paused for the measurement (some start with the letters spread apart).
-function aotdFitOne(el) {
-    el.style.fontSize = ''; el.style.whiteSpace = ''; el.style.textWrap = '';
-    const cs = getComputedStyle(el);
-    const base = parseFloat(cs.fontSize);
-    const lines = parseInt(cs.getPropertyValue('--fit-lines'), 10) || 1;
-    const vertical = el.classList.contains('aotd-fit-v');
-    const wide = () => el.scrollWidth > el.clientWidth + 1 || (vertical && el.scrollHeight > el.clientHeight + 1);
-    // Counts the lines the text actually takes (the box itself may have padding or a minimum height)
-    const tall = () => {
-        const r = document.createRange(); r.selectNodeContents(el);
-        const half = parseFloat(getComputedStyle(el).fontSize) / 2, tops = [];
-        for (const rc of r.getClientRects()) if (rc.width && !tops.some(t => Math.abs(t - rc.top) < half)) tops.push(rc.top);
-        return tops.length > lines;
-    };
-    let size = base;
-    const shrink = (tooBig, floor) => { let n = 0; while (tooBig() && size > base * floor && n++ < 40) { size *= .94; el.style.fontSize = size + 'px'; } };
-    if (lines < 2) return shrink(wide, .3);
-    el.style.whiteSpace = 'nowrap';
-    shrink(wide, .72);
-    if (!wide()) return;
-    size = base; el.style.fontSize = '';
-    el.style.whiteSpace = 'normal'; el.style.textWrap = 'balance';
-    shrink(() => wide() || tall(), .3);
-}
-function aotdFit(opening) {
-    const box = byId('aotd');
-    if (opening) box.classList.add('aotd-measure');
-    $$('#aotd .aotd-fit').forEach(aotdFitOne);
-    if (opening) box.classList.remove('aotd-measure');
-}
-const aotdRefit = debounce(() => { if (Modals.isOpen(byId('aotd'))) aotdFit(); }, 150);
-
-function openAotd(post, design, s, preview) {
-    const el = byId('aotd');
-    if (!el || Modals.isOpen(el)) return;
-    const paper = byId('aotd-paper');
-    paper.className = 'aotd-paper aotd-' + design.id;
-    paper.style.setProperty('--aotd-ink', aotdColor(design, s) || '');
-    paper.innerHTML = '<div class="aotd-frame">' + AOTD_RENDER[design.id](aotdData(post, design, s)) + '</div>';
-    el.dataset.design = design.id;
-    // Visitors whose device asks for less motion get a simple fade
-    const anim = reduceMotion() && s.anim === 'design' ? 'fade' : s.anim;
-    el.dataset.anim = anim;
-    el.classList.remove('aotd-in', 'aotd-out', 'aotd-fadein', 'aotd-fadeout');
-    if (anim === 'design') el.classList.add('aotd-in');
-    else if (anim === 'fade') el.classList.add('aotd-fadein');
-    Modals.open(el, { onRequestClose: () => closeAotd(), focus: '.aotd-card' });
-    paper.scrollTop = 0;
-    aotdFit(true);
-    if (!preview) try { localStorage.setItem(KEYS.aotdSeen, aotdToday()); } catch (e) {}
-}
 function aotdBlocked() { return Modals.stack.length || ui.view === 'admin' || !byId('setup').hidden || Gate.active; }
+// Everything that can be checked without the pop-up's own files is checked here; showAotd (aotd.js) does the rest
 async function maybeShowAotd() {
     if (!dataReady || currentConfig.artOfToday === false || aotdBlocked()) return;
-    const s = aotdSettings();
-    if (!s.phones && window.matchMedia(AOTD_PHONE).matches) return;
+    if (currentConfig.aotd && currentConfig.aotd.phones === false && window.matchMedia(AOTD_PHONE).matches) return;
     let seen = null;
     try { seen = localStorage.getItem(KEYS.aotdSeen); } catch (e) {}
     if (seen === aotdToday()) return;
-    const post = aotdPick(s);
-    if (!post) return;
-    const design = aotdDesignFor(s);
-    // Fonts and the picture load during the wait, so the entrance plays with everything in place
-    await Promise.all([aotdPrepare(design, post), wait(s.delay * 1000)]);
-    // Don't cover a post someone came to see from a shared link, or the admin page; it'll wait for their next visit
-    if (aotdBlocked()) return;
-    openAotd(post, design, s, false);
-}
-async function previewAotd(designId) {
-    const s = aotdFormSettings();
-    const post = aotdPick(s);
-    if (!post) { showToast('Post some artwork first, then the pop-up has something to show.', 'error'); return; }
-    const design = aotdDesign(designId) || aotdDesignFor(s);
-    await aotdPrepare(design, post);
-    openAotd(post, design, s, true);
-}
-async function closeAotd(then) {
-    const el = byId('aotd');
-    if (!Modals.isOpen(el) || el.classList.contains('aotd-out') || el.classList.contains('aotd-fadeout')) return;
-    const anim = el.dataset.anim;
-    if (anim !== 'none') {
-        el.classList.remove('aotd-in', 'aotd-fadein');
-        el.classList.add(anim === 'design' ? 'aotd-out' : 'aotd-fadeout');
-        const running = el.getAnimations ? el.getAnimations({ subtree: true }).map(a => a.finished.catch(() => {})) : [];
-        await Promise.race([Promise.all(running), wait(1000)]);
-    }
-    Modals.close(el);
-    if (then) then();
-}
-
-/* ─── Admin: Site info → Art of Today ─── */
-
-const AOTD_MINIS = {
-    botanical: '<span class="aotd-mini" style="background:#F4F2EC"><span style="position:absolute;left:0;right:0;top:8px;text-align:center;font:italic 17px \'Playfair Display\',serif;color:var(--mc)">Art of Today</span><span style="position:absolute;left:8px;right:8px;top:38px;height:32px;background:#6FA8E8"></span><span style="position:absolute;left:4px;top:30px;width:18px;height:26px;border-radius:50% 0;background:#5E9F86"></span><span style="position:absolute;right:6px;top:46px;width:18px;height:26px;border-radius:0 50%;background:#5E9F86"></span></span>',
-    cinema: '<span class="aotd-mini" style="display:grid;place-items:center;background:#B8652A"><span style="position:absolute;inset:6px;border:1px solid rgba(255,255,255,.7)"></span><span style="font:16px \'DM Serif Display\',serif;color:#FFF">Art of Today</span></span>',
-    calligraphy: '<span class="aotd-mini" style="background:#2E6A3C"><span style="position:absolute;left:10px;top:2px;font:46px \'Pinyon Script\',cursive;color:#FFF">Art</span><span style="position:absolute;left:34px;top:46px;font:30px \'Pinyon Script\',cursive;color:#FFF">Today</span></span>',
-    magazine: '<span class="aotd-mini" style="display:flex;flex-direction:column;background:#FFF"><span style="height:34px;padding:0 8px;font:300 26px/34px \'Cormorant Garamond\',serif;color:#1A1A1A">TODAY</span><span style="flex:1;background:#F0B62E"></span></span>',
-    caption: '<span class="aotd-mini" style="display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:6px 0;background:#FDFDFB"><span style="width:70%;height:4px;border-radius:2px;background:var(--mc)"></span><span style="display:grid;place-items:center;align-self:stretch;height:54px;background:#3F86DB;font:italic 15px \'Playfair Display\',serif;color:#FFF">art of today</span><span style="width:62%;height:4px;border-radius:2px;background:var(--mc)"></span></span>',
-    editorial: '<span class="aotd-mini" style="display:flex;flex-direction:column;justify-content:center;padding:0 10px;background:#93CBD0;font:24px/.95 \'DM Serif Display\',serif;color:#FFF"><span>Art of</span><span>Today</span></span>',
-    award: '<span class="aotd-mini" style="background:#FAFAF8"><span style="position:absolute;left:14px;right:0;top:32px;height:34px;background:#7FB9E0"></span><span style="position:absolute;left:8px;top:4px;display:flex;flex-direction:column;font:26px/.95 \'DM Serif Display\',serif;color:#1E3350"><span>A</span><span>R</span><span>T</span></span></span>',
-    chapter: '<span class="aotd-mini" style="background:var(--mc)"><span style="position:absolute;inset:6px;border-radius:6px;background:#2E6A3C"></span><span style="position:absolute;left:0;top:0;width:58px;height:36px;padding:4px 6px;border-radius:0 0 8px 0;background:var(--mc);font:11px/1 \'Permanent Marker\',cursive;color:#111">Art of Today</span><span style="position:absolute;left:0;bottom:0;width:70%;height:22px;border-radius:0 8px 0 0;background:var(--mc)"></span></span>',
-    tabloid: '<span class="aotd-mini" style="background:var(--mc)"><span style="position:absolute;left:6px;top:2px;font:22px Anton,sans-serif;color:#111;white-space:nowrap">ART OF TODAY</span><span style="position:absolute;left:34px;top:34px;width:70px;height:52px;background:#6B6B6B"></span></span>',
-    calendar: '<span class="aotd-mini" style="background:#E7E5E0"><span style="position:absolute;left:6px;top:6px;width:62%;height:44px;background:var(--mc)"></span><span style="position:absolute;right:6px;top:6px;width:26%;height:64px;background:var(--mc)"></span><span style="position:absolute;left:8px;top:48px;font:22px \'Archivo Black\',sans-serif;color:#111">10</span><span style="position:absolute;left:0;right:0;bottom:0;height:18px;background:#111"></span></span>'
-};
-
-function aotdBoards() {
-    const count = new Map();
-    postsCache.forEach(p => { if (firstImage(p)) postTags(p).forEach(t => { const k = t.toLowerCase(); const e = count.get(k) || { name: t, n: 0 }; e.n++; count.set(k, e); }); });
-    return Array.from(count.values()).sort((a, b) => b.n - a.n);
-}
-function renderAotdTiles() {
-    const s = Aotd.draft, box = byId('aotd-tiles'); if (!box) return;
-    const random = s.mode !== 'one';
-    const on = AOTD_DESIGNS.filter(d => random ? !s.off.includes(d.id) : s.design === d.id).length;
-    byId('aotd-mode-help').textContent = random
-        ? (on === 1 ? 'Only 1 design is' : on + ' of ' + AOTD_DESIGNS.length + ' designs are') + ' in the rotation. Tap a design to add it or leave it out.'
-        : 'Tap the design to use every day.';
-    box.innerHTML = AOTD_DESIGNS.map((d, i) => {
-        const chosen = random ? !s.off.includes(d.id) : s.design === d.id;
-        const color = aotdColor(d, s);
-        return '<div class="aotd-tile' + (chosen ? ' is-on' : '') + '">'
-            + '<button type="button" class="aotd-tile-main" data-action="aotd-tile" data-id="' + d.id + '" aria-pressed="' + chosen + '">'
-            + '<span class="aotd-mini-wrap" aria-hidden="true" style="--mc:' + (color || '#3B8FD9') + '">' + AOTD_MINIS[d.id] + '</span>'
-            + '<span class="aotd-tile-name">' + String(i + 1).padStart(2, '0') + ' ' + d.name + '</span>'
-            + '<span class="aotd-tile-status">' + (random ? (chosen ? 'In the rotation' : 'Left out') : (chosen ? 'Shown every day' : 'Not used')) + '</span></button>'
-            + '<div class="aotd-tile-tools">'
-            + (d.colors ? '<select class="aotd-tile-color" data-id="' + d.id + '" aria-label="' + d.name + ' ' + d.colors[0].toLowerCase() + ' color">' + d.colors[1].map(c => '<option value="' + c[0] + '"' + (c[0] === color ? ' selected' : '') + '>' + c[1] + '</option>').join('') + '</select>' : '<span class="aotd-tile-nocolor"></span>')
-            + '<button type="button" class="aotd-tile-peek" data-action="aotd-peek" data-id="' + d.id + '" aria-label="Preview ' + d.name + '"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>'
-            + '</div></div>';
-    }).join('');
-    $$('input[name="aotd-mode"]').forEach(r => { r.checked = r.value === (random ? 'random' : 'one'); r.closest('.aotd-mode').classList.toggle('is-on', r.checked); });
-}
-function syncAotdArtFields() {
-    const art = ($('input[name="aotd-art"]:checked') || {}).value || 'all';
-    byId('aotd-board-field').hidden = art !== 'board';
-    byId('aotd-pick-field').hidden = art !== 'pick';
-}
-function renderAotdPicked() {
-    const id = byId('s-aotd-post').value;
-    const p = postsCache.find(x => String(x.id) === String(id));
-    byId('aotd-pick-show').innerHTML = p && firstImage(p)
-        ? '<img src="' + esc(thumbOf(firstImage(p))) + '" alt=""><span>No.' + postNumbers().get(p.id) + ' · ' + esc(excerpt(p.content, 40) || 'Untitled piece') + '</span>'
-        : '<span class="hint">No piece chosen yet</span>';
-}
-function populateAotdForm() {
-    if (!byId('aotd-tiles')) return;
-    const s = aotdSettings();
-    Aotd.draft = clone(s);
-    AOTD_DESIGNS.forEach(aotdFonts);
-    byId('s-aotd').checked = currentConfig.artOfToday !== false;
-    $$('input[name="aotd-art"]').forEach(r => { r.checked = r.value === s.art; });
-    const boards = aotdBoards();
-    const board = byId('s-aotd-board');
-    board.innerHTML = boards.length ? boards.map(b => '<option value="' + esc(b.name) + '">' + esc(b.name) + ' (' + b.n + ')</option>').join('') : '<option value="">No boards yet</option>';
-    if (boards.some(b => b.name.toLowerCase() === String(s.board).toLowerCase())) board.value = boards.find(b => b.name.toLowerCase() === String(s.board).toLowerCase()).name;
-    byId('s-aotd-post').value = s.post || '';
-    renderAotdPicked();
-    byId('s-aotd-nsfw').checked = s.skipNsfw;
-    byId('s-aotd-headline').value = s.headline;
-    byId('s-aotd-message').value = s.message;
-    byId('s-aotd-delay').value = String(s.delay);
-    byId('s-aotd-anim').value = s.anim;
-    byId('s-aotd-phones').checked = s.phones;
-    syncAotdArtFields();
-    renderAotdTiles();
-}
-// The settings as they are in the form right now, saved or not (used by Preview and Save)
-function aotdFormSettings() {
-    if (!Aotd.draft || !byId('aotd-tiles') || ui.view !== 'admin') return aotdSettings();
-    return Object.assign({}, Aotd.draft, {
-        art: ($('input[name="aotd-art"]:checked') || {}).value || 'all',
-        board: byId('s-aotd-board').value, post: byId('s-aotd-post').value,
-        skipNsfw: byId('s-aotd-nsfw').checked,
-        headline: byId('s-aotd-headline').value.trim() || AOTD_DEFAULTS.headline,
-        message: byId('s-aotd-message').value.trim(),
-        delay: Number(byId('s-aotd-delay').value) || 2, anim: byId('s-aotd-anim').value,
-        phones: byId('s-aotd-phones').checked
-    });
-}
-function aotdTile(id) {
-    const s = Aotd.draft;
-    if (s.mode === 'one') s.design = id;
-    else if (s.off.includes(id)) s.off = s.off.filter(x => x !== id);
-    else if (s.off.length >= AOTD_DESIGNS.length - 1) { showToast('Keep at least one design in the rotation.', 'error'); return; }
-    else s.off = s.off.concat(id);
-    renderAotdTiles();
-    const btn = $('.aotd-tile-main[data-id="' + id + '"]'); if (btn) btn.focus({ preventScroll: true });
-}
-function openAotdPostPicker() {
-    const s = aotdFormSettings();
-    const list = sortPosts(postsCache, 'newest').filter(p => aotdAllowed(p, s));
-    const nums = postNumbers();
-    byId('picker-heading').textContent = 'Choose a piece';
-    byId('picker-grid').innerHTML = list.length
-        ? list.map(p => '<button type="button" data-action="aotd-pick-post" data-id="' + p.id + '" aria-label="No.' + nums.get(p.id) + ' ' + esc(excerpt(p.content, 40)) + '"><img src="' + esc(thumbOf(firstImage(p))) + '" alt="" loading="lazy"></button>').join('')
-        : '<p class="hint">No image posts yet.</p>';
-    Modals.open(byId('picker-modal'));
+    if (await loadAotd()) showAotd();
 }
 
 /* ═════════════════════════════════════════════
    DRAG TO REORDER (queues and comic pages)
    ═════════════════════════════════════════════ */
-
-function enableDragSort(container, itemSel, onMove) {
-    let from = null;
-    $$(itemSel, container).forEach(item => {
-        item.addEventListener('dragstart', e => { from = Number(item.dataset.index); item.classList.add('is-drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(from)); } catch (x) {} });
-        item.addEventListener('dragend', () => { item.classList.remove('is-drag'); $$('.is-target', container).forEach(n => n.classList.remove('is-target')); });
-        item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; item.classList.add('is-target'); });
-        item.addEventListener('dragleave', () => item.classList.remove('is-target'));
-        item.addEventListener('drop', e => { e.preventDefault(); const to = Number(item.dataset.index); if (from !== null && from !== to) onMove(from, to); from = null; });
-    });
-}
-
-function wireDropzone(zone, onFiles) {
-    if (!zone) return;
-    const input = byId(zone.dataset.input);
-    zone.addEventListener('click', e => { if (e.target !== input) input.click(); });
-    zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
-    ['dragenter', 'dragover'].forEach(t => zone.addEventListener(t, e => { e.preventDefault(); zone.classList.add('is-over'); }));
-    ['dragleave', 'drop'].forEach(t => zone.addEventListener(t, e => { e.preventDefault(); zone.classList.remove('is-over'); }));
-    zone.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) onFiles(e.dataTransfer.files); });
-    input.addEventListener('change', () => { if (input.files.length) onFiles(input.files); input.value = ''; });
-}
 
 /* Swipe left/right on touch screens */
 function onSwipe(el, onLeft, onRight) {
@@ -4077,11 +3402,6 @@ const actions = {
     'open-post': (el, e) => { e.preventDefault(); if (el.dataset.closePost) closePost(); openPost(Number(el.dataset.id), 0, { focus: el.dataset.focus }); },
     'close-aotd': () => closeAotd(),
     'aotd-view': (el, e) => { e.preventDefault(); const id = Number(el.dataset.id); closeAotd(() => openPost(id)); },
-    'preview-aotd': () => previewAotd(),
-    'aotd-peek': el => previewAotd(el.dataset.id),
-    'aotd-tile': el => aotdTile(el.dataset.id),
-    'aotd-choose': () => openAotdPostPicker(),
-    'aotd-pick-post': el => { byId('s-aotd-post').value = el.dataset.id; renderAotdPicked(); Modals.close(byId('picker-modal')); },
     'close-post': () => closePost(),
     'post-prev': () => stepPost(-1),
     'post-next': () => stepPost(1),
@@ -4162,95 +3482,11 @@ const actions = {
     'modal-close': el => { const m = el.closest('.overlay'); if (m) Modals.close(m); },
     'confirm-yes': () => finishConfirm(true),
     'confirm-no': () => finishConfirm(false),
-
-    // Admin
-    'logout': () => logoutAdmin(),
     'admin-tab': el => showAdminTab(el.dataset.tab),
-    'chf-save': () => saveCharacter(),
-    'chf-cancel': () => chfFill(null),
-    'chf-edit': el => { const c = siteCharacters().find(x => String(x.id) === el.dataset.id); if (c) { chfFill(c); byId('chf-name').focus(); byId('chf-heading').scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' }); } },
-    'chf-delete': el => deleteCharacter(el.dataset.id),
-    'chf-move': el => moveCharacter(el.dataset.id, el.dataset.dir),
-    'chf-pick-colors': () => pickCharacterColors(),
-    'chf-intro-save': () => saveCharactersIntro(),
-    'srf-save': () => saveSeries(),
-    'srf-cancel': () => { srfFill(null); renderSeriesParts(); renderSeriesPicker(); },
-    'srf-edit': el => { const s = siteSeries().find(x => String(x.id) === el.dataset.id); if (s) { srfFill(s); renderSeriesParts(); renderSeriesPicker(); byId('srf-name').focus(); byId('srf-heading').scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' }); } },
-    'srf-delete': el => deleteSeries(el.dataset.id),
-    'srf-move': el => moveSeries(el.dataset.id, el.dataset.dir),
-    'srf-toggle': el => seriesToggle(el.dataset.id),
-    'srf-part-move': el => seriesPartMove(el.dataset.index, el.dataset.dir),
-    'srf-part-remove': el => seriesPartRemove(el.dataset.index),
-    'force-sync': () => forceSyncAll(),
-    'open-cleanup': () => openCleanupPanel(),
-    'download-backup': () => downloadBackup(),
-    'backup-snooze': () => { writeJSON(KEYS.backupSnooze, Date.now() + 7 * 864e5); renderBackupNudge(); },
     'recovery-restore': () => recoveryRestore(),
     'recovery-dismiss': () => recoveryDismiss(),
     'repair-run': () => runRepair(),
-    'toggle-chip': el => el.setAttribute('aria-pressed', String(el.getAttribute('aria-pressed') !== 'true')),
-    'np-add-url': () => addUrlToQueue(),
-    'queue-move': el => { const i = Number(el.dataset.index), j = i + Number(el.dataset.dir); if (j < 0 || j >= currentPostMediaQueue.length) return; [currentPostMediaQueue[i], currentPostMediaQueue[j]] = [currentPostMediaQueue[j], currentPostMediaQueue[i]]; renderMediaQueue(); },
-    'queue-remove': el => { currentPostMediaQueue.splice(Number(el.dataset.index), 1); renderMediaQueue(); },
-    'publish-post': () => createPost(),
-    'bulk-upload': () => bulkUpload(),
-    'edit-post': el => { const id = Number(el.dataset.id); editingPostId = editingPostId === id ? null : id; renderManagePosts(); },
-    'edit-remove-media': el => el.closest('.mm').classList.toggle('is-removed'),
-    'toggle-pin': el => togglePin(el.dataset.id),
     'delete-post': el => deletePost(el.dataset.id),
-    'comic-create': () => createComic(),
-    'comics-download': () => { downloadComicsJS(); showToast('Downloaded comics.js'); },
-    'comics-sync': () => saveComics(),
-    'edit-comic': el => { const id = Number(el.dataset.id); editingComicId = editingComicId === id ? null : id; resetEditPagesDraft(); renderComicsAdmin(); },
-    'ec-swap': el => editComicSwap(el.dataset.index),
-    'ec-remove': el => editComicRemove(el.dataset.index),
-    'delete-comic': el => deleteComic(el.dataset.id),
-    'open-add-pages': el => openAddPagesModal(el.dataset.id),
-    'ap-submit': () => submitAddPages(),
-    'sorter-remove': el => { const q = el.dataset.sorter === 'nc-pages' ? comicPagesQueue : addPagesQueue; q.splice(Number(el.dataset.index), 1); if (el.dataset.sorter === 'nc-pages') renderNewComicPages(); else renderAddPages(); },
-    'site-save': () => saveSiteSettings(),
-    'goto-admin-tab': (el, e) => { e.preventDefault(); showAdminTab(el.dataset.tab); window.scrollTo(0, 0); },
-    'status-preset': el => { byId('s-status-text').value = el.dataset.text; byId('s-status-color').value = el.dataset.color.toLowerCase(); },
-    'comm-toggle': () => toggleCommissions(),
-    'comm-save': () => saveCommSettings(),
-    'comm-colors-reset': () => setCommColors(COMM_DEFAULTS),
-    'tier-add': () => addTier(),
-    'tier-move': el => moveTier(el),
-    'tier-remove': el => removeTier(el),
-    'addon-add': () => addAddon(),
-    'addon-remove': el => el.closest('.addon-row').remove(),
-    'tsec-add': () => addTermSection(),
-    'tsec-move': el => moveTermSection(el),
-    'tsec-remove': el => removeTermSection(el),
-    'studio-mode': el => Studio.switchMode(el.dataset.mode),
-    'studio-preset': el => Studio.applyPreset(Number(el.dataset.index)),
-    'studio-generate': () => Studio.generate(),
-    'studio-save': () => Studio.save(),
-    'studio-discard': () => Studio.discard(),
-    'ring-preset': el => Studio.ringPreset(Number(el.dataset.index)),
-    'banner-mode': el => { bannerDraftMode = el.dataset.mode; syncBannerForm(); },
-    'banner-save': () => saveBannerSettings(),
-    'sl-pick': el => toggleSliderPick(el),
-    'sl-own-add': () => { addSliderOwnRow('', ''); syncSliderForm(); },
-    'sl-own-remove': el => { el.closest('.sl-own-row').remove(); syncSliderForm(); },
-    'pick-image': el => openPicker(el.dataset.target),
-    'pick-this': el => {
-        const t = byId(pickerTarget); if (t) { t.value = el.dataset.url; t.dispatchEvent(new Event('input', { bubbles: true })); }
-        Modals.close(byId('picker-modal'));
-    },
-    'link-add': () => addLinkRow('', '', ''),
-    'link-remove': el => el.closest('.link-row').remove(),
-    'links-save': () => saveSocialLinks(),
-    'cleanup': el => runCleanup(el.dataset.fn, el),
-    'shrink-start': () => runShrink(),
-    'pv-start': () => runPreviews(),
-    'lp-update': () => updateLinkPreview(),
-    'lp-download': () => downloadLinkPreviewPage(),
-    'pv-stop': el => { Previews.stop = true; el.disabled = true; el.textContent = 'Stopping'; setTimeout(() => { el.disabled = false; el.textContent = 'Stop after this one'; }, 1500); },
-    'shrink-stop': el => { Shrink.stop = true; el.disabled = true; el.textContent = 'Stopping'; setTimeout(() => { el.disabled = false; el.textContent = 'Stop after this one'; }, 1500); },
-    'shrink-copy': () => { const t = byId('shrink-list').value; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('List copied'), () => { byId('shrink-list').select(); showToast('Press Ctrl+C to copy the selected list'); }); },
-    'shrink-download': () => downloadFile(byId('shrink-list').value + '\n', 'old-images-to-delete.txt'),
-    'shrink-forget': async () => { if (!await askConfirm('Only do this once the old files are deleted from Neocities.', { title: 'Clear the list?', yes: 'Clear the list' })) return; writeJSON(KEYS.shrinkLeftovers, []); renderShrink(); },
     'setup-create': () => generateSystem(),
     'setup-restore': () => restoreFromBackup(),
     'setup-preset': el => { setupPreset = Number(el.dataset.index); $$('#su-presets .preset').forEach((b, i) => b.setAttribute('aria-pressed', String(i === setupPreset))); }
@@ -4328,10 +3564,6 @@ function bindEvents() {
     const search = byId('feed-search');
     search.addEventListener('input', debounce(() => { ui.feed.q = search.value; ui.feed.limit = FEED_STEP; renderFeed(); }, 180));
     byId('feed-sort').addEventListener('change', e => { ui.feed.sort = e.target.value; ui.feed.limit = FEED_STEP; renderFeed(); });
-    byId('mp-search').addEventListener('input', debounce(() => renderManagePosts(), 150));
-    byId('srf-search').addEventListener('input', debounce(() => { if (typeof renderSeriesPicker === 'function') renderSeriesPicker(); }, 150));
-    // A newly uploaded or pasted reference picture fills in the character's colors
-    byId('chf-img').addEventListener('input', debounce(() => { if (typeof pickCharacterColors === 'function') pickCharacterColors(true); }, 500));
 
     // One clock for every side slider on screen
     setInterval(stepSliders, 250);
@@ -4349,47 +3581,6 @@ function bindEvents() {
     // Hover to play video previews
     document.addEventListener('mouseover', e => { const v = e.target.closest && e.target.closest('[data-hoverplay]'); if (v) v.play().catch(() => {}); });
     document.addEventListener('mouseout', e => { const v = e.target.closest && e.target.closest('[data-hoverplay]'); if (v) v.pause(); });
-
-    // Admin form inputs
-    document.addEventListener('input', e => {
-        const t = e.target;
-        if (t.dataset && t.dataset.studioKey) Studio.setKey(t.dataset.studioKey, t.value);
-        else if (t.id === 'c-like') Studio.setShared('like', t.value);
-        else if (t.id === 'c-like-ink') Studio.setShared('likeBtn', t.value);
-        else if (t.id === 'c-dislike') Studio.setShared('dislike', t.value);
-        else if (t.id === 'c-dislike-ink') Studio.setShared('dislikeBtn', t.value);
-        else if (/^ring-/.test(t.id)) Studio.readRing();
-        else if (t.id === 'bn-speed') byId('bn-speed-out').textContent = t.value + 's per loop';
-        else if (t.id === 'np-later') syncScheduleField();
-        else if (t.id === 's-feed') renderFeedStatus();
-        else if (/^lp-|^s-(title|desc|sitename|tagline|pfp)$/.test(t.id)) linkPreviewSoon();
-        else if (/^sl-/.test(t.id) || t.closest('.sl-own')) syncSliderForm();
-        else if (/^bn-img-\d$/.test(t.id)) { const prev = t.parentElement.querySelector('.prev'); if (prev) prev.style.backgroundImage = 'url("' + safeUrl(t.value).replace(/"/g, '%22') + '")'; }
-        else if (t.id === 's-status-color') document.documentElement.style.setProperty('--status', t.value);
-        else if (t.id === 'cm-f-tape') syncTapeSample();
-        else if (/^(image|color|name)$/.test(t.name) && t.closest('.tier-row')) refreshTierThumb(t.closest('.tier-row'));
-    });
-    document.addEventListener('change', e => {
-        const t = e.target;
-        if (t.dataset && t.dataset.uploadTarget) uploadIntoField(t);
-        else if (t.id === 'ec-swap-file') editComicSwapPicked(t);
-        else if (t.id === 'bn-count' || t.id === 'bn-marquee') syncBannerForm();
-        else if (t.id === 'ring-dir') Studio.readRing();
-        else if (t.name === 'aotd-mode' && Aotd.draft) { Aotd.draft.mode = t.value; renderAotdTiles(); }
-        else if (t.name === 'aotd-art') syncAotdArtFields();
-        else if (t.classList && t.classList.contains('aotd-tile-color') && Aotd.draft) { Aotd.draft.colors[t.dataset.id] = t.value; const m = t.closest('.aotd-tile').querySelector('.aotd-mini-wrap'); if (m) m.style.setProperty('--mc', t.value); }
-    });
-
-    // Paste images straight into a new post
-    byId('np-content').addEventListener('paste', e => {
-        const files = Array.from((e.clipboardData && e.clipboardData.files) || []).filter(f => /^image\//.test(f.type));
-        if (files.length) { e.preventDefault(); addFilesToQueue(files); showToast('Image added to the post'); }
-    });
-
-    wireDropzone(byId('np-drop'), files => addFilesToQueue(files));
-    wireDropzone(byId('bulk-drop'), files => setBulkFiles(files));
-    wireDropzone(byId('nc-drop'), files => setComicFiles(files, 'nc'));
-    wireDropzone(byId('ap-drop'), files => setComicFiles(files, 'ap'));
 
     onSwipe(byId('post-stage'), () => stepImage(1), () => stepImage(-1));
     wireCompare();
@@ -4425,7 +3616,7 @@ async function init() {
 
     let loaded = 0;
     const files = ['system.js', 'posts.js', 'comics.js', 'interactions.js'];
-    await Promise.all(files.map(f => loadScript(f).then(async ok => { if (!ok) await noteLoadFailure(f); loaded++; gateProgress(10 + loaded * 20); })));
+    await Promise.all(files.map(f => loadScript(f).then(async ok => { gateFile(f, ok); if (!ok) await noteLoadFailure(f); loaded++; gateProgress(10 + loaded * 20); })));
 
     const hasSystem = parseSystemData();
     applyVisualConfig();
@@ -4436,7 +3627,6 @@ async function init() {
     else if (!hasSystem) { gateSkip(); showSetup(); }
     else gateDataReady();
     if (hasSystem && !Gate.active) maybeShowAotd();
-    window.addEventListener('resize', aotdRefit);
     if (pendingOps.length) setTimeout(() => scheduleInteractionsSync(), 2500);
 }
 
