@@ -774,15 +774,21 @@ async function submitAddPages() {
    edge, or remove the selected one. A shape is saved as its corners (see isShape in logic.js).
    ═════════════════════════════════════════════ */
 
-const PD = { index: 0, sel: -1, corner: -1, drag: null };
+const PD = { index: 0, sel: -1, corner: -1, drag: null, zoom: 1, full: false };
 function pdItem() { return editPagesDraft.items[PD.index]; }
 function pdEnsure() {
     if (byId('pd-modal')) return;
     document.body.insertAdjacentHTML('beforeend', '<div class="overlay modal pd-modal" id="pd-modal" role="dialog" aria-modal="true" aria-labelledby="pd-heading" hidden>'
         + '<div class="modal-card pd-card">'
         + '<div class="modal-head"><h2 id="pd-heading">Page</h2><div class="pd-nav"><button type="button" class="btn small" data-action="pd-step" data-dir="-1" aria-label="Previous page"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button><button type="button" class="btn small" data-action="pd-step" data-dir="1" aria-label="Next page"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></div>'
+        + '<div class="pd-view" role="group" aria-label="View">'
+        + '<button type="button" class="btn small" data-action="pd-zoom" data-dir="-1" aria-label="Zoom out" title="Zoom out">&minus;</button>'
+        + '<button type="button" class="btn small pd-zoom-n" id="pd-zoom-n" data-action="pd-zoom" data-dir="0" title="Fit the whole page">Fit</button>'
+        + '<button type="button" class="btn small" data-action="pd-zoom" data-dir="1" aria-label="Zoom in" title="Zoom in">+</button>'
+        + '<button type="button" class="btn small pd-full" id="pd-full" data-action="pd-full" aria-pressed="false"><svg class="pd-full-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2"></path></svg><span>Full screen</span></button>'
+        + '</div>'
         + '<button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>'
-        + '<div class="pd-grid"><div class="pd-left"><div class="pd-stage" id="pd-stage"><img id="pd-img" alt="" draggable="false"><div class="pd-boxes" id="pd-boxes"></div></div></div>'
+        + '<div class="pd-grid"><div class="pd-left" id="pd-left"><div class="pd-stage" id="pd-stage"><img id="pd-img" alt="" draggable="false"><div class="pd-boxes" id="pd-boxes"></div></div></div>'
         + '<div class="pd-right">'
         + '<label class="field"><span>Author\'s note <em>(shows with this page; **bold** and *italic* work)</em></span><textarea id="pd-note" rows="4" maxlength="1000" placeholder="Anything you\'d like readers to know about this page"></textarea></label>'
         + '<div class="field"><span>Panels <em>(for reading panel by panel)</em></span>'
@@ -798,11 +804,50 @@ function pdEnsure() {
     stage.addEventListener('pointerup', pdUp);
     stage.addEventListener('pointercancel', pdUp);
     byId('pd-note').addEventListener('input', e => { const it = pdItem(); if (it) it.note = e.target.value; });
-    byId('pd-img').addEventListener('load', pdRenderBoxes);
+    byId('pd-img').addEventListener('load', () => { pdSetZoom(1); pdRenderBoxes(); });
+    // Ctrl + mouse wheel (or a trackpad pinch) zooms in on the spot under the pointer
+    byId('pd-left').addEventListener('wheel', e => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        pdSetZoom(clamp(PD.zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2), 1, PD_ZOOMS[PD_ZOOMS.length - 1]), [e.clientX, e.clientY]);
+    }, { passive: false });
+}
+/* Seeing the page bigger: Full screen fills the window with the editor (remembered on this device), and zoom
+   goes up to 5 times the fitted size, with the page scrolling inside its frame */
+const PD_ZOOMS = [1, 1.5, 2, 3, 4, 5];
+function pdZoom(dir) {
+    dir = Number(dir);
+    const z = !dir ? 1 : dir > 0 ? (PD_ZOOMS.find(v => v > PD.zoom + .01) || PD_ZOOMS[PD_ZOOMS.length - 1]) : (PD_ZOOMS.slice().reverse().find(v => v < PD.zoom - .01) || 1);
+    pdSetZoom(z);
+}
+function pdSetZoom(z, focus) {
+    const wrap = byId('pd-left'), img = byId('pd-img'); if (!wrap || !img) return;
+    // Keep the spot in the middle of the frame (or under the pointer) where it is
+    const w = wrap.getBoundingClientRect(), r = img.getBoundingClientRect();
+    const [cx, cy] = focus || [w.left + w.width / 2, w.top + w.height / 2];
+    const fx = r.width ? (cx - r.left) / r.width : .5, fy = r.height ? (cy - r.top) / r.height : .5;
+    PD.zoom = img.naturalWidth ? z : 1;
+    img.style.width = ''; wrap.classList.remove('is-zoomed');
+    if (PD.zoom > 1) { const fit = img.getBoundingClientRect().width; wrap.classList.add('is-zoomed'); img.style.width = Math.round(fit * PD.zoom) + 'px'; }
+    const r2 = img.getBoundingClientRect();
+    wrap.scrollLeft += r2.left + fx * r2.width - cx; wrap.scrollTop += r2.top + fy * r2.height - cy;
+    byId('pd-zoom-n').textContent = PD.zoom > 1 ? Math.round(PD.zoom * 100) + '%' : 'Fit';
+    $$('#pd-modal [data-action="pd-zoom"]').forEach(b => { const d = Number(b.dataset.dir); b.disabled = d < 0 ? PD.zoom <= 1 : d > 0 ? PD.zoom >= PD_ZOOMS[PD_ZOOMS.length - 1] : false; });
+}
+function pdFull(on) {
+    PD.full = on == null ? !PD.full : !!on;
+    byId('pd-modal').classList.toggle('is-full', PD.full);
+    const b = byId('pd-full'); b.setAttribute('aria-pressed', String(PD.full));
+    $('span', b).textContent = PD.full ? 'Exit full screen' : 'Full screen';
+    b.title = PD.full ? 'Back to the normal window' : 'Fill the screen with the page';
+    try { localStorage.setItem('neerg_pd_full', PD.full ? '1' : ''); } catch (e) {}
+    pdSetZoom(1);
 }
 function openPageDetails(index) {
     if (!editPagesDraft.items.length) return;
     pdEnsure();
+    let full = false; try { full = localStorage.getItem('neerg_pd_full') === '1'; } catch (e) {}
+    pdFull(full);
     pdShow(Number(index));
     const m = byId('pd-modal');
     if (!Modals.isOpen(m)) Modals.open(m, { onRequestClose: closePageDetails, focus: '#pd-note' });
@@ -815,7 +860,7 @@ function pdShow(index) {
     $$('[data-action="pd-step"]').forEach(b => { b.disabled = Number(b.dataset.dir) < 0 ? PD.index === 0 : PD.index === items.length - 1; });
     byId('pd-note').value = it.note || '';
     const img = byId('pd-img');
-    if (img.getAttribute('src') !== (it.preview || it.url)) { byId('pd-boxes').innerHTML = ''; img.src = it.preview || it.url; }
+    if (img.getAttribute('src') !== (it.preview || it.url)) { byId('pd-boxes').innerHTML = ''; img.style.width = ''; img.src = it.preview || it.url; }
     img.alt = 'Page ' + (PD.index + 1);
     pdRenderBoxes();
 }
@@ -2635,6 +2680,8 @@ Object.assign(actions, {
     'pd-clear': () => pdClear(),
     'pd-order': el => pdOrder(el.dataset.dir),
     'pd-remove': () => pdRemove(),
+    'pd-zoom': el => pdZoom(el.dataset.dir),
+    'pd-full': () => pdFull(),
     'pd-shape': () => pdShape(),
     'pd-unshape': () => pdUnshape(),
     'pd-corner-remove': () => pdCornerRemove(),

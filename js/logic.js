@@ -2877,15 +2877,31 @@ function showPanel(animate) {
     if (!nw || !nh || !img.complete) return; // the picture's load event calls this again
     const r = k < 0 ? [0, 0, 1, 1] : steps[k], [x, y, w, h] = panelBox(r);
     const W = box.clientWidth, H = box.clientHeight, pad = Math.min(24, W * .04);
+    if (W < 10 || H < 10) return;
+    // How big a box of the page shows: as large as fits, but a small panel never blows up past one and a half
+    // times the picture's own size, so it stays sharp
+    const cap = Math.max(1.5, Math.min(W / nw, H / nh));
+    const fit = b => Math.min((W - pad * 2) / (b[2] * nw), (H - pad * 2) / (b[3] * nh));
+    const s = k < 0 ? fit([0, 0, 1, 1]) : Math.min(fit([x, y, w, h]), cap);
+    // The picture is laid out only as big as this page's closest panel needs, not at its full size: a phone
+    // moving a page thousands of pixels across can drop frames and flash. It's the same sharpness on screen.
+    const base = Math.min(1, Math.max(fit([0, 0, 1, 1]), ...pagePanels(comic, p).map(q => Math.min(fit(panelBox(q)), cap))));
     const pw = w * nw, ph = h * nh;
-    let s = Math.min((W - pad * 2) / pw, (H - pad * 2) / ph);
-    // A small panel never blows up past one and a half times the picture's own size, so it stays sharp
-    if (k >= 0) s = Math.min(s, Math.max(1.5, Math.min(W / nw, H / nh)));
     const tx = W / 2 - (x * nw + pw / 2) * s, ty = H / 2 - (y * nh + ph / 2) * s;
     box.classList.toggle('no-anim', !animate);
-    img.style.width = nw + 'px'; img.style.height = nh + 'px';
-    img.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + s.toFixed(4) + ')';
-    hole.style.cssText = 'left:' + (W / 2 - pw * s / 2).toFixed(1) + 'px;top:' + (H / 2 - ph * s / 2).toFixed(1) + 'px;width:' + (pw * s).toFixed(1) + 'px;height:' + (ph * s).toFixed(1) + 'px';
+    img.style.width = (nw * base).toFixed(1) + 'px'; img.style.height = (nh * base).toFixed(1) + 'px';
+    img.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + (s / base).toFixed(5) + ')';
+    // The window onto the panel, and four dim bars around it. All of them glide by transform like the picture,
+    // so they stay in step with it even when the phone is busy.
+    const L = W / 2 - pw * s / 2, T = H / 2 - ph * s / 2, ww = pw * s, hh = ph * s;
+    const move = (el, dx, dy, sx, sy) => { el.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + sx.toFixed(5) + ',' + sy.toFixed(5) + ')'; };
+    move(hole, L, T, ww / W, hh / H);
+    let dims = box.querySelectorAll('.rd-pan-dim');
+    if (dims.length !== 4) { hole.insertAdjacentHTML('beforebegin', '<i class="rd-pan-dim"></i>'.repeat(4)); dims = box.querySelectorAll('.rd-pan-dim'); }
+    move(dims[0], 0, T - H, 1, 1);
+    move(dims[1], 0, T + hh, 1, 1);
+    move(dims[2], L - W, T, 1, hh / H);
+    move(dims[3], L + ww, T, 1, hh / H);
     // A shaped panel: inside its box, everything outside the shape is dimmed too. While the view glides to
     // the next panel the shape fades out, and the new one fades in as it arrives.
     clearTimeout(showPanel.cutTimer);
@@ -2899,6 +2915,10 @@ function showPanel(animate) {
 }
 function panelsLoaded() {
     const comic = getComic(ui.reader.id); if (!comic || readerMode(comic) !== 'panels') return;
+    // Shown once the browser has the page ready to draw, so a big page never appears half-drawn
+    const img = byId('rd-pan-img'), page = img.dataset.page;
+    if (img.decode && !img.dataset.ready) { img.decode().catch(() => {}).then(() => { if (img.dataset.page === page) { img.dataset.ready = page; panelsLoaded(); } }); return; }
+    if (img.dataset.ready && img.dataset.ready !== page) { img.dataset.ready = ''; return panelsLoaded(); }
     byId('rd-pan').classList.remove('is-new');
     showPanel(false);
     // The moment on the whole page, then into the first panel

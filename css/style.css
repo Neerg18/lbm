@@ -1392,12 +1392,13 @@ a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
 .rd-pan { position: absolute; inset: 0; overflow: hidden; cursor: zoom-out; }
 .reader.is-panels .rd-pan[data-whole] { cursor: zoom-in; }
 .rd-pan img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; transition: transform .55s cubic-bezier(.65, 0, .35, 1), opacity .25s; }
-.rd-pan-hole { position: absolute; left: 0; top: 0; border-radius: 4px; box-shadow: 0 0 0 200vmax rgba(0, 0, 0, .86); pointer-events: none; transition: left .55s cubic-bezier(.65, 0, .35, 1), top .55s cubic-bezier(.65, 0, .35, 1), width .55s cubic-bezier(.65, 0, .35, 1), height .55s cubic-bezier(.65, 0, .35, 1); }
+.rd-pan-hole, .rd-pan-dim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 0 0; pointer-events: none; transition: transform .55s cubic-bezier(.65, 0, .35, 1); }
+.rd-pan-dim { background: rgba(0, 0, 0, .86); }
 .rd-pan.is-new img { opacity: 0; }
 .rd-pan.no-anim img { transition: opacity .25s; }
-.rd-pan.no-anim .rd-pan-hole { transition: none; }
+.rd-pan.no-anim .rd-pan-hole, .rd-pan.no-anim .rd-pan-dim { transition: none; }
 /* A shaped panel: the same dim fills its box outside the shape */
-.rd-pan-cut { position: absolute; inset: 0; border-radius: inherit; background: rgba(0, 0, 0, .86); opacity: 0; transition: opacity .2s; }
+.rd-pan-cut { position: absolute; inset: 0; background: rgba(0, 0, 0, .86); opacity: 0; transition: opacity .2s; }
 .rd-pan-cut.is-on { opacity: 1; }
 .rd-pan.no-anim .rd-pan-cut { transition: none; }
 
