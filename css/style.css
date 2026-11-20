@@ -1372,6 +1372,11 @@ a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
     .reader-top { gap: 8px; padding: 8px 10px; }
     .reader-top .reader-page { display: none; }
 }
+@media (max-width: 420px) {
+    /* Small phones: the buttons need the whole bar, so the comic's title steps aside */
+    .reader-top .reader-title { display: none; }
+    .reader-top .rd-modes { margin-left: auto; }
+}
 /* The page area and, beside it on a computer, the notes and comments panel */
 .reader-main { position: relative; flex: 1; min-height: 0; display: flex; }
 .reader-main > .reader-stage { flex: 1; min-width: 0; }

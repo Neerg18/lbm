@@ -765,7 +765,7 @@ async function submitAddPages() {
 
 /* ═════════════════════════════════════════════
    ADMIN: A COMIC PAGE'S NOTE AND PANELS
-   Opened from a page's ✎ button in a comic's edit form. Changes go into that form's draft, so they're saved
+   Opened from a page's feather button in a comic's edit form. Changes go into that form's draft, so they're saved
    (or thrown away) with the rest of the comic's edits. Panels are drawn on the page: drag across it for a new
    one, drag a box to move it or its corner to resize it. Find panels marks them from the gaps between them.
    ═════════════════════════════════════════════ */
@@ -892,7 +892,7 @@ function comicPanelDir() { const f = $('form[data-form="edit-comic"]'); return f
 async function findPanelsEverywhere(btn) {
     const items = editPagesDraft.items.filter(it => !it.panels.length);
     const status = byId('ec-find-status');
-    if (!items.length) { status.textContent = 'Every page already has its panels. Use a page\'s ✎ button to change them.'; return; }
+    if (!items.length) { status.textContent = 'Every page already has its panels. Use a page\'s feather button to change them.'; return; }
     btn.disabled = true;
     let found = 0;
     for (let k = 0; k < items.length; k++) {
@@ -902,8 +902,8 @@ async function findPanelsEverywhere(btn) {
     }
     btn.disabled = false;
     renderEditComicPages();
-    status.textContent = found ? 'Found panels on ' + plural(found, 'page') + (found < items.length ? '. The other ' + plural(items.length - found, 'page') + ' had no clear gaps between panels (full-page art, or panels that touch)' : '') + '. Check them with each page\'s ✎ button, then press Save changes.'
-        : 'No clear gaps between panels on those pages. Draw them by hand with each page\'s ✎ button.';
+    status.textContent = found ? 'Found panels on ' + plural(found, 'page') + (found < items.length ? '. The other ' + plural(items.length - found, 'page') + ' had no clear gaps between panels (full-page art, or panels that touch)' : '') + '. Check them with each page\'s feather button, then press Save changes.'
+        : 'No clear gaps between panels on those pages. Draw them by hand with each page\'s feather button.';
 }
 
 /* Finding panels: the page's background is the color most of its edge has (usually white or black). Rows and
