@@ -11,7 +11,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    NEERG 7.0.25 · index.html
+    NEERG 7.0.26 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
     Upload index.html and the css, js and fonts folders to your Neocities root.
@@ -41,10 +41,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
     <!-- The ?v= tag makes browsers fetch fresh copies after an update. Set it to the new version (NEERG_VERSION in logic.js) with every update. -->
-    <link rel="stylesheet" href="css/style.css?v=7.0.25">
+    <link rel="stylesheet" href="css/style.css?v=7.0.26">
 
     <script defer src="js/marked.min.js"></script>
-    <script defer src="js/logic.js?v=7.0.25"></script>
+    <script defer src="js/logic.js?v=7.0.26"></script>
 </head>
 <body>
 
@@ -426,7 +426,7 @@
             <a href="#/about">About</a>
         </nav>
         <div class="social-icons" id="footer-social"></div>
-        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.25</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.26</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
     </div>
 </footer>
 
@@ -495,17 +495,25 @@
             <button class="pg" data-action="reader-mode" data-mode="page" aria-pressed="true" aria-label="One page at a time" title="One page at a time"><i class="fa-regular fa-image" aria-hidden="true"></i><span>Page</span></button>
             <button class="pg" data-action="reader-mode" data-mode="scroll" aria-pressed="false" aria-label="Long scroll" title="All the pages in one long scroll"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i><span>Scroll</span></button>
             <button class="pg" data-action="reader-mode" data-mode="spread" aria-pressed="false" aria-label="Two pages" title="Two pages side by side, like a comic book"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span>Two pages</span></button>
+            <button class="pg" data-action="reader-mode" data-mode="panels" aria-pressed="false" aria-label="Panel by panel" title="One panel at a time, zoomed in" hidden><svg class="rd-panels-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1h7v6H1zM10 1h5v6h-5zM1 9h4v6H1zM7 9h8v6H7z" fill="currentColor"/></svg><span>Panels</span></button>
         </div>
         <button class="btn small on-dark" data-action="reader-fit" id="rd-fit" aria-pressed="false">Fit width</button>
+        <button class="btn small on-dark rd-whole" data-action="reader-whole" id="rd-whole" aria-pressed="false" title="See the whole page" hidden><i class="fa-solid fa-compress" aria-hidden="true"></i><span>Whole page</span></button>
+        <button class="btn small on-dark rd-talk" data-action="reader-talk" id="rd-talk" aria-pressed="false" aria-controls="rd-side" title="Notes and comments" hidden><i class="fa-regular fa-comment" aria-hidden="true"></i><span id="rd-talk-n">0</span></button>
     </div>
-    <div class="reader-stage" id="rd-stage">
-        <img id="rd-img" alt="">
-        <div class="rd-spread" id="rd-spread" hidden></div>
-        <div class="rd-scroll" id="rd-scroll" hidden></div>
-        <button class="reader-tap left" data-action="reader-prev" aria-label="Previous page"></button>
-        <button class="reader-tap right" data-action="reader-next" aria-label="Next page"></button>
+    <div class="reader-main">
+        <div class="reader-stage" id="rd-stage">
+            <img id="rd-img" alt="">
+            <div class="rd-spread" id="rd-spread" hidden></div>
+            <div class="rd-scroll" id="rd-scroll" hidden></div>
+            <div class="rd-pan" id="rd-pan" data-action="reader-whole" hidden><img id="rd-pan-img" alt="" draggable="false"><span class="rd-pan-hole" id="rd-pan-hole" aria-hidden="true"><span class="rd-pan-cut" id="rd-pan-cut"></span></span></div>
+            <button class="reader-tap left" data-action="reader-prev" aria-label="Previous page"></button>
+            <button class="reader-tap right" data-action="reader-next" aria-label="Next page"></button>
+        </div>
+        <aside class="rd-side" id="rd-side" aria-label="Notes and comments" hidden></aside>
     </div>
     <div class="reader-bottom">
+        <button class="rd-note-strip" id="rd-note-strip" data-action="reader-talk" hidden></button>
         <div class="reader-pages" id="rd-pages"></div>
     </div>
 </div>

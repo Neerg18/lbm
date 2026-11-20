@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.25 · style.css
+ NEERG 7.0.26 · style.css
  Every color below comes from your palette in Admin, Colors & style.
  The values in :root are only the defaults used before your settings load.
 */
@@ -32,6 +32,7 @@
 .fa-circle-half-stroke{--fa:"\f042"}
 .fa-circle-info{--fa:"\f05a"}
 .fa-circle-notch{--fa:"\f1ce"}
+.fa-compress{--fa:"\f066"}
 .fa-comment{--fa:"\f075"}
 .fa-deviantart{--fa:"\f1bd"}
 .fa-discord{--fa:"\f392"}
@@ -1366,9 +1367,65 @@ a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
     /* Phones: the mode buttons show just their icons, the title gives way */
     .rd-modes .pg { width: 40px; padding: 0; }
     .rd-modes .pg span { display: none; }
+    .rd-whole span { display: none; }
+    .rd-whole, .rd-talk { padding: 0 11px; }
     .reader-top { gap: 8px; padding: 8px 10px; }
     .reader-top .reader-page { display: none; }
 }
+@media (max-width: 420px) {
+    /* Small phones: the buttons need the whole bar, so the comic's title steps aside */
+    .reader-top .reader-title { display: none; }
+    .reader-top .rd-modes { margin-left: auto; }
+}
+/* The page area and, beside it on a computer, the notes and comments panel */
+.reader-main { position: relative; flex: 1; min-height: 0; display: flex; }
+.reader-main > .reader-stage { flex: 1; min-width: 0; }
+.reader-bottom { flex-direction: column; gap: 8px; }
+.rd-whole, .rd-talk { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; }
+.rd-talk { position: relative; font-variant-numeric: tabular-nums; }
+.rd-talk.has-note::after { content: ''; position: absolute; top: -4px; right: -4px; width: 11px; height: 11px; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 2px #0c0c0c; }
+.btn.on-dark.rd-talk[aria-pressed="true"], .btn.on-dark.rd-whole[aria-pressed="true"] { background: var(--hl); border-color: var(--hl); color: var(--hl-ink); }
+.rd-whole:disabled { opacity: .35; }
+.rd-panels-icon { width: .9rem; height: .9rem; }
+
+/* Panel by panel (logic.js zooms the picture and moves the window onto each panel) */
+.rd-pan { position: absolute; inset: 0; overflow: hidden; cursor: zoom-out; }
+.reader.is-panels .rd-pan[data-whole] { cursor: zoom-in; }
+.rd-pan img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; transition: transform .55s cubic-bezier(.65, 0, .35, 1), opacity .25s; }
+.rd-pan-hole { position: absolute; left: 0; top: 0; border-radius: 4px; box-shadow: 0 0 0 200vmax rgba(0, 0, 0, .86); pointer-events: none; transition: left .55s cubic-bezier(.65, 0, .35, 1), top .55s cubic-bezier(.65, 0, .35, 1), width .55s cubic-bezier(.65, 0, .35, 1), height .55s cubic-bezier(.65, 0, .35, 1); }
+.rd-pan.is-new img { opacity: 0; }
+.rd-pan.no-anim img { transition: opacity .25s; }
+.rd-pan.no-anim .rd-pan-hole { transition: none; }
+/* A shaped panel: the same dim fills its box outside the shape */
+.rd-pan-cut { position: absolute; inset: 0; border-radius: inherit; background: rgba(0, 0, 0, .86); opacity: 0; transition: opacity .2s; }
+.rd-pan-cut.is-on { opacity: 1; }
+.rd-pan.no-anim .rd-pan-cut { transition: none; }
+
+/* An author's note: on the page's line under the reader, in the side panel, and under each page in the long scroll */
+.rd-note-strip { display: block; width: min(900px, 100%); padding: 8px 14px; border: 1px solid rgba(255,255,255,.14); border-radius: var(--r-s); background: rgba(255,255,255,.06); color: rgba(255,255,255,.86); font-size: .88rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-note-strip:hover { border-color: var(--hl); }
+.rd-note-strip b { color: var(--hl); }
+.rd-note { padding: 12px 14px 14px; border-left: 4px solid var(--hl); border-radius: 4px var(--r-s) var(--r-s) 4px; background: color-mix(in srgb, var(--hl) 10%, var(--surface)); color: var(--text); }
+.rd-note-by { margin: 0 0 4px; font-size: .74rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); }
+.rd-note .prose { font-size: .96rem; }
+.rd-after { width: min(1100px, 100%); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px 16px 30px; }
+.rd-after:empty { display: none; }
+.rd-after .rd-note { width: 100%; }
+
+/* Notes and comments: docked beside the page on a computer, a sheet over it on a phone */
+.rd-side { flex: none; width: 380px; display: flex; flex-direction: column; min-height: 0; background: var(--surface); color: var(--text); border-left: 1px solid var(--line); }
+.rd-side-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px 12px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.rd-side-title { margin: 0; font-size: 1rem; font-weight: 800; }
+.rd-side-tabs { display: flex; gap: 6px; padding: 12px 20px 0; flex-shrink: 0; }
+.rd-side-tabs .pg { color: var(--text); background: var(--raise); border-color: var(--line); }
+.rd-side-tabs .pg[aria-pressed="true"] { background: var(--hl); border-color: var(--hl); color: var(--hl-ink); font-weight: 700; }
+.rd-side-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 20px; display: flex; flex-direction: column; gap: 18px; }
+.rd-side .composer { border-top: 1px solid var(--line); }
+@media (max-width: 899.98px) {
+    .rd-side { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; width: auto; max-height: 74%; border-left: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; box-shadow: 0 -14px 40px rgba(0,0,0,.55); animation: rdSheet .3s var(--ease-out); }
+}
+@keyframes rdSheet { from { transform: translateY(40px); opacity: 0; } }
+
 .reader-tap { position: absolute; top: 0; bottom: 0; width: 35%; z-index: 2; }
 .reader-tap.left { left: 0; cursor: w-resize; }
 .reader-tap.right { right: 0; cursor: e-resize; }

@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.25 · admin.js                                         ║
+ ║  NEERG 7.0.26 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home page, links and cleanup,    ║
  ║  and the dashboard itself (its markup is at the end of this      ║
@@ -603,7 +603,7 @@ function renderComicsAdmin() {
         const editing = editingComicId === c.id;
         return '<div class="m-row" data-id="' + c.id + '">'
             + '<div class="m-thumb">' + (cover ? '<img src="' + esc(thumbOf(cover)) + '" alt="" loading="lazy">' : '<i class="fa-solid fa-book" aria-hidden="true"></i>') + '</div>'
-            + '<div class="m-body"><span class="m-title">' + esc(c.title || 'Untitled') + '</span><span class="m-meta"><span>' + plural((c.pages || []).length, 'page') + '</span>' + (c.date ? '<span>' + esc(c.date) + '</span>' : '') + '</span>'
+            + '<div class="m-body"><span class="m-title">' + esc(c.title || 'Untitled') + '</span><span class="m-meta"><span>' + plural((c.pages || []).length, 'page') + '</span>' + (c.date ? '<span>' + esc(c.date) + '</span>' : '') + comicTalkMeta(c) + '</span>'
             + ((c.tags || []).length ? '<span class="m-tags">' + c.tags.map(t => '<span>' + esc(t) + '</span>').join('') + '</span>' : '') + '</div>'
             + '<div class="m-actions"><button class="btn small" data-action="open-add-pages" data-id="' + c.id + '"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add pages</button>'
             + '<button class="btn small" data-action="edit-comic" data-id="' + c.id + '">' + (editing ? 'Close' : 'Edit') + '</button>'
@@ -612,10 +612,12 @@ function renderComicsAdmin() {
                 + '<label class="field"><span>Title</span><input type="text" name="title" value="' + esc(c.title || '') + '"></label>'
                 + '<label class="field"><span>Tags</span><input type="text" name="tags" value="' + esc((c.tags || []).join(', ')) + '"></label>'
                 + '<label class="field"><span>Cover image link</span><input type="text" name="cover" value="' + esc(c.cover || '') + '"></label>'
-                + '<label class="field"><span>Opens in <em>(readers can still switch)</em></span><select name="mode">' + [['page', 'One page at a time'], ['scroll', 'Long scroll'], ['spread', 'Two pages, like a comic book']].map(([v, l]) => '<option value="' + v + '"' + ((c.mode || 'page') === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>'
-                + '<div class="field"><span>Pages <em>(drag to reorder, tap <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> to swap an image, tap ✕ to remove a page)</em></span>'
+                + '<label class="field"><span>Opens in <em>(readers can still switch)</em></span><select name="mode">' + [['page', 'One page at a time'], ['scroll', 'Long scroll'], ['spread', 'Two pages, like a comic book'], ['panels', 'Panel by panel (once panels are marked)']].map(([v, l]) => '<option value="' + v + '"' + ((c.mode || 'page') === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label>'
+                + '<label class="field"><span>Panel order <em>(for reading panel by panel)</em></span><select name="panelDir"><option value="ltr">Left to right</option><option value="rtl"' + (c.panelDir === 'rtl' ? ' selected' : '') + '>Right to left, like manga</option></select></label></div>'
+                + '<div class="field"><span>Pages <em>(drag to reorder, tap <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> to swap an image, ✕ to remove a page, <i class="fa-solid fa-feather" aria-hidden="true"></i> for its note and panels)</em></span>'
                 + '<div class="page-sorter ec-sorter" id="ec-pages"></div>'
                 + '<input type="file" accept="image/*" id="ec-swap-file" hidden>'
+                + '<div class="ec-panels-row"><button type="button" class="btn small" data-action="ec-find-all"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Find panels on every page</button><span class="hint" id="ec-find-status">Marks the panels on pages that don\'t have any yet, so readers can read panel by panel. Check them with each page\'s <i class="fa-solid fa-feather" aria-hidden="true"></i> button.</span></div>'
                 + '<p class="hint">Nothing changes on your site until you press Save changes. Cancel throws away your edits.</p></div>'
                 + '<div class="form-foot"><button type="button" class="btn btn-ghost small" data-action="edit-comic" data-id="' + c.id + '">Cancel</button><button type="submit" class="btn btn-primary small">Save changes</button></div></form>' : '')
             + '</div>';
@@ -627,17 +629,30 @@ function renderComicsAdmin() {
    Works on a draft copy, so swaps, removals and reordering only stick once "Save changes" is pressed. */
 let editPagesDraft = { id: null, items: [] }, editSwapIndex = null;
 function resetEditPagesDraft() { editPagesDraft = { id: null, items: [] }; editSwapIndex = null; }
+// The comic's pages as editable items: the picture, and the page's note, panels and comments key
+function comicDraftItems(c) {
+    return (c.pages || []).map((url, i) => { const info = pageInfo(c, i); return { url, orig: url, file: null, preview: null, note: info.note || '', panels: clone(pagePanels(c, i)), key: pageKey(c, i) }; });
+}
+function comicTalkMeta(c) {
+    const n = (c.pages || []).reduce((s, _, i) => s + commentCount(pageKey(c, i)), 0);
+    return n ? '<span><i class="fa-regular fa-comment" aria-hidden="true"></i> ' + n + '</span>' : '';
+}
 function renderEditComicPages() {
     const box = byId('ec-pages'); if (!box) return;
     const c = getComic(editingComicId); if (!c) return;
-    if (editPagesDraft.id !== c.id) editPagesDraft = { id: c.id, items: (c.pages || []).map(url => ({ url, orig: url, file: null, preview: null })) };
+    if (editPagesDraft.id !== c.id) editPagesDraft = { id: c.id, items: comicDraftItems(c) };
     const items = editPagesDraft.items;
-    box.innerHTML = items.map((it, i) => '<div class="ps-item' + (it.file ? ' is-new' : '') + '" draggable="true" data-index="' + i + '">'
+    box.innerHTML = items.map((it, i) => {
+        const has = [it.panels.length ? plural(it.panels.length, 'panel') : '', it.note ? 'Note' : ''].filter(Boolean);
+        return '<div class="ps-item' + (it.file ? ' is-new' : '') + '" draggable="true" data-index="' + i + '">'
         + '<img src="' + esc(it.preview || it.url) + '" alt="">'
+        + (has.length ? '<span class="ps-badges">' + has.map(h => '<span>' + h + '</span>').join('') + '</span>' : '')
         + '<span class="num">' + (i + 1) + '</span>'
         + '<button type="button" class="ps-swap" data-action="ec-swap" data-index="' + i + '" aria-label="Swap the image on page ' + (i + 1) + '"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i></button>'
         + '<button type="button" data-action="ec-remove" data-index="' + i + '" aria-label="Remove page ' + (i + 1) + '">✕</button>'
-        + '</div>').join('');
+        + '<button type="button" class="ps-info' + (has.length ? ' is-set' : '') + '" data-action="ec-info" data-index="' + i + '" aria-label="Note and panels for page ' + (i + 1) + (has.length ? ' (' + has.join(', ').toLowerCase() + ')' : '') + '"><i class="fa-solid fa-feather" aria-hidden="true"></i></button>'
+        + '</div>';
+    }).join('');
     enableDragSort(box, '.ps-item', (from, to) => { const [m] = items.splice(from, 1); items.splice(to, 0, m); renderEditComicPages(); });
 }
 function editComicSwap(index) {
@@ -670,8 +685,9 @@ async function saveEditedComic(form) {
     const tags = form.elements.tags.value.split(',').map(t => t.trim()).filter(Boolean);
     const coverField = safeUrl(form.elements.cover.value);
     const mode = form.elements.mode ? form.elements.mode.value : 'page';
+    const panelDir = form.elements.panelDir ? form.elements.panelDir.value : 'ltr';
     const oldPages = (c.pages || []).slice();
-    const items = editPagesDraft.id === c.id ? editPagesDraft.items : oldPages.map(url => ({ url, orig: url, file: null, preview: null }));
+    const items = editPagesDraft.id === c.id ? editPagesDraft.items : comicDraftItems(c);
     if (!items.length) { showToast('A comic needs at least one page.', 'error'); return; }
 
     // Upload any swapped-in images first
@@ -698,6 +714,18 @@ async function saveEditedComic(form) {
     c.title = title || c.title;
     c.tags = tags;
     if (mode && mode !== 'page') c.mode = mode; else delete c.mode;
+    if (panelDir === 'rtl') c.panelDir = 'rtl'; else delete c.panelDir;
+    // Each page's note, panels and comments key go with its picture. A swapped picture keeps the page's comments.
+    const info = {};
+    items.forEach(it => {
+        const o = {};
+        if (String(it.note || '').trim()) o.note = String(it.note).trim().slice(0, 1000);
+        const round = v => Math.round(v * 10000) / 10000;
+        if (it.panels && it.panels.length) o.panels = it.panels.map(r => isShape(r) ? r.map(q => q.map(round)) : r.map(round));
+        if (it.key && it.key !== 'cp' + c.id + '-' + hashText(String(it.url))) o.key = it.key;
+        if (Object.keys(o).length) info[it.url] = o;
+    });
+    if (Object.keys(info).length) c.pageInfo = info; else delete c.pageInfo;
     c.pages = pages;
     c.cover = cover;
     editingComicId = null; resetEditPagesDraft();
@@ -734,6 +762,282 @@ async function submitAddPages() {
     Modals.close(byId('ap-modal'));
     addPagesQueue = []; addPagesComicId = null;
     showToast('Added ' + plural(pages.length, 'page') + ' to ' + (c.title || 'your comic'));
+}
+
+/* ═════════════════════════════════════════════
+   ADMIN: A COMIC PAGE'S NOTE AND PANELS
+   Opened from a page's feather button in a comic's edit form. Changes go into that form's draft, so they're saved
+   (or thrown away) with the rest of the comic's edits. Panels are drawn on the page: drag across it for a new
+   one (even over another, since slanted panels' boxes overlap), click one to select it, drag its number to move
+   it or its corner to resize it. Find panels marks them from the gaps between them.
+   A box can become a shape, for slanted or odd-shaped panels: drag its corners, add one from the + on an
+   edge, or remove the selected one. A shape is saved as its corners (see isShape in logic.js).
+   ═════════════════════════════════════════════ */
+
+const PD = { index: 0, sel: -1, corner: -1, drag: null };
+function pdItem() { return editPagesDraft.items[PD.index]; }
+function pdEnsure() {
+    if (byId('pd-modal')) return;
+    document.body.insertAdjacentHTML('beforeend', '<div class="overlay modal pd-modal" id="pd-modal" role="dialog" aria-modal="true" aria-labelledby="pd-heading" hidden>'
+        + '<div class="modal-card pd-card">'
+        + '<div class="modal-head"><h2 id="pd-heading">Page</h2><div class="pd-nav"><button type="button" class="btn small" data-action="pd-step" data-dir="-1" aria-label="Previous page"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button><button type="button" class="btn small" data-action="pd-step" data-dir="1" aria-label="Next page"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></div>'
+        + '<button class="icon-btn" data-action="modal-close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>'
+        + '<div class="pd-grid"><div class="pd-left"><div class="pd-stage" id="pd-stage"><img id="pd-img" alt="" draggable="false"><div class="pd-boxes" id="pd-boxes"></div></div></div>'
+        + '<div class="pd-right">'
+        + '<label class="field"><span>Author\'s note <em>(shows with this page; **bold** and *italic* work)</em></span><textarea id="pd-note" rows="4" maxlength="1000" placeholder="Anything you\'d like readers to know about this page"></textarea></label>'
+        + '<div class="field"><span>Panels <em>(for reading panel by panel)</em></span>'
+        + '<p class="hint">Drag across the page to draw a panel, even over another one. Click a panel to select it. Drag its number to move it, or its corner to resize it. For a slanted or odd-shaped panel, select it and press <b>Make it a shape</b>, then drag its corners. The numbers are the order they\'re read in.</p>'
+        + '<div class="pd-tools"><button type="button" class="btn small" data-action="pd-find"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Find panels</button><button type="button" class="btn small" data-action="pd-clear">Clear all</button></div>'
+        + '<div class="pd-sel" id="pd-sel"></div><p class="hint" id="pd-count"></p></div>'
+        + '<p class="hint">These go with the comic when you press <b>Save changes</b> in its edit form.</p>'
+        + '<div class="form-foot"><button type="button" class="btn btn-primary" data-action="pd-done">Done</button></div>'
+        + '</div></div></div></div>');
+    const stage = byId('pd-stage');
+    stage.addEventListener('pointerdown', pdDown);
+    stage.addEventListener('pointermove', pdMove);
+    stage.addEventListener('pointerup', pdUp);
+    stage.addEventListener('pointercancel', pdUp);
+    byId('pd-note').addEventListener('input', e => { const it = pdItem(); if (it) it.note = e.target.value; });
+    byId('pd-img').addEventListener('load', pdRenderBoxes);
+}
+function openPageDetails(index) {
+    if (!editPagesDraft.items.length) return;
+    pdEnsure();
+    pdShow(Number(index));
+    const m = byId('pd-modal');
+    if (!Modals.isOpen(m)) Modals.open(m, { onRequestClose: closePageDetails, focus: '#pd-note' });
+}
+function pdShow(index) {
+    const items = editPagesDraft.items;
+    PD.index = clamp(index, 0, items.length - 1); PD.sel = -1; PD.corner = -1;
+    const it = pdItem();
+    byId('pd-heading').textContent = 'Page ' + (PD.index + 1) + ' of ' + items.length;
+    $$('[data-action="pd-step"]').forEach(b => { b.disabled = Number(b.dataset.dir) < 0 ? PD.index === 0 : PD.index === items.length - 1; });
+    byId('pd-note').value = it.note || '';
+    const img = byId('pd-img');
+    if (img.getAttribute('src') !== (it.preview || it.url)) { byId('pd-boxes').innerHTML = ''; img.src = it.preview || it.url; }
+    img.alt = 'Page ' + (PD.index + 1);
+    pdRenderBoxes();
+}
+function closePageDetails() {
+    Modals.close(byId('pd-modal'));
+    renderEditComicPages();
+    const b = $('#ec-pages [data-action="ec-info"][data-index="' + PD.index + '"]'); if (b) b.focus({ preventScroll: true });
+}
+// One panel on the page: a box with a resize handle, or a shape with a handle on each corner and a + on each
+// edge (those two only while it's selected)
+function pdBoxHTML(r, i) {
+    const [x, y, w, h] = panelBox(r), sel = i === PD.sel;
+    const pos = 'left:' + x * 100 + '%;top:' + y * 100 + '%;width:' + w * 100 + '%;height:' + h * 100 + '%';
+    if (!isShape(r)) return '<div class="pd-box' + (sel ? ' is-sel' : '') + '" data-i="' + i + '" style="' + pos + '"><span class="pd-num" data-grip="1" title="Drag to move">' + (i + 1) + '</span><span class="pd-handle" data-handle="1"></span></div>';
+    const rel = q => [w ? (q[0] - x) / w * 100 : 0, h ? (q[1] - y) / h * 100 : 0];
+    const at = q => { const [a, b] = rel(q); return 'left:' + a.toFixed(2) + '%;top:' + b.toFixed(2) + '%'; };
+    let html = '<div class="pd-box is-shape' + (sel ? ' is-sel' : '') + '" data-i="' + i + '" style="' + pos + '">'
+        + '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="' + r.map(q => rel(q).map(v => v.toFixed(2)).join(',')).join(' ') + '" vector-effect="non-scaling-stroke"></polygon></svg>'
+        + '<span class="pd-num" data-grip="1" title="Drag to move" style="' + at(r[0]) + '">' + (i + 1) + '</span>';
+    if (sel) {
+        r.forEach((q, k) => { const n = r[(k + 1) % r.length]; html += '<span class="pd-add" data-add="' + k + '" style="' + at([(q[0] + n[0]) / 2, (q[1] + n[1]) / 2]) + '" title="Add a corner here"></span>'; });
+        r.forEach((q, k) => { html += '<span class="pd-corner' + (k === PD.corner ? ' is-sel' : '') + '" data-corner="' + k + '" style="' + at(q) + '"></span>'; });
+    }
+    return html + '</div>';
+}
+function pdRenderBoxes() {
+    const it = pdItem(); if (!it) return;
+    byId('pd-boxes').innerHTML = it.panels.map(pdBoxHTML).join('');
+    const s = byId('pd-sel'), n = it.panels.length, r = it.panels[PD.sel];
+    byId('pd-count').textContent = n ? plural(n, 'panel') + ' on this page.' : 'No panels yet, so this page shows whole when reading panel by panel.';
+    s.innerHTML = PD.sel >= 0 && r ? '<b>Panel ' + (PD.sel + 1) + '</b>'
+        + '<button type="button" class="btn small" data-action="pd-order" data-dir="-1"' + (PD.sel === 0 ? ' disabled' : '') + '>Read earlier</button>'
+        + '<button type="button" class="btn small" data-action="pd-order" data-dir="1"' + (PD.sel === n - 1 ? ' disabled' : '') + '>Read later</button>'
+        + (isShape(r)
+            ? '<button type="button" class="btn small" data-action="pd-unshape">Make it a box</button>'
+                + (PD.corner >= 0 && r.length > 3 ? '<button type="button" class="btn small" data-action="pd-corner-remove">Remove corner</button>' : '')
+            : '<button type="button" class="btn small" data-action="pd-shape">Make it a shape</button>')
+        + '<button type="button" class="btn small danger" data-action="pd-remove">Remove</button>'
+        + (isShape(r) ? '<p class="hint pd-shape-hint">Drag a corner to move it, or a <b>+</b> on an edge to add a corner. ' + plural(r.length, 'corner') + '.</p>' : '') : '';
+}
+function pdShape() {
+    const it = pdItem(), r = it && it.panels[PD.sel]; if (!r || isShape(r)) return;
+    const [x, y, w, h] = r;
+    it.panels[PD.sel] = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]; PD.corner = -1; pdRenderBoxes();
+}
+function pdUnshape() {
+    const it = pdItem(), r = it && it.panels[PD.sel]; if (!r || !isShape(r)) return;
+    it.panels[PD.sel] = panelBox(r); PD.corner = -1; pdRenderBoxes();
+}
+function pdCornerRemove() {
+    const it = pdItem(), r = it && it.panels[PD.sel]; if (!r || !isShape(r) || r.length <= 3 || PD.corner < 0) return;
+    r.splice(PD.corner, 1); PD.corner = -1; pdRenderBoxes();
+}
+// Where the pointer is on the page, as fractions of its size
+function pdAt(e) {
+    const r = byId('pd-img').getBoundingClientRect();
+    return [clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)];
+}
+function pdDown(e) {
+    if (e.button > 0) return;
+    const it = pdItem(); if (!it || !byId('pd-img').naturalWidth) return;
+    e.preventDefault();
+    const box = e.target.closest('.pd-box'), at = pdAt(e), t = e.target.dataset || {};
+    if (box) {
+        const i = Number(box.dataset.i), r = it.panels[i];
+        if (t.add != null) {
+            // A + on an edge adds a corner there, already being dragged
+            const k = Number(t.add), q = r[k], n = r[(k + 1) % r.length];
+            r.splice(k + 1, 0, [(q[0] + n[0]) / 2, (q[1] + n[1]) / 2]);
+            PD.corner = k + 1; PD.drag = { kind: 'corner', k: k + 1, at, from: clone(r) };
+        } else if (t.corner != null) {
+            PD.corner = Number(t.corner); PD.drag = { kind: 'corner', k: PD.corner, at, from: clone(r) };
+        } else if (t.handle || t.grip) {
+            if (i !== PD.sel) { PD.sel = i; PD.corner = -1; }
+            PD.drag = { kind: t.handle ? 'size' : 'move', at, from: clone(r) };
+        }
+        // Anywhere else on a panel: a click selects it, a drag draws a new panel over it (slanted panels'
+        // boxes overlap, so a new one often has to start on top of another)
+        else { PD.drag = { kind: 'pending', i, at }; return byId('pd-stage').setPointerCapture(e.pointerId); }
+    } else {
+        it.panels.push([at[0], at[1], 0, 0]);
+        PD.sel = it.panels.length - 1; PD.corner = -1;
+        PD.drag = { kind: 'draw', at, from: [at[0], at[1], 0, 0] };
+    }
+    byId('pd-stage').setPointerCapture(e.pointerId);
+    pdRenderBoxes();
+}
+function pdMove(e) {
+    const d = PD.drag, it = pdItem(); if (!d || !it) return;
+    const at = pdAt(e), dx = at[0] - d.at[0], dy = at[1] - d.at[1];
+    if (d.kind === 'pending') {
+        if (Math.hypot(dx, dy) < .012) return;
+        it.panels.push([d.at[0], d.at[1], 0, 0]);
+        PD.sel = it.panels.length - 1; PD.corner = -1;
+        Object.assign(d, { kind: 'draw', from: [d.at[0], d.at[1], 0, 0] });
+        pdRenderBoxes();
+    }
+    const f = d.from;
+    let r;
+    if (isShape(f)) {
+        if (d.kind === 'corner') r = f.map((q, j) => j === d.k ? [clamp(q[0] + dx, 0, 1), clamp(q[1] + dy, 0, 1)] : q);
+        else { const [bx, by, bw, bh] = panelBox(f), mx = clamp(dx, -bx, 1 - bx - bw), my = clamp(dy, -by, 1 - by - bh); r = f.map(q => [q[0] + mx, q[1] + my]); }
+    }
+    else if (d.kind === 'move') r = [clamp(f[0] + dx, 0, 1 - f[2]), clamp(f[1] + dy, 0, 1 - f[3]), f[2], f[3]];
+    else if (d.kind === 'size') r = [f[0], f[1], clamp(f[2] + dx, .02, 1 - f[0]), clamp(f[3] + dy, .02, 1 - f[1])];
+    else r = [Math.min(d.at[0], at[0]), Math.min(d.at[1], at[1]), Math.abs(dx), Math.abs(dy)];
+    it.panels[PD.sel] = r;
+    const el = $('#pd-boxes .pd-box[data-i="' + PD.sel + '"]');
+    if (el) el.outerHTML = pdBoxHTML(r, PD.sel);
+}
+function pdUp() {
+    const d = PD.drag, it = pdItem(); PD.drag = null;
+    if (!d || !it) return;
+    if (d.kind === 'pending') { PD.sel = d.i; PD.corner = -1; return pdRenderBoxes(); }
+    // A click on the page without dragging just clears the selection
+    if (d.kind === 'draw') { const r = it.panels[PD.sel]; if (!r || r[2] < .03 || r[3] < .03) { it.panels.splice(PD.sel, 1); PD.sel = -1; } }
+    // A shape squashed flat (every corner dragged into a line) goes back to how it was
+    if (d.kind === 'corner') { const b = panelBox(it.panels[PD.sel]); if (b[2] < .02 || b[3] < .02) it.panels[PD.sel] = d.from; }
+    pdRenderBoxes();
+}
+function pdOrder(dir) {
+    const it = pdItem(), i = PD.sel, j = i + Number(dir); if (!it || i < 0 || j < 0 || j >= it.panels.length) return;
+    [it.panels[i], it.panels[j]] = [it.panels[j], it.panels[i]]; PD.sel = j; PD.corner = -1; pdRenderBoxes();
+}
+function pdRemove() { const it = pdItem(); if (!it || PD.sel < 0) return; it.panels.splice(PD.sel, 1); PD.sel = -1; PD.corner = -1; pdRenderBoxes(); }
+async function pdClear() {
+    const it = pdItem(); if (!it || !it.panels.length) return;
+    if (!await askConfirm('Remove all ' + plural(it.panels.length, 'panel') + ' from this page?', { title: 'Clear the panels?' })) return;
+    it.panels = []; PD.sel = -1; pdRenderBoxes();
+}
+async function pdFind() {
+    const it = pdItem(); if (!it) return;
+    if (it.panels.length && !await askConfirm('This page already has ' + plural(it.panels.length, 'panel') + '. Find them again and replace them?', { title: 'Find panels again?' })) return;
+    const found = await detectPanels(it.preview || it.url, comicPanelDir() === 'rtl');
+    if (found == null) { showToast('Couldn\'t read that picture. Draw the panels by hand instead.', 'error'); return; }
+    it.panels = found; PD.sel = -1; pdRenderBoxes();
+    showToast(found.length ? 'Found ' + plural(found.length, 'panel') + '. Check them, and fix any by dragging.' : 'No panels found: the page has no clear gaps between panels. Draw them by hand instead.', found.length ? 'success' : 'info');
+}
+// The panel order picked in the comic's edit form
+function comicPanelDir() { const f = $('form[data-form="edit-comic"]'); return f && f.elements.panelDir ? f.elements.panelDir.value : 'ltr'; }
+async function findPanelsEverywhere(btn) {
+    const items = editPagesDraft.items.filter(it => !it.panels.length);
+    const status = byId('ec-find-status');
+    if (!items.length) { status.textContent = 'Every page already has its panels. Use a page\'s feather button to change them.'; return; }
+    btn.disabled = true;
+    let found = 0;
+    for (let k = 0; k < items.length; k++) {
+        status.textContent = 'Looking at page ' + (editPagesDraft.items.indexOf(items[k]) + 1) + '…';
+        const r = await detectPanels(items[k].preview || items[k].url, comicPanelDir() === 'rtl');
+        if (r && r.length) { items[k].panels = r; found++; }
+    }
+    btn.disabled = false;
+    renderEditComicPages();
+    status.textContent = found ? 'Found panels on ' + plural(found, 'page') + (found < items.length ? '. The other ' + plural(items.length - found, 'page') + ' had no clear gaps between panels (full-page art, or panels that touch)' : '') + '. Check them with each page\'s feather button, then press Save changes.'
+        : 'No clear gaps between panels on those pages. Draw them by hand with each page\'s feather button.';
+}
+
+/* Finding panels: the page's background is the color most of its edge has (usually white or black). Rows and
+   columns of almost nothing but background are gaps; the page is cut along them, first into strips, then each
+   strip into panels, and so on. Art that runs across the gaps, or full-page art, has no gaps to find, so those
+   pages are left to be drawn by hand. Gives panels in reading order, or nothing (null if the picture can't be read). */
+function detectPanels(src, rtl) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onerror = () => resolve(null);
+        img.onload = () => {
+            try {
+                // Big enough that a thin gutter (a few pixels on a 5000-pixel page) still shows up
+                const sc = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+                const W = Math.max(8, Math.round(img.naturalWidth * sc)), H = Math.max(8, Math.round(img.naturalHeight * sc));
+                const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+                const cx = cv.getContext('2d', { willReadFrequently: true });
+                cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H); cx.drawImage(img, 0, 0, W, H);
+                const px = cx.getImageData(0, 0, W, H).data;
+                // The background: the commonest color around the edge
+                const tally = new Map();
+                const note = (x, y) => { const i = (y * W + x) * 4, k = (px[i] >> 4) << 8 | (px[i + 1] >> 4) << 4 | (px[i + 2] >> 4); const t = tally.get(k) || [0, 0, 0, 0]; t[0]++; t[1] += px[i]; t[2] += px[i + 1]; t[3] += px[i + 2]; tally.set(k, t); };
+                for (let x = 0; x < W; x++) { note(x, 0); note(x, 1); note(x, H - 1); note(x, H - 2); }
+                for (let y = 0; y < H; y++) { note(0, y); note(1, y); note(W - 1, y); note(W - 2, y); }
+                let best = null; tally.forEach(t => { if (!best || t[0] > best[0]) best = t; });
+                const bg = [best[1] / best[0], best[2] / best[0], best[3] / best[0]];
+                const ink = new Uint8Array(W * H);
+                for (let i = 0, j = 0; j < W * H; i += 4, j++) ink[j] = Math.abs(px[i] - bg[0]) + Math.abs(px[i + 1] - bg[1]) + Math.abs(px[i + 2] - bg[2]) > 60 ? 1 : 0;
+                const lineInk = (dir, n, a0, a1) => { let s = 0; for (let a = a0; a < a1; a++) s += dir === 'h' ? ink[n * W + a] : ink[a * W + n]; return s; };
+                // Content bands along one direction: runs of lines with ink, between gaps of (nearly) none
+                const bands = (dir, x0, y0, x1, y1) => {
+                    const [n0, n1, a0, a1] = dir === 'h' ? [y0, y1, x0, x1] : [x0, x1, y0, y1];
+                    // A gap is clean: a panel's own border lines crossing a blank stretch of art are too much ink to count as one
+                    const tol = Math.max(1, (a1 - a0) * .006), minGap = Math.max(2, Math.round((dir === 'h' ? H : W) * .0015)), minBand = (dir === 'h' ? H : W) * .05;
+                    const out = []; let start = -1, gap = 0;
+                    for (let n = n0; n <= n1; n++) {
+                        const empty = n === n1 || lineInk(dir, n, a0, a1) <= tol;
+                        if (!empty) { if (start < 0) start = n; gap = 0; continue; }
+                        if (start < 0) continue;
+                        gap++;
+                        if (gap >= minGap || n === n1) { const end = n - gap + 1; if (end - start >= minBand) out.push([start, end]); start = -1; gap = 0; }
+                    }
+                    return out;
+                };
+                const found = [];
+                const cut = (x0, y0, x1, y1, depth, across) => {
+                    for (const dir of across ? ['h', 'v'] : ['v', 'h']) {
+                        const b = bands(dir, x0, y0, x1, y1);
+                        if (b.length > 1 && depth < 5) {
+                            const parts = dir === 'v' && rtl ? b.slice().reverse() : b;
+                            parts.forEach(([s, e]) => dir === 'h' ? cut(x0, s, x1, e, depth + 1, false) : cut(s, y0, e, y1, depth + 1, true));
+                            return;
+                        }
+                        if (b.length === 1) { if (dir === 'h') { y0 = b[0][0]; y1 = b[0][1]; } else { x0 = b[0][0]; x1 = b[0][1]; } }
+                    }
+                    found.push([x0, y0, x1, y1]);
+                };
+                cut(0, 0, W, H, 0, true);
+                const pad = 2;
+                const out = found.filter(([x0, y0, x1, y1]) => (x1 - x0) * (y1 - y0) > W * H * .015)
+                    .map(([x0, y0, x1, y1]) => { const a = Math.max(0, x0 - pad), b = Math.max(0, y0 - pad), c = Math.min(W, x1 + pad), d = Math.min(H, y1 + pad); return [a / W, b / H, (c - a) / W, (d - b) / H].map(v => Math.round(v * 10000) / 10000); });
+                // One panel covering the page is no panels at all
+                resolve(out.length > 1 ? out : []);
+            } catch (e) { resolve(null); }
+        };
+        img.src = src;
+    });
 }
 
 /* ═════════════════════════════════════════════
@@ -1549,7 +1853,7 @@ function refreshCleanupStats() {
     if (dupes.length) issues.push(['warn', plural(dupes.length, 'duplicate post')]);
     const ws = postsCache.filter(p => p.content && (p.content !== p.content.trim() || /\n{3,}/.test(p.content))).length;
     if (ws) issues.push(['info', plural(ws, 'post') + ' with extra blank space']);
-    const live = new Set(postsCache.map(p => String(p.id)));
+    const live = liveThreads();
     const orphans = Object.keys(interactionsCache).filter(k => !live.has(k));
     if (orphans.length) issues.push(['warn', plural(orphans.length, 'like and comment set') + ' for deleted posts']);
     let b64 = 0, b64size = 0;
@@ -1559,10 +1863,16 @@ function refreshCleanupStats() {
         ? issues.map(i => '<div class="issue ' + i[0] + '"><i class="fa-solid ' + (i[0] === 'warn' ? 'fa-triangle-exclamation' : 'fa-circle-info') + '" aria-hidden="true"></i>' + esc(i[1]) + '</div>').join('')
         : '<div class="issue clean"><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Nothing to fix. Your data is tidy.</div>';
 }
+// Every post and every comic page that can have likes or comments
+function liveThreads() {
+    const live = new Set(postsCache.map(p => String(p.id)));
+    comicsCache.forEach(c => (c.pages || []).forEach((_, i) => live.add(pageKey(c, i))));
+    return live;
+}
 const Cleanup = {
     trim() { let c = 0; postsCache.forEach(p => { if (p.content) { const b = p.content; p.content = p.content.trim().replace(/\n{3,}/g, '\n\n'); if (p.content !== b) c++; } }); cleanupLog(c ? 'Trimmed ' + plural(c, 'post') : 'No extra spaces found', c ? 'success' : 'info'); return { posts: c > 0 }; },
     dupes() { const seen = new Set(), b = postsCache.length; postsCache = postsCache.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; }); const r = b - postsCache.length; cleanupLog(r ? 'Removed ' + plural(r, 'duplicate') : 'No duplicates', r ? 'success' : 'info'); return { posts: r > 0 }; },
-    orphans() { const live = new Set(postsCache.map(p => String(p.id))), b = Object.keys(interactionsCache).length; Object.keys(interactionsCache).forEach(k => { if (!live.has(k)) delete interactionsCache[k]; }); const r = b - Object.keys(interactionsCache).length; cleanupLog(r ? 'Cleared ' + plural(r, 'orphaned set') : 'No orphans', r ? 'success' : 'info'); return { interactions: r > 0 }; },
+    orphans() { const live = liveThreads(), b = Object.keys(interactionsCache).length; Object.keys(interactionsCache).forEach(k => { if (!live.has(k)) delete interactionsCache[k]; }); const r = b - Object.keys(interactionsCache).length; cleanupLog(r ? 'Cleared ' + plural(r, 'orphaned set') : 'No orphans', r ? 'success' : 'info'); return { interactions: r > 0 }; },
     empty() {
         let s = 0;
         postsCache.forEach(p => {
@@ -2318,6 +2628,17 @@ Object.assign(actions, {
     'comics-sync': () => saveComics(),
     'edit-comic': el => { const id = Number(el.dataset.id); editingComicId = editingComicId === id ? null : id; resetEditPagesDraft(); renderComicsAdmin(); },
     'ec-swap': el => editComicSwap(el.dataset.index),
+    'ec-info': el => openPageDetails(el.dataset.index),
+    'ec-find-all': el => findPanelsEverywhere(el),
+    'pd-step': el => pdShow(PD.index + Number(el.dataset.dir)),
+    'pd-find': () => pdFind(),
+    'pd-clear': () => pdClear(),
+    'pd-order': el => pdOrder(el.dataset.dir),
+    'pd-remove': () => pdRemove(),
+    'pd-shape': () => pdShape(),
+    'pd-unshape': () => pdUnshape(),
+    'pd-corner-remove': () => pdCornerRemove(),
+    'pd-done': () => closePageDetails(),
     'ec-remove': el => editComicRemove(el.dataset.index),
     'delete-comic': el => deleteComic(el.dataset.id),
     'open-add-pages': el => openAddPagesModal(el.dataset.id),
