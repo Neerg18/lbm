@@ -720,7 +720,8 @@ async function saveEditedComic(form) {
     items.forEach(it => {
         const o = {};
         if (String(it.note || '').trim()) o.note = String(it.note).trim().slice(0, 1000);
-        if (it.panels && it.panels.length) o.panels = it.panels.map(r => r.map(v => Math.round(v * 10000) / 10000));
+        const round = v => Math.round(v * 10000) / 10000;
+        if (it.panels && it.panels.length) o.panels = it.panels.map(r => isShape(r) ? r.map(q => q.map(round)) : r.map(round));
         if (it.key && it.key !== 'cp' + c.id + '-' + hashText(String(it.url))) o.key = it.key;
         if (Object.keys(o).length) info[it.url] = o;
     });
@@ -767,10 +768,13 @@ async function submitAddPages() {
    ADMIN: A COMIC PAGE'S NOTE AND PANELS
    Opened from a page's feather button in a comic's edit form. Changes go into that form's draft, so they're saved
    (or thrown away) with the rest of the comic's edits. Panels are drawn on the page: drag across it for a new
-   one, drag a box to move it or its corner to resize it. Find panels marks them from the gaps between them.
+   one (even over another, since slanted panels' boxes overlap), click one to select it, drag its number to move
+   it or its corner to resize it. Find panels marks them from the gaps between them.
+   A box can become a shape, for slanted or odd-shaped panels: drag its corners, add one from the + on an
+   edge, or remove the selected one. A shape is saved as its corners (see isShape in logic.js).
    ═════════════════════════════════════════════ */
 
-const PD = { index: 0, sel: -1, drag: null };
+const PD = { index: 0, sel: -1, corner: -1, drag: null };
 function pdItem() { return editPagesDraft.items[PD.index]; }
 function pdEnsure() {
     if (byId('pd-modal')) return;
@@ -782,7 +786,7 @@ function pdEnsure() {
         + '<div class="pd-right">'
         + '<label class="field"><span>Author\'s note <em>(shows with this page; **bold** and *italic* work)</em></span><textarea id="pd-note" rows="4" maxlength="1000" placeholder="Anything you\'d like readers to know about this page"></textarea></label>'
         + '<div class="field"><span>Panels <em>(for reading panel by panel)</em></span>'
-        + '<p class="hint">Drag across the page to draw a panel. Drag a box to move it, or its corner to resize it. The numbers are the order they\'re read in.</p>'
+        + '<p class="hint">Drag across the page to draw a panel, even over another one. Click a panel to select it. Drag its number to move it, or its corner to resize it. For a slanted or odd-shaped panel, select it and press <b>Make it a shape</b>, then drag its corners. The numbers are the order they\'re read in.</p>'
         + '<div class="pd-tools"><button type="button" class="btn small" data-action="pd-find"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Find panels</button><button type="button" class="btn small" data-action="pd-clear">Clear all</button></div>'
         + '<div class="pd-sel" id="pd-sel"></div><p class="hint" id="pd-count"></p></div>'
         + '<p class="hint">These go with the comic when you press <b>Save changes</b> in its edit form.</p>'
@@ -805,7 +809,7 @@ function openPageDetails(index) {
 }
 function pdShow(index) {
     const items = editPagesDraft.items;
-    PD.index = clamp(index, 0, items.length - 1); PD.sel = -1;
+    PD.index = clamp(index, 0, items.length - 1); PD.sel = -1; PD.corner = -1;
     const it = pdItem();
     byId('pd-heading').textContent = 'Page ' + (PD.index + 1) + ' of ' + items.length;
     $$('[data-action="pd-step"]').forEach(b => { b.disabled = Number(b.dataset.dir) < 0 ? PD.index === 0 : PD.index === items.length - 1; });
@@ -820,15 +824,50 @@ function closePageDetails() {
     renderEditComicPages();
     const b = $('#ec-pages [data-action="ec-info"][data-index="' + PD.index + '"]'); if (b) b.focus({ preventScroll: true });
 }
+// One panel on the page: a box with a resize handle, or a shape with a handle on each corner and a + on each
+// edge (those two only while it's selected)
+function pdBoxHTML(r, i) {
+    const [x, y, w, h] = panelBox(r), sel = i === PD.sel;
+    const pos = 'left:' + x * 100 + '%;top:' + y * 100 + '%;width:' + w * 100 + '%;height:' + h * 100 + '%';
+    if (!isShape(r)) return '<div class="pd-box' + (sel ? ' is-sel' : '') + '" data-i="' + i + '" style="' + pos + '"><span class="pd-num" data-grip="1" title="Drag to move">' + (i + 1) + '</span><span class="pd-handle" data-handle="1"></span></div>';
+    const rel = q => [w ? (q[0] - x) / w * 100 : 0, h ? (q[1] - y) / h * 100 : 0];
+    const at = q => { const [a, b] = rel(q); return 'left:' + a.toFixed(2) + '%;top:' + b.toFixed(2) + '%'; };
+    let html = '<div class="pd-box is-shape' + (sel ? ' is-sel' : '') + '" data-i="' + i + '" style="' + pos + '">'
+        + '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="' + r.map(q => rel(q).map(v => v.toFixed(2)).join(',')).join(' ') + '" vector-effect="non-scaling-stroke"></polygon></svg>'
+        + '<span class="pd-num" data-grip="1" title="Drag to move" style="' + at(r[0]) + '">' + (i + 1) + '</span>';
+    if (sel) {
+        r.forEach((q, k) => { const n = r[(k + 1) % r.length]; html += '<span class="pd-add" data-add="' + k + '" style="' + at([(q[0] + n[0]) / 2, (q[1] + n[1]) / 2]) + '" title="Add a corner here"></span>'; });
+        r.forEach((q, k) => { html += '<span class="pd-corner' + (k === PD.corner ? ' is-sel' : '') + '" data-corner="' + k + '" style="' + at(q) + '"></span>'; });
+    }
+    return html + '</div>';
+}
 function pdRenderBoxes() {
     const it = pdItem(); if (!it) return;
-    byId('pd-boxes').innerHTML = it.panels.map((r, i) => '<div class="pd-box' + (i === PD.sel ? ' is-sel' : '') + '" data-i="' + i + '" style="left:' + r[0] * 100 + '%;top:' + r[1] * 100 + '%;width:' + r[2] * 100 + '%;height:' + r[3] * 100 + '%"><span class="pd-num">' + (i + 1) + '</span><span class="pd-handle" data-handle="1"></span></div>').join('');
-    const s = byId('pd-sel'), n = it.panels.length;
+    byId('pd-boxes').innerHTML = it.panels.map(pdBoxHTML).join('');
+    const s = byId('pd-sel'), n = it.panels.length, r = it.panels[PD.sel];
     byId('pd-count').textContent = n ? plural(n, 'panel') + ' on this page.' : 'No panels yet, so this page shows whole when reading panel by panel.';
-    s.innerHTML = PD.sel >= 0 && it.panels[PD.sel] ? '<b>Panel ' + (PD.sel + 1) + '</b>'
+    s.innerHTML = PD.sel >= 0 && r ? '<b>Panel ' + (PD.sel + 1) + '</b>'
         + '<button type="button" class="btn small" data-action="pd-order" data-dir="-1"' + (PD.sel === 0 ? ' disabled' : '') + '>Read earlier</button>'
         + '<button type="button" class="btn small" data-action="pd-order" data-dir="1"' + (PD.sel === n - 1 ? ' disabled' : '') + '>Read later</button>'
-        + '<button type="button" class="btn small danger" data-action="pd-remove">Remove</button>' : '';
+        + (isShape(r)
+            ? '<button type="button" class="btn small" data-action="pd-unshape">Make it a box</button>'
+                + (PD.corner >= 0 && r.length > 3 ? '<button type="button" class="btn small" data-action="pd-corner-remove">Remove corner</button>' : '')
+            : '<button type="button" class="btn small" data-action="pd-shape">Make it a shape</button>')
+        + '<button type="button" class="btn small danger" data-action="pd-remove">Remove</button>'
+        + (isShape(r) ? '<p class="hint pd-shape-hint">Drag a corner to move it, or a <b>+</b> on an edge to add a corner. ' + plural(r.length, 'corner') + '.</p>' : '') : '';
+}
+function pdShape() {
+    const it = pdItem(), r = it && it.panels[PD.sel]; if (!r || isShape(r)) return;
+    const [x, y, w, h] = r;
+    it.panels[PD.sel] = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]; PD.corner = -1; pdRenderBoxes();
+}
+function pdUnshape() {
+    const it = pdItem(), r = it && it.panels[PD.sel]; if (!r || !isShape(r)) return;
+    it.panels[PD.sel] = panelBox(r); PD.corner = -1; pdRenderBoxes();
+}
+function pdCornerRemove() {
+    const it = pdItem(), r = it && it.panels[PD.sel]; if (!r || !isShape(r) || r.length <= 3 || PD.corner < 0) return;
+    r.splice(PD.corner, 1); PD.corner = -1; pdRenderBoxes();
 }
 // Where the pointer is on the page, as fractions of its size
 function pdAt(e) {
@@ -839,13 +878,26 @@ function pdDown(e) {
     if (e.button > 0) return;
     const it = pdItem(); if (!it || !byId('pd-img').naturalWidth) return;
     e.preventDefault();
-    const box = e.target.closest('.pd-box'), at = pdAt(e);
+    const box = e.target.closest('.pd-box'), at = pdAt(e), t = e.target.dataset || {};
     if (box) {
-        PD.sel = Number(box.dataset.i);
-        PD.drag = { kind: e.target.dataset.handle ? 'size' : 'move', at, from: it.panels[PD.sel].slice() };
+        const i = Number(box.dataset.i), r = it.panels[i];
+        if (t.add != null) {
+            // A + on an edge adds a corner there, already being dragged
+            const k = Number(t.add), q = r[k], n = r[(k + 1) % r.length];
+            r.splice(k + 1, 0, [(q[0] + n[0]) / 2, (q[1] + n[1]) / 2]);
+            PD.corner = k + 1; PD.drag = { kind: 'corner', k: k + 1, at, from: clone(r) };
+        } else if (t.corner != null) {
+            PD.corner = Number(t.corner); PD.drag = { kind: 'corner', k: PD.corner, at, from: clone(r) };
+        } else if (t.handle || t.grip) {
+            if (i !== PD.sel) { PD.sel = i; PD.corner = -1; }
+            PD.drag = { kind: t.handle ? 'size' : 'move', at, from: clone(r) };
+        }
+        // Anywhere else on a panel: a click selects it, a drag draws a new panel over it (slanted panels'
+        // boxes overlap, so a new one often has to start on top of another)
+        else { PD.drag = { kind: 'pending', i, at }; return byId('pd-stage').setPointerCapture(e.pointerId); }
     } else {
         it.panels.push([at[0], at[1], 0, 0]);
-        PD.sel = it.panels.length - 1;
+        PD.sel = it.panels.length - 1; PD.corner = -1;
         PD.drag = { kind: 'draw', at, from: [at[0], at[1], 0, 0] };
     }
     byId('pd-stage').setPointerCapture(e.pointerId);
@@ -853,27 +905,42 @@ function pdDown(e) {
 }
 function pdMove(e) {
     const d = PD.drag, it = pdItem(); if (!d || !it) return;
-    const at = pdAt(e), dx = at[0] - d.at[0], dy = at[1] - d.at[1], f = d.from;
+    const at = pdAt(e), dx = at[0] - d.at[0], dy = at[1] - d.at[1];
+    if (d.kind === 'pending') {
+        if (Math.hypot(dx, dy) < .012) return;
+        it.panels.push([d.at[0], d.at[1], 0, 0]);
+        PD.sel = it.panels.length - 1; PD.corner = -1;
+        Object.assign(d, { kind: 'draw', from: [d.at[0], d.at[1], 0, 0] });
+        pdRenderBoxes();
+    }
+    const f = d.from;
     let r;
-    if (d.kind === 'move') r = [clamp(f[0] + dx, 0, 1 - f[2]), clamp(f[1] + dy, 0, 1 - f[3]), f[2], f[3]];
+    if (isShape(f)) {
+        if (d.kind === 'corner') r = f.map((q, j) => j === d.k ? [clamp(q[0] + dx, 0, 1), clamp(q[1] + dy, 0, 1)] : q);
+        else { const [bx, by, bw, bh] = panelBox(f), mx = clamp(dx, -bx, 1 - bx - bw), my = clamp(dy, -by, 1 - by - bh); r = f.map(q => [q[0] + mx, q[1] + my]); }
+    }
+    else if (d.kind === 'move') r = [clamp(f[0] + dx, 0, 1 - f[2]), clamp(f[1] + dy, 0, 1 - f[3]), f[2], f[3]];
     else if (d.kind === 'size') r = [f[0], f[1], clamp(f[2] + dx, .02, 1 - f[0]), clamp(f[3] + dy, .02, 1 - f[1])];
     else r = [Math.min(d.at[0], at[0]), Math.min(d.at[1], at[1]), Math.abs(dx), Math.abs(dy)];
     it.panels[PD.sel] = r;
     const el = $('#pd-boxes .pd-box[data-i="' + PD.sel + '"]');
-    if (el) Object.assign(el.style, { left: r[0] * 100 + '%', top: r[1] * 100 + '%', width: r[2] * 100 + '%', height: r[3] * 100 + '%' });
+    if (el) el.outerHTML = pdBoxHTML(r, PD.sel);
 }
 function pdUp() {
     const d = PD.drag, it = pdItem(); PD.drag = null;
     if (!d || !it) return;
+    if (d.kind === 'pending') { PD.sel = d.i; PD.corner = -1; return pdRenderBoxes(); }
     // A click on the page without dragging just clears the selection
     if (d.kind === 'draw') { const r = it.panels[PD.sel]; if (!r || r[2] < .03 || r[3] < .03) { it.panels.splice(PD.sel, 1); PD.sel = -1; } }
+    // A shape squashed flat (every corner dragged into a line) goes back to how it was
+    if (d.kind === 'corner') { const b = panelBox(it.panels[PD.sel]); if (b[2] < .02 || b[3] < .02) it.panels[PD.sel] = d.from; }
     pdRenderBoxes();
 }
 function pdOrder(dir) {
     const it = pdItem(), i = PD.sel, j = i + Number(dir); if (!it || i < 0 || j < 0 || j >= it.panels.length) return;
-    [it.panels[i], it.panels[j]] = [it.panels[j], it.panels[i]]; PD.sel = j; pdRenderBoxes();
+    [it.panels[i], it.panels[j]] = [it.panels[j], it.panels[i]]; PD.sel = j; PD.corner = -1; pdRenderBoxes();
 }
-function pdRemove() { const it = pdItem(); if (!it || PD.sel < 0) return; it.panels.splice(PD.sel, 1); PD.sel = -1; pdRenderBoxes(); }
+function pdRemove() { const it = pdItem(); if (!it || PD.sel < 0) return; it.panels.splice(PD.sel, 1); PD.sel = -1; PD.corner = -1; pdRenderBoxes(); }
 async function pdClear() {
     const it = pdItem(); if (!it || !it.panels.length) return;
     if (!await askConfirm('Remove all ' + plural(it.panels.length, 'panel') + ' from this page?', { title: 'Clear the panels?' })) return;
@@ -916,7 +983,8 @@ function detectPanels(src, rtl) {
         img.onerror = () => resolve(null);
         img.onload = () => {
             try {
-                const sc = Math.min(1, 700 / Math.max(img.naturalWidth, img.naturalHeight));
+                // Big enough that a thin gutter (a few pixels on a 5000-pixel page) still shows up
+                const sc = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
                 const W = Math.max(8, Math.round(img.naturalWidth * sc)), H = Math.max(8, Math.round(img.naturalHeight * sc));
                 const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
                 const cx = cv.getContext('2d', { willReadFrequently: true });
@@ -935,7 +1003,8 @@ function detectPanels(src, rtl) {
                 // Content bands along one direction: runs of lines with ink, between gaps of (nearly) none
                 const bands = (dir, x0, y0, x1, y1) => {
                     const [n0, n1, a0, a1] = dir === 'h' ? [y0, y1, x0, x1] : [x0, x1, y0, y1];
-                    const tol = Math.max(1, (a1 - a0) * .012), minGap = Math.max(2, Math.round((dir === 'h' ? H : W) * .007)), minBand = (dir === 'h' ? H : W) * .05;
+                    // A gap is clean: a panel's own border lines crossing a blank stretch of art are too much ink to count as one
+                    const tol = Math.max(1, (a1 - a0) * .006), minGap = Math.max(2, Math.round((dir === 'h' ? H : W) * .0015)), minBand = (dir === 'h' ? H : W) * .05;
                     const out = []; let start = -1, gap = 0;
                     for (let n = n0; n <= n1; n++) {
                         const empty = n === n1 || lineInk(dir, n, a0, a1) <= tol;
@@ -2566,6 +2635,9 @@ Object.assign(actions, {
     'pd-clear': () => pdClear(),
     'pd-order': el => pdOrder(el.dataset.dir),
     'pd-remove': () => pdRemove(),
+    'pd-shape': () => pdShape(),
+    'pd-unshape': () => pdUnshape(),
+    'pd-corner-remove': () => pdCornerRemove(),
     'pd-done': () => closePageDetails(),
     'ec-remove': el => editComicRemove(el.dataset.index),
     'delete-comic': el => deleteComic(el.dataset.id),

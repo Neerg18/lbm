@@ -1396,6 +1396,10 @@ a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
 .rd-pan.is-new img { opacity: 0; }
 .rd-pan.no-anim img { transition: opacity .25s; }
 .rd-pan.no-anim .rd-pan-hole { transition: none; }
+/* A shaped panel: the same dim fills its box outside the shape */
+.rd-pan-cut { position: absolute; inset: 0; border-radius: inherit; background: rgba(0, 0, 0, .86); opacity: 0; transition: opacity .2s; }
+.rd-pan-cut.is-on { opacity: 1; }
+.rd-pan.no-anim .rd-pan-cut { transition: none; }
 
 /* An author's note: on the page's line under the reader, in the side panel, and under each page in the long scroll */
 .rd-note-strip { display: block; width: min(900px, 100%); padding: 8px 14px; border: 1px solid rgba(255,255,255,.14); border-radius: var(--r-s); background: rgba(255,255,255,.06); color: rgba(255,255,255,.86); font-size: .88rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

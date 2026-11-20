@@ -2643,7 +2643,16 @@ function hashText(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h 
 function pageKey(comic, i) { return pageInfo(comic, i).key || 'cp' + comic.id + '-' + hashText(String(comic.pages[i] || '')); }
 function isPageKey(k) { return /^cp\d+-\w+$/.test(String(k)); }
 // Panels are [left, top, width, height], each a fraction of the page's size, in reading order
-function pagePanels(comic, i) { const p = pageInfo(comic, i).panels; return Array.isArray(p) ? p.filter(r => Array.isArray(r) && r.length === 4 && r[2] > 0 && r[3] > 0) : []; }
+// A panel is a box, [x, y, width, height], or a shape for a slanted or odd-shaped panel: its corners in order,
+// [[x, y], [x, y], [x, y], ...]. Everything is a fraction of the page's size.
+function isShape(r) { return Array.isArray(r) && r.length >= 3 && r.every(q => Array.isArray(q) && q.length === 2 && q.every(Number.isFinite)); }
+function panelBox(r) {
+    if (!isShape(r)) return r;
+    const xs = r.map(q => q[0]), ys = r.map(q => q[1]), x = Math.min(...xs), y = Math.min(...ys);
+    return [x, y, Math.max(...xs) - x, Math.max(...ys) - y];
+}
+function isPanel(r) { const b = isShape(r) ? panelBox(r) : r; return Array.isArray(b) && b.length === 4 && b.every(Number.isFinite) && b[2] > 0 && b[3] > 0; }
+function pagePanels(comic, i) { const p = pageInfo(comic, i).panels; return Array.isArray(p) ? p.filter(isPanel) : []; }
 function comicHasPanels(comic) { return (comic.pages || []).some((_, i) => pagePanels(comic, i).length); }
 
 /* Reading modes: one page at a time, one long scroll (pages run together like a webtoon), two pages side by
@@ -2862,11 +2871,11 @@ function showPanel(animate) {
     const p = ui.reader.page, steps = readerSteps(comic, p), k = ui.reader.panel, many = pagePanels(comic, p).length;
     byId('rd-page').textContent = 'Page ' + (p + 1) + ' of ' + comic.pages.length + (many ? (k < 0 ? ' · Whole page' : ' · Panel ' + (k + 1) + ' of ' + many) : '');
     const whole = byId('rd-whole'); whole.setAttribute('aria-pressed', String(k < 0)); whole.disabled = !many;
-    const box = byId('rd-pan'), img = byId('rd-pan-img'), hole = byId('rd-pan-hole');
+    const box = byId('rd-pan'), img = byId('rd-pan-img'), hole = byId('rd-pan-hole'), cut = byId('rd-pan-cut');
     box.toggleAttribute('data-whole', k < 0 || !many);
     const nw = img.naturalWidth, nh = img.naturalHeight;
     if (!nw || !nh || !img.complete) return; // the picture's load event calls this again
-    const [x, y, w, h] = k < 0 ? [0, 0, 1, 1] : steps[k];
+    const r = k < 0 ? [0, 0, 1, 1] : steps[k], [x, y, w, h] = panelBox(r);
     const W = box.clientWidth, H = box.clientHeight, pad = Math.min(24, W * .04);
     const pw = w * nw, ph = h * nh;
     let s = Math.min((W - pad * 2) / pw, (H - pad * 2) / ph);
@@ -2877,6 +2886,16 @@ function showPanel(animate) {
     img.style.width = nw + 'px'; img.style.height = nh + 'px';
     img.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + s.toFixed(4) + ')';
     hole.style.cssText = 'left:' + (W / 2 - pw * s / 2).toFixed(1) + 'px;top:' + (H / 2 - ph * s / 2).toFixed(1) + 'px;width:' + (pw * s).toFixed(1) + 'px;height:' + (ph * s).toFixed(1) + 'px';
+    // A shaped panel: inside its box, everything outside the shape is dimmed too. While the view glides to
+    // the next panel the shape fades out, and the new one fades in as it arrives.
+    clearTimeout(showPanel.cutTimer);
+    cut.classList.remove('is-on');
+    if (k >= 0 && isShape(r)) {
+        const clip = 'polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, '
+            + r.concat([r[0]]).map(q => ((q[0] - x) / w * 100).toFixed(2) + '% ' + ((q[1] - y) / h * 100).toFixed(2) + '%').join(', ') + ')';
+        const show = () => { cut.style.clipPath = clip; cut.classList.add('is-on'); };
+        if (animate) showPanel.cutTimer = setTimeout(show, 420); else show();
+    }
 }
 function panelsLoaded() {
     const comic = getComic(ui.reader.id); if (!comic || readerMode(comic) !== 'panels') return;
