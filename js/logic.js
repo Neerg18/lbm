@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.25 · logic.js                                         ║
+ ║  NEERG 7.0.26 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  Parts only some visits need load when they're used (see lazy):  ║
@@ -21,7 +21,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.25';
+const NEERG_VERSION = '7.0.26';
 // Where the code files live: the js folder beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // The files that load when they're needed (see lazy below) come from this same folder, their styles from the css folder beside it.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
@@ -163,7 +163,7 @@ const ui = {
     post: { id: null, img: 0, list: [], pushed: false },
     viewer: { list: [], i: 0 },
     comic: { id: null, pushed: false },
-    reader: { id: null, page: 0 },
+    reader: { id: null, page: 0, panel: 0, side: false, sidePage: null, peek: 0, back: null },
     character: null,
     featured: { i: 0, timer: null, list: [] },
     lastCommentAt: 0
@@ -1766,6 +1766,7 @@ function fitHome() {
 }
 
 function refreshReactionsUI(postId) {
+    if (isPageKey(postId)) { refreshReaderTalk(); return; }
     const post = postsCache.find(p => p.id === postId); if (!post) return;
     $$('.tile[data-id="' + postId + '"] .reacts').forEach(n => { n.innerHTML = reactsHTML(post); });
     if (ui.post.id === postId) renderEngage(post);
@@ -2343,18 +2344,23 @@ async function sharePost(id) {
    COMMENTS
    ═════════════════════════════════════════════ */
 
-function composerHTML() {
+/* Comments belong to a thread: a post (its id) or a comic page (its page key, see pageKey). The comment box
+   carries its thread, so the same functions serve both. `prefix` names the box's fields. */
+function composerHTML(prefix = 'comment', thread = null) {
+    const t = thread != null ? ' data-thread="' + esc(thread) + '"' : '';
     if (isAdminLoggedIn) {
-        return '<form class="composer" data-form="comment"><p class="as-admin">Commenting as <b>' + esc(siteName()) + '</b> (admin)</p>'
-            + '<label class="sr-only" for="comment-text">Your comment</label><textarea id="comment-text" maxlength="1000" placeholder="Write a comment" required></textarea>'
+        return '<form class="composer" data-form="comment"' + t + '><p class="as-admin">Commenting as <b>' + esc(siteName()) + '</b> (admin)</p>'
+            + '<label class="sr-only" for="' + prefix + '-text">Your comment</label><textarea id="' + prefix + '-text" maxlength="1000" placeholder="Write a comment" required></textarea>'
             + '<div class="composer-row" style="justify-content:flex-end"><button class="btn btn-primary small" type="submit">Post comment</button></div></form>';
     }
     const saved = readText(KEYS.commenter);
-    return '<form class="composer" data-form="comment">'
-        + '<label class="sr-only" for="comment-text">Your comment</label><textarea id="comment-text" maxlength="1000" placeholder="Leave a comment" required></textarea>'
-        + '<div class="composer-row"><label class="sr-only" for="comment-name">Your name</label><input type="text" id="comment-name" maxlength="40" placeholder="Your name (optional)" value="' + esc(saved) + '">'
+    return '<form class="composer" data-form="comment"' + t + '>'
+        + '<label class="sr-only" for="' + prefix + '-text">Your comment</label><textarea id="' + prefix + '-text" maxlength="1000" placeholder="Leave a comment" required></textarea>'
+        + '<div class="composer-row"><label class="sr-only" for="' + prefix + '-name">Your name</label><input type="text" id="' + prefix + '-name" maxlength="40" placeholder="Your name (optional)" value="' + esc(saved) + '">'
         + '<button class="btn btn-primary small" type="submit">Post</button></div></form>';
 }
+// A thread named in the page: a post's id is a number, a comic page's key is text
+function threadKey(v) { return /^\d+$/.test(String(v)) ? Number(v) : String(v); }
 
 function commentHTML(c, postId, isReply) {
     const admin = !!c.isAdmin;
@@ -2363,27 +2369,31 @@ function commentHTML(c, postId, isReply) {
         + (isReply && c.replyToAuthor ? '<div class="c-replyto">↩ replying to <b>@' + esc(c.replyToAuthor) + '</b></div>' : '')
         + '<div class="c-text">' + esc(c.text) + '</div>'
         + '<div class="c-actions">'
-        + (!isReply ? '<button data-action="reply" data-cid="' + c.id + '">Reply</button>' : '')
-        + (isAdminLoggedIn ? '<button class="del" data-action="delete-comment" data-post="' + postId + '" data-cid="' + c.id + '">Delete</button>' : '')
+        + (!isReply ? '<button data-action="reply" data-cid="' + c.id + '" data-thread="' + esc(postId) + '">Reply</button>' : '')
+        + (isAdminLoggedIn ? '<button class="del" data-action="delete-comment" data-post="' + esc(postId) + '" data-cid="' + c.id + '">Delete</button>' : '')
         + '</div></div>';
 }
 
 function renderComments(postId) {
-    const list = byId('comment-list'); if (!list) return;
+    // A comic page's thread shows in the reader's side panel, and only while it's the one open there
+    const page = isPageKey(postId);
+    if (page && !$('#rd-side [data-thread="' + postId + '"]')) return;
+    const list = byId(page ? 'rd-c-list' : 'comment-list'); if (!list) return;
     const comments = getInteractions(postId).comments || [];
-    const title = byId('comments-title'); if (title) title.textContent = comments.length ? plural(comments.length, 'comment') : 'Comments';
+    const title = byId(page ? 'rd-c-title' : 'comments-title'); if (title) title.textContent = comments.length ? plural(comments.length, 'comment') : 'Comments';
     if (!comments.length) { list.innerHTML = '<p class="no-comments">No comments yet. Say something nice.</p>'; return; }
     const top = comments.filter(c => !c.parentId);
     const replies = comments.filter(c => c.parentId);
     list.innerHTML = top.map(c => commentHTML(c, postId, false) + replies.filter(r => r.parentId === c.id).map(r => commentHTML(r, postId, true)).join('')).join('');
 }
 
-function openReplyForm(cid) {
+function openReplyForm(cid, thread) {
     $$('.reply-form').forEach(f => f.remove());
     const host = $('.comment[data-cid="' + cid + '"]'); if (!host) return;
-    const parent = (getInteractions(ui.post.id).comments || []).find(c => c.id === cid);
+    const key = thread != null ? threadKey(thread) : ui.post.id;
+    const parent = (getInteractions(key).comments || []).find(c => c.id === cid);
     const form = document.createElement('form');
-    form.className = 'reply-form'; form.dataset.form = 'reply'; form.dataset.cid = cid;
+    form.className = 'reply-form'; form.dataset.form = 'reply'; form.dataset.cid = cid; form.dataset.thread = key;
     const saved = readText(KEYS.commenter);
     form.innerHTML = '<textarea maxlength="1000" placeholder="Reply to @' + esc(parent ? parent.author : '') + '" required aria-label="Your reply"></textarea>'
         + '<div class="composer-row">' + (isAdminLoggedIn ? '' : '<input type="text" maxlength="40" placeholder="Your name (optional)" value="' + esc(saved) + '" aria-label="Your name">')
@@ -2501,6 +2511,7 @@ async function syncInteractions() {
         writeJSON(KEYS.interactions, interactionsCache);
         if (ui.view === 'home') $$('.tile').forEach(t => { const id = Number(t.dataset.id); const p = postsCache.find(x => x.id === id); const r = $('.reacts', t); if (p && r) r.innerHTML = reactsHTML(p); });
         if (ui.post.id != null) { renderComments(ui.post.id); const p = postsCache.find(x => x.id === ui.post.id); if (p) renderEngage(p); }
+        if (ui.reader.id != null) { refreshReaderTalk(); const open = $('#rd-side [data-thread]'); if (open) renderComments(open.dataset.thread); }
     }
     interactionsSyncing = false;
     if (interactionsAgain) { interactionsAgain = false; scheduleInteractionsSync(); }
@@ -2616,6 +2627,7 @@ function openReader(id, page, opts = {}) {
     if (!Modals.isOpen(byId('comic-overlay')) || ui.comic.id !== comic.id) openComicGallery(comic.id, { fromRoute: true });
     ui.reader.id = comic.id;
     ui.reader.page = clamp(Number(page) || 0, 0, comic.pages.length - 1);
+    ui.reader.sidePage = null;
     byId('rd-title').textContent = comic.title || 'Untitled';
     const r = byId('reader');
     if (!Modals.isOpen(r)) Modals.open(r, { onRequestClose: () => closeReader(), focus: '.reader-top [data-action="close-reader"]' });
@@ -2623,13 +2635,26 @@ function openReader(id, page, opts = {}) {
     updateTitle();
 }
 
-/* Reading modes: one page at a time, one long scroll (pages run together like a webtoon), or two pages side
-   by side like a printed comic (the cover alone, then 2-3, 4-5...). A reader's pick is remembered per comic on
-   their device, and a comic can open in a mode of its own (Admin › Comics › Edit). Two pages needs a wide
-   screen, so phones and tall windows show one page at a time instead. */
-const READER_MODES = ['page', 'scroll', 'spread'];
+/* Each page can carry an author's note and its panels (Admin › Comics › Edit, a page's ✎ button). They're kept
+   in comic.pageInfo under the page's picture, so reordering the pages keeps them together. A page's comments
+   live in interactions.js under the page's key, which stays the same when its picture is swapped. */
+function pageInfo(comic, i) { const u = comic.pages[i]; return (u && comic.pageInfo && comic.pageInfo[u]) || {}; }
+function hashText(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36); }
+function pageKey(comic, i) { return pageInfo(comic, i).key || 'cp' + comic.id + '-' + hashText(String(comic.pages[i] || '')); }
+function isPageKey(k) { return /^cp\d+-\w+$/.test(String(k)); }
+// Panels are [left, top, width, height], each a fraction of the page's size, in reading order
+function pagePanels(comic, i) { const p = pageInfo(comic, i).panels; return Array.isArray(p) ? p.filter(r => Array.isArray(r) && r.length === 4 && r[2] > 0 && r[3] > 0) : []; }
+function comicHasPanels(comic) { return (comic.pages || []).some((_, i) => pagePanels(comic, i).length); }
+
+/* Reading modes: one page at a time, one long scroll (pages run together like a webtoon), two pages side by
+   side like a printed comic (the cover alone, then 2-3, 4-5...), or panel by panel (see below). A reader's pick
+   is remembered per comic on their device, and a comic can open in a mode of its own (Admin › Comics › Edit).
+   Two pages needs a wide screen, so phones and tall windows show one page at a time instead. Panel by panel
+   is offered once at least one page has its panels marked. */
+const READER_MODES = ['page', 'scroll', 'spread', 'panels'];
 function readerMode(comic) {
     const m = (readJSON(KEYS.readerModes, {}) || {})[comic.id] || comic.mode;
+    if (m === 'panels' && !comicHasPanels(comic)) return 'page';
     return READER_MODES.includes(m) ? m : 'page';
 }
 function spreadFits() { return window.innerWidth >= 760 && window.innerWidth > window.innerHeight * 1.05; }
@@ -2648,9 +2673,17 @@ function renderReader(fromRoute) {
     const spread = mode === 'spread' && spreadFits();
     r.classList.toggle('is-scroll', mode === 'scroll');
     r.classList.toggle('is-spread', spread);
+    r.classList.toggle('is-panels', mode === 'panels');
     $$('[data-action="reader-mode"]', r).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
-    byId('rd-fit').hidden = mode === 'scroll';
-    if (mode === 'scroll') { renderReaderScroll(comic, fromRoute); return; }
+    $('[data-action="reader-mode"][data-mode="panels"]', r).hidden = !comicHasPanels(comic);
+    byId('rd-fit').hidden = mode === 'scroll' || mode === 'panels';
+    byId('rd-whole').hidden = mode !== 'panels';
+    const unit = mode === 'panels' ? 'panel' : 'page';
+    $('.reader-tap.left', r).setAttribute('aria-label', 'Previous ' + unit);
+    $('.reader-tap.right', r).setAttribute('aria-label', 'Next ' + unit);
+    if (mode !== 'panels') { byId('rd-pan').hidden = true; clearTimeout(ui.reader.peek); }
+    if (mode === 'scroll') { renderReaderScroll(comic, fromRoute); renderReaderSide(); return; }
+    if (mode === 'panels') { renderReaderPanels(comic, fromRoute); renderReaderSide(); return; }
     byId('rd-scroll').hidden = true;
     const shown = readerShown(comic), first = shown[0], last = shown[shown.length - 1];
     const img = byId('rd-img'), pair = byId('rd-spread');
@@ -2667,6 +2700,7 @@ function renderReader(fromRoute) {
     byId('rd-stage').scrollTop = 0;
     renderReaderPager(comic, shown);
     saveReaderSpot(comic, first, last, fromRoute);
+    renderReaderSide();
     [last + 1, last + 2].forEach(i => { if (comic.pages[i]) { const im = new Image(); im.src = comic.pages[i]; } });
 }
 
@@ -2697,7 +2731,8 @@ function renderReaderScroll(comic, fromRoute) {
     byId('rd-img').hidden = true; byId('rd-spread').hidden = true; box.hidden = false;
     if (box.dataset.comic !== String(comic.id) || box.dataset.n !== String(comic.pages.length)) {
         box.dataset.comic = comic.id; box.dataset.n = comic.pages.length;
-        box.innerHTML = comic.pages.map((u, i) => '<img src="' + esc(u) + '" alt="' + esc(pageAlt(comic, i)) + '" data-i="' + i + '" decoding="async"' + (i > ui.reader.page + 2 ? ' loading="lazy"' : '') + '>').join('')
+        box.innerHTML = comic.pages.map((u, i) => '<img src="' + esc(u) + '" alt="' + esc(pageAlt(comic, i)) + '" data-i="' + i + '" decoding="async"' + (i > ui.reader.page + 2 ? ' loading="lazy"' : '') + '>'
+            + '<div class="rd-after" data-i="' + i + '">' + pageAfterHTML(comic, i) + '</div>').join('')
             + '<div class="rd-end"><p>The end</p><button class="btn on-dark" data-action="close-reader">Back to the pages</button></div>';
     }
     readerScrollTo(ui.reader.page);
@@ -2721,19 +2756,22 @@ function updateScrollSpot(comic, fromRoute) {
     byId('rd-page').textContent = 'Page ' + (p + 1) + ' of ' + comic.pages.length;
     renderReaderPager(comic, [p]);
     saveReaderSpot(comic, p, p, fromRoute);
+    renderReaderSide();
 }
 
 function setReaderMode(mode) {
     const comic = getComic(ui.reader.id); if (!comic || !READER_MODES.includes(mode)) return;
     const all = readJSON(KEYS.readerModes, {}) || {}; all[comic.id] = mode; writeJSON(KEYS.readerModes, all);
     if (mode === 'spread' && !spreadFits()) showToast('Two pages side by side needs a wider screen, so this one shows a page at a time.', 'info');
+    if (mode === 'panels') { arriveOnPage(comic, ui.reader.page); byId('rd-pan-img').dataset.armed = '1'; byId('rd-pan-img').dataset.page = ''; }
     byId('rd-stage').scrollTop = 0;
     renderReader();
 }
 
-// Next or previous: a page, a pair of pages, or a scroll to the next page down
+// Next or previous: a page, a pair of pages, a panel, or a scroll to the next page down
 function readerStep(dir) {
     const comic = getComic(ui.reader.id); if (!comic) return;
+    if (readerMode(comic) === 'panels') { panelStep(comic, dir); return; }
     const total = comic.pages.length, shown = readerShown(comic);
     const n = dir > 0 ? shown[shown.length - 1] + 1 : shown[0] - 1;
     if (n < 0) return;
@@ -2783,9 +2821,166 @@ function readerGo(n) {
     const comic = getComic(ui.reader.id); if (!comic) return;
     if (n < 0) return;
     if (n >= comic.pages.length) { closeReader(); return; }
+    if (readerMode(comic) === 'panels' && n !== ui.reader.page) arriveOnPage(comic, n);
     ui.reader.page = n;
     if (readerMode(comic) === 'scroll') { readerScrollTo(n); updateScrollSpot(comic); return; }
     renderReader();
+}
+/* Panel by panel: the page is zoomed so one panel fills the screen and the rest of the page is dimmed. Next and
+   previous move panel to panel, then on to the next page, where the whole page shows for a moment before the
+   first panel (straight to it for visitors who ask for less motion). Tapping the middle, or the Whole page
+   button, zooms out to the whole page and back. A page without panels shows whole. The same on phones and
+   computers: tap or click the sides, swipe, or use the arrow keys. */
+function readerSteps(comic, i) { const p = pagePanels(comic, i); return p.length ? p : [[0, 0, 1, 1]]; }
+// Landing on a page: the whole page first if it has panels, else its only step
+function arriveOnPage(comic, n) {
+    clearTimeout(ui.reader.peek);
+    ui.reader.back = null;
+    ui.reader.panel = pagePanels(comic, n).length && !reduceMotion() ? -1 : 0;
+}
+function renderReaderPanels(comic, fromRoute) {
+    const p = clamp(ui.reader.page, 0, comic.pages.length - 1), box = byId('rd-pan'), img = byId('rd-pan-img');
+    byId('rd-img').hidden = true; byId('rd-spread').hidden = true; byId('rd-scroll').hidden = true; box.hidden = false;
+    if (img.dataset.page !== comic.id + ':' + p) {
+        img.dataset.page = comic.id + ':' + p;
+        if (img.dataset.armed !== '1') arriveOnPage(comic, p);
+        box.classList.add('is-new');
+        img.src = comic.pages[p]; img.alt = pageAlt(comic, p);
+        // A picture the browser already has may not fire its load again
+        if (img.complete && img.naturalWidth) requestAnimationFrame(panelsLoaded);
+    }
+    img.dataset.armed = '';
+    ui.reader.panel = clamp(ui.reader.panel, -1, readerSteps(comic, p).length - 1);
+    renderReaderPager(comic, [p]);
+    saveReaderSpot(comic, p, p, fromRoute);
+    showPanel(false);
+    [p + 1, p + 2].forEach(i => { if (comic.pages[i]) { const im = new Image(); im.src = comic.pages[i]; } });
+}
+// Zooms to the current panel (or the whole page), and updates the counter and the Whole page button
+function showPanel(animate) {
+    const comic = getComic(ui.reader.id); if (!comic || readerMode(comic) !== 'panels') return;
+    const p = ui.reader.page, steps = readerSteps(comic, p), k = ui.reader.panel, many = pagePanels(comic, p).length;
+    byId('rd-page').textContent = 'Page ' + (p + 1) + ' of ' + comic.pages.length + (many ? (k < 0 ? ' · Whole page' : ' · Panel ' + (k + 1) + ' of ' + many) : '');
+    const whole = byId('rd-whole'); whole.setAttribute('aria-pressed', String(k < 0)); whole.disabled = !many;
+    const box = byId('rd-pan'), img = byId('rd-pan-img'), hole = byId('rd-pan-hole');
+    box.toggleAttribute('data-whole', k < 0 || !many);
+    const nw = img.naturalWidth, nh = img.naturalHeight;
+    if (!nw || !nh || !img.complete) return; // the picture's load event calls this again
+    const [x, y, w, h] = k < 0 ? [0, 0, 1, 1] : steps[k];
+    const W = box.clientWidth, H = box.clientHeight, pad = Math.min(24, W * .04);
+    const pw = w * nw, ph = h * nh;
+    let s = Math.min((W - pad * 2) / pw, (H - pad * 2) / ph);
+    // A small panel never blows up past one and a half times the picture's own size, so it stays sharp
+    if (k >= 0) s = Math.min(s, Math.max(1.5, Math.min(W / nw, H / nh)));
+    const tx = W / 2 - (x * nw + pw / 2) * s, ty = H / 2 - (y * nh + ph / 2) * s;
+    box.classList.toggle('no-anim', !animate);
+    img.style.width = nw + 'px'; img.style.height = nh + 'px';
+    img.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + s.toFixed(4) + ')';
+    hole.style.cssText = 'left:' + (W / 2 - pw * s / 2).toFixed(1) + 'px;top:' + (H / 2 - ph * s / 2).toFixed(1) + 'px;width:' + (pw * s).toFixed(1) + 'px;height:' + (ph * s).toFixed(1) + 'px';
+}
+function panelsLoaded() {
+    const comic = getComic(ui.reader.id); if (!comic || readerMode(comic) !== 'panels') return;
+    byId('rd-pan').classList.remove('is-new');
+    showPanel(false);
+    // The moment on the whole page, then into the first panel
+    clearTimeout(ui.reader.peek);
+    if (ui.reader.panel < 0 && ui.reader.back == null) ui.reader.peek = setTimeout(() => { if (ui.reader.panel < 0 && ui.reader.back == null) { ui.reader.panel = 0; showPanel(true); } }, 650);
+}
+function panelStep(comic, dir) {
+    clearTimeout(ui.reader.peek);
+    const p = ui.reader.page, steps = readerSteps(comic, p), k = ui.reader.panel;
+    if (k < 0 && ui.reader.back != null) { ui.reader.panel = clamp(ui.reader.back + dir, 0, steps.length - 1); ui.reader.back = null; showPanel(true); return; }
+    ui.reader.back = null;
+    if (dir > 0 && k + 1 < steps.length) { ui.reader.panel = k + 1; showPanel(true); return; }
+    if (dir < 0 && k > 0) { ui.reader.panel = k - 1; showPanel(true); return; }
+    if (dir > 0) { if (p + 1 >= comic.pages.length) { closeReader(); return; } readerGo(p + 1); return; }
+    if (p === 0) return;
+    // Back onto the previous page, at its last panel
+    const img = byId('rd-pan-img');
+    ui.reader.page = p - 1; ui.reader.panel = readerSteps(comic, p - 1).length - 1; img.dataset.armed = '1';
+    renderReader();
+}
+// The middle of the page, or the Whole page button: zoom out to the whole page, and back to the same panel
+function panelWhole() {
+    const comic = getComic(ui.reader.id); if (!comic || readerMode(comic) !== 'panels' || !pagePanels(comic, ui.reader.page).length) return;
+    clearTimeout(ui.reader.peek);
+    if (ui.reader.panel >= 0) { ui.reader.back = ui.reader.panel; ui.reader.panel = -1; }
+    else { ui.reader.panel = ui.reader.back != null ? ui.reader.back : 0; ui.reader.back = null; }
+    showPanel(true);
+}
+
+/* Notes and comments: a page's author's note and its comments, in a panel beside the page on a computer and
+   sliding up over it on a phone. A line under the page shows the note when the panel is closed. In the long
+   scroll, each page's note and a comments button sit right under it. */
+function pageAfterHTML(comic, i) {
+    const note = pageInfo(comic, i).note, talk = currentConfig.allowComments !== false;
+    if (!note && !talk) return '';
+    const n = commentCount(pageKey(comic, i));
+    return (note ? '<div class="rd-note"><p class="rd-note-by">Note from ' + esc(siteName()) + '</p><div class="prose">' + md(note) + '</div></div>' : '')
+        + (talk ? '<button class="btn small on-dark rd-after-talk" data-action="reader-talk" data-page="' + i + '"><i class="fa-regular fa-comment" aria-hidden="true"></i> ' + (n ? plural(n, 'comment') : 'Comment on this page') + '</button>' : '');
+}
+function readerTalkPages(comic) {
+    const mode = readerMode(comic);
+    return mode === 'scroll' || mode === 'panels' ? [clamp(ui.reader.page, 0, comic.pages.length - 1)] : readerShown(comic);
+}
+// The counts and the note line, without touching an open comment box
+function refreshReaderTalk() {
+    const comic = getComic(ui.reader.id); if (!comic) return;
+    const talk = currentConfig.allowComments !== false, shown = readerTalkPages(comic);
+    const btn = byId('rd-talk');
+    btn.hidden = !talk && !(comic.pages || []).some((_, i) => pageInfo(comic, i).note);
+    const n = shown.reduce((s, i) => s + commentCount(pageKey(comic, i)), 0), noted = shown.find(i => pageInfo(comic, i).note);
+    byId('rd-talk-n').textContent = n;
+    byId('rd-talk-n').hidden = !talk;
+    btn.classList.toggle('has-note', noted != null);
+    btn.setAttribute('aria-label', (ui.reader.side ? 'Close' : 'Open') + ' notes and comments' + (talk ? ' (' + plural(n, 'comment') + ')' : ''));
+    const strip = byId('rd-note-strip');
+    strip.hidden = noted == null || ui.reader.side || readerMode(comic) === 'scroll';
+    if (noted != null) strip.innerHTML = '<b>Note from ' + esc(siteName()) + ':</b> <span>' + esc(excerpt(pageInfo(comic, noted).note, 140)) + '</span>';
+    if (readerMode(comic) === 'scroll') $$('#rd-scroll .rd-after').forEach(a => { a.innerHTML = pageAfterHTML(comic, Number(a.dataset.i)); });
+    const tabs = $$('#rd-side [data-action="reader-side-page"]');
+    tabs.forEach(t => { const c = commentCount(pageKey(comic, Number(t.dataset.page))); const s = $('small', t); if (s) s.textContent = c ? ' · ' + c : ''; });
+}
+function renderReaderSide() {
+    const comic = getComic(ui.reader.id); if (!comic) return;
+    const r = byId('reader'), side = byId('rd-side'), shown = readerTalkPages(comic);
+    r.classList.toggle('has-side', ui.reader.side);
+    byId('rd-talk').setAttribute('aria-pressed', String(ui.reader.side));
+    side.hidden = !ui.reader.side;
+    refreshReaderTalk();
+    if (!ui.reader.side) { side.innerHTML = ''; return; }
+    const p = shown.includes(ui.reader.sidePage) ? ui.reader.sidePage : shown[0];
+    ui.reader.sidePage = p;
+    const key = pageKey(comic, p), note = pageInfo(comic, p).note, talk = currentConfig.allowComments !== false;
+    // Same page as before: refresh its comments, and keep anything being typed
+    if (side.dataset.key === key) { if (talk) renderComments(key); return; }
+    side.dataset.key = key;
+    side.innerHTML = '<div class="rd-side-head"><h2 class="rd-side-title">' + (shown.length > 1 ? 'Pages ' + (shown[0] + 1) + '–' + (shown[shown.length - 1] + 1) : 'Page ' + (p + 1)) + '</h2>'
+        + '<button class="icon-btn on-dark" data-action="reader-talk" aria-label="Close notes and comments"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>'
+        + (shown.length > 1 ? '<div class="rd-side-tabs" role="group" aria-label="Which page">' + shown.map(i => '<button class="pg" data-action="reader-side-page" data-page="' + i + '" aria-pressed="' + (i === p) + '">Page ' + (i + 1) + '<small></small></button>').join('') + '</div>' : '')
+        + '<div class="rd-side-body" data-thread="' + esc(key) + '">'
+        + (note ? '<div class="rd-note"><p class="rd-note-by">Note from ' + esc(siteName()) + '</p><div class="prose">' + md(note) + '</div></div>' : '')
+        + (talk ? '<section class="rd-comments" aria-labelledby="rd-c-title"><h3 class="comments-title" id="rd-c-title"></h3><div id="rd-c-list"></div></section>'
+            : (note ? '' : '<p class="no-comments">Nothing here yet.</p>'))
+        + '</div>'
+        + (talk ? composerHTML('rd-c', key) : '');
+    if (talk) renderComments(key);
+    refreshReaderTalk();
+}
+function toggleReaderSide(page) {
+    const comic = getComic(ui.reader.id); if (!comic) return;
+    if (page != null && page !== '') {
+        const n = Number(page);
+        // In the long scroll, a page's own comments button opens the panel on that page
+        if (readerMode(comic) === 'scroll' && n !== ui.reader.page) { ui.reader.page = n; updateScrollSpot(comic); }
+        ui.reader.sidePage = n; ui.reader.side = true;
+    } else ui.reader.side = !ui.reader.side;
+    byId('rd-side').dataset.key = '';
+    renderReaderSide();
+    // The page area changed size beside the panel
+    requestAnimationFrame(() => showPanel(false));
+    if (ui.reader.side) { const t = $('#rd-side textarea'); if (t && window.innerWidth >= 900) t.focus({ preventScroll: true }); else { const c = $('#rd-side .icon-btn'); if (c) c.focus({ preventScroll: true }); } }
+    else { const b = byId('rd-talk'); if (b && !b.hidden) b.focus({ preventScroll: true }); }
 }
 function pageWindow(current, total) {
     const narrow = window.innerWidth < 520;
@@ -2805,6 +3000,8 @@ function closeReader(fromRoute) {
     if (!Modals.isOpen(r)) { ui.reader.id = null; return; }
     const id = ui.reader.id;
     ui.reader.id = null;
+    clearTimeout(ui.reader.peek);
+    byId('rd-pan-img').dataset.page = '';
     Modals.close(r);
     if (!fromRoute && id != null) setHash('#/comics/' + id, true);
     if (id != null && ui.comic.id === id) {
@@ -3423,9 +3620,9 @@ const actions = {
     },
     'react': el => reactTo(Number(el.dataset.id), el.dataset.type, el),
     'reveal': el => { ui.revealed.add(Number(el.dataset.id)); const t = el.closest('.tile'); if (t) { t.classList.remove('is-veiled'); el.remove(); } },
-    'reply': el => openReplyForm(Number(el.dataset.cid)),
+    'reply': el => openReplyForm(Number(el.dataset.cid), el.dataset.thread),
     'cancel-reply': el => { const f = el.closest('.reply-form'); if (f) f.remove(); },
-    'delete-comment': el => deleteComment(Number(el.dataset.post), Number(el.dataset.cid)),
+    'delete-comment': el => deleteComment(threadKey(el.dataset.post), Number(el.dataset.cid)),
 
     'filter-tag': el => {
         const fromPost = !!el.dataset.closePost;
@@ -3477,6 +3674,9 @@ const actions = {
     'reader-next': () => readerStep(1),
     'reader-go': el => readerGo(Number(el.dataset.page)),
     'reader-mode': el => setReaderMode(el.dataset.mode),
+    'reader-whole': () => panelWhole(),
+    'reader-talk': el => toggleReaderSide(el.dataset.page),
+    'reader-side-page': el => { ui.reader.sidePage = Number(el.dataset.page); byId('rd-side').dataset.key = ''; renderReaderSide(); },
     'reader-fit': el => { const r = byId('reader'); const on = !r.classList.contains('is-fit-width'); r.classList.toggle('is-fit-width', on); el.setAttribute('aria-pressed', String(on)); el.textContent = on ? 'Fit height' : 'Fit width'; },
 
     'modal-close': el => { const m = el.closest('.overlay'); if (m) Modals.close(m); },
@@ -3525,12 +3725,11 @@ function bindEvents() {
         const kind = form.dataset.form;
         if (!kind) return;
         e.preventDefault();
-        if (kind === 'comment') {
-            const name = byId('comment-name');
-            if (addComment(ui.post.id, name ? name.value : '', byId('comment-text').value)) byId('comment-text').value = '';
-        } else if (kind === 'reply') {
-            const name = $('input', form);
-            if (addComment(ui.post.id, name ? name.value : '', $('textarea', form).value, Number(form.dataset.cid))) form.remove();
+        if (kind === 'comment' || kind === 'reply') {
+            const key = form.dataset.thread ? threadKey(form.dataset.thread) : ui.post.id;
+            const name = $('input', form), text = $('textarea', form);
+            if (!addComment(key, name ? name.value : '', text.value, kind === 'reply' ? Number(form.dataset.cid) : null)) return;
+            if (kind === 'reply') form.remove(); else text.value = '';
         } else if (kind === 'edit-post') saveEditedPost(form);
         else if (kind === 'edit-comic') saveEditedComic(form);
     });
@@ -3590,6 +3789,8 @@ function bindEvents() {
     let rdTick = false;
     rdStage.addEventListener('scroll', () => { if (!rdTick) { rdTick = true; requestAnimationFrame(() => { rdTick = false; onReaderScroll(); }); } }, { passive: true });
     ['wheel', 'touchstart', 'keydown'].forEach(t => rdStage.addEventListener(t, () => { ui.reader.settle = null; }, { passive: true }));
+    byId('rd-pan-img').addEventListener('load', panelsLoaded);
+    if (window.ResizeObserver) new ResizeObserver(() => showPanel(false)).observe(byId('rd-pan'));
     byId('rd-scroll').addEventListener('load', () => {
         const s = ui.reader.settle; if (!s || Date.now() - s.t > 4000) return;
         const im = $('#rd-scroll img[data-i="' + s.i + '"]'); if (im) rdStage.scrollTop = im.offsetTop;
