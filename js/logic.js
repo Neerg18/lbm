@@ -2892,23 +2892,30 @@ function showPanel(animate) {
     img.style.width = (nw * base).toFixed(1) + 'px'; img.style.height = (nh * base).toFixed(1) + 'px';
     img.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + (s / base).toFixed(5) + ')';
     // The window onto the panel, and four dim bars around it. All of them glide by transform like the picture,
-    // so they stay in step with it even when the phone is busy.
+    // so they stay in step with it even when the phone is busy. The bars (and a shape's cut-out) are solid
+    // black and overlap a little, inside one group that's see-through as a whole: pieces that only met edge
+    // to edge left a faint light line where they joined.
     const L = W / 2 - pw * s / 2, T = H / 2 - ph * s / 2, ww = pw * s, hh = ph * s;
     const move = (el, dx, dy, sx, sy) => { el.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + sx.toFixed(5) + ',' + sy.toFixed(5) + ')'; };
+    let group = box.querySelector('.rd-pan-dims');
+    if (!group) {
+        box.insertAdjacentHTML('beforeend', '<div class="rd-pan-dims" aria-hidden="true">' + '<i class="rd-pan-dim"></i>'.repeat(4) + '</div>');
+        group = box.querySelector('.rd-pan-dims'); group.appendChild(hole);
+    }
+    const dims = group.querySelectorAll('.rd-pan-dim');
     move(hole, L, T, ww / W, hh / H);
-    let dims = box.querySelectorAll('.rd-pan-dim');
-    if (dims.length !== 4) { hole.insertAdjacentHTML('beforebegin', '<i class="rd-pan-dim"></i>'.repeat(4)); dims = box.querySelectorAll('.rd-pan-dim'); }
     move(dims[0], 0, T - H, 1, 1);
     move(dims[1], 0, T + hh, 1, 1);
-    move(dims[2], L - W, T, 1, hh / H);
-    move(dims[3], L + ww, T, 1, hh / H);
+    move(dims[2], L - W, T - 2, 1, (hh + 4) / H);
+    move(dims[3], L + ww, T - 2, 1, (hh + 4) / H);
     // A shaped panel: inside its box, everything outside the shape is dimmed too. While the view glides to
     // the next panel the shape fades out, and the new one fades in as it arrives.
     clearTimeout(showPanel.cutTimer);
     cut.classList.remove('is-on');
     if (k >= 0 && isShape(r)) {
         const clip = 'polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, '
-            + r.concat([r[0]]).map(q => ((q[0] - x) / w * 100).toFixed(2) + '% ' + ((q[1] - y) / h * 100).toFixed(2) + '%').join(', ') + ')';
+            // the cut-out reaches 2% past the panel's box on every side (see .rd-pan-cut), so its corners map in by that
+            + r.concat([r[0]]).map(q => (((q[0] - x) / w + .02) / 1.04 * 100).toFixed(2) + '% ' + (((q[1] - y) / h + .02) / 1.04 * 100).toFixed(2) + '%').join(', ') + ')';
         const show = () => { cut.style.clipPath = clip; cut.classList.add('is-on'); };
         if (animate) showPanel.cutTimer = setTimeout(show, 420); else show();
     }

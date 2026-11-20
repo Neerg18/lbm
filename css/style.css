@@ -1393,12 +1393,14 @@ a.zc-card:hover .zc-cover { transform: rotate(-1deg) translateY(-4px); }
 .reader.is-panels .rd-pan[data-whole] { cursor: zoom-in; }
 .rd-pan img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; transition: transform .55s cubic-bezier(.65, 0, .35, 1), opacity .25s; }
 .rd-pan-hole, .rd-pan-dim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 0 0; pointer-events: none; transition: transform .55s cubic-bezier(.65, 0, .35, 1); }
-.rd-pan-dim { background: rgba(0, 0, 0, .86); }
+/* Solid black pieces that overlap, see-through together as one layer, so there are no light lines where they meet */
+.rd-pan-dims { position: absolute; inset: 0; opacity: .86; pointer-events: none; }
+.rd-pan-dim { background: #000; }
 .rd-pan.is-new img { opacity: 0; }
 .rd-pan.no-anim img { transition: opacity .25s; }
 .rd-pan.no-anim .rd-pan-hole, .rd-pan.no-anim .rd-pan-dim { transition: none; }
 /* A shaped panel: the same dim fills its box outside the shape */
-.rd-pan-cut { position: absolute; inset: 0; background: rgba(0, 0, 0, .86); opacity: 0; transition: opacity .2s; }
+.rd-pan-cut { position: absolute; inset: -2%; background: #000; opacity: 0; transition: opacity .2s; }
 .rd-pan-cut.is-on { opacity: 1; }
 .rd-pan.no-anim .rd-pan-cut { transition: none; }
 
