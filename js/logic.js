@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.26 · logic.js                                         ║
+ ║  NEERG 7.0.27 · logic.js                                         ║
  ║  Built on the LBM bridge pattern by applesaucy.                  ║
  ║                                                                  ║
  ║  Parts only some visits need load when they're used (see lazy):  ║
@@ -21,7 +21,7 @@
 
 // The site's version (see CHANGELOG.md). Raise it with every update, and the ?v= tags in index.html too:
 // the lazy files below are fetched with it, so a new number makes browsers get fresh copies.
-const NEERG_VERSION = '7.0.26';
+const NEERG_VERSION = '7.0.27';
 // Where the code files live: the js folder beside index.html, or on jsDelivr for a one-file site (one-file/index.html).
 // The files that load when they're needed (see lazy below) come from this same folder, their styles from the css folder beside it.
 const CODE_BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
@@ -1653,7 +1653,7 @@ function feedColumns() {
     return getComputedStyle(grid).gridTemplateColumns.split(' ').length;
 }
 
-function renderHome() { renderHero(); renderFeatured(); renderTagChips(); renderFeed(); renderComicBar(); renderSliders(); renderAbout(); armScheduleTimer(); }
+function renderHome() { renderHero(); renderWip(); renderFeatured(); renderTagChips(); renderFeed(); renderComicBar(); renderSliders(); renderAbout(); armScheduleTimer(); }
 // Puts a scheduled post up on time for visitors who already have the site open
 let scheduleTimer = 0;
 function armScheduleTimer() {
@@ -1681,9 +1681,61 @@ function renderComicBar() {
     const pct = midway ? Math.round((p + 1) / n * 100) : 0;
     box.href = '#/comics/' + c.id + '/' + (midway ? p + 1 : 1);
     box.innerHTML = (cover ? '<img src="' + esc(thumbOf(cover)) + '" alt="" loading="lazy" decoding="async">' : '<span class="ha-next-empty" aria-hidden="true">' + esc(title.charAt(0).toUpperCase()) + '</span>')
-        + '<span class="ha-next-text"><span class="ha-kicker">' + (midway ? 'Keep reading' : 'Next stop') + ' · Comics</span><strong>' + esc(title) + '</strong><span>' + (midway ? 'Page ' + (p + 1) + ' of ' + n : plural(n, 'page')) + '</span></span>'
+        + '<span class="ha-next-text"><span class="ha-kicker">' + (midway ? 'Keep reading' : 'Next stop') + ' · Comics</span><strong>' + esc(title) + '</strong><span>' + (midway ? 'Page ' + (p + 1) + ' of ' + n : plural(n, 'page')) + '</span>'
+        + (comicNext(c) ? '<span class="cd-line">' + cdClock() + '<span>New page ' + cdSpan(comicNext(c).at, 'day') + '</span></span>' : '') + '</span>'
         + '<span class="ha-lines" aria-hidden="true" style="--pct:' + pct + '%"><i></i><i></i><i></i></span>'
         + '<span class="ha-btn">' + (midway ? 'Keep reading' : 'Start reading') + ' <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>';
+}
+
+/* ═════════════════════════════════════════════
+   HOME: WORKING ON
+   A peek at what's on the desk, set in Admin › Site info: a teaser picture made in Admin (only the teaser is
+   on the site, never the work in progress itself), a title and a line, the stage and how far along it is.
+   It's a wide card under the banner, or a small card in the bar at the bottom of Home. Once the finished post
+   is picked, the card says so and links to it. Saved in the settings as
+   wip: { on, place, show, img, spot, title, note, stage, pct, post, updated }.
+   ═════════════════════════════════════════════ */
+const WIP_STAGES = ['Sketch', 'Lines', 'Colors', 'Shading', 'Done'];
+function wipNow() {
+    const w = currentConfig.wip;
+    if (!w || !w.on) return null;
+    const post = w.post != null && w.post !== '' ? shownPosts().find(p => String(p.id) === String(w.post)) || null : null;
+    return post || w.img ? { w, post } : null;
+}
+function wipAgo(t) { const d = Math.floor((Date.now() - t) / 864e5); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'; }
+function renderWip() {
+    const big = byId('wip'), mini = byId('wip-mini'); if (!big || !mini) return;
+    const s = wipNow(), bar = !!s && s.w.place === 'bar';
+    big.hidden = !s || bar; mini.hidden = !s || !bar;
+    big.innerHTML = ''; mini.innerHTML = '';
+    if (!s) return;
+    const { w, post } = s, done = !!post;
+    const pct = done ? 100 : clamp(Math.round(Number(w.pct) || 0), 0, 100);
+    const stage = clamp(Number(w.stage) || 0, 0, WIP_STAGES.length - 1);
+    // Finished: the post's own picture. Before that: the teaser, framed on its peek spot
+    const pic = done ? thumbOf(firstImage(post)) : w.img;
+    const spot = !done && w.show === 'peek' && Array.isArray(w.spot) ? ' style="object-position:' + (w.spot[0] * 100).toFixed(1) + '% ' + (w.spot[1] * 100).toFixed(1) + '%"' : '';
+    const img = pic ? '<img src="' + esc(safeUrl(pic)) + '" alt=""' + spot + ' decoding="async">' : '';
+    const title = esc(w.title || (done ? postTitle(post) : 'Something new'));
+    const meter = '<span class="wip-bar" role="img" aria-label="' + pct + '% done" style="--f:' + (pct / 100) + '"><i></i></span>';
+    const see = done ? '<a class="wip-see" href="#/post/' + post.id + '">See it <span aria-hidden="true">→</span></a>' : '';
+    const kick = done ? '<span class="wip-kick">✦ Just finished</span>' : '<span class="wip-kick"><i class="wip-rec" aria-hidden="true"></i>On my desk right now</span>';
+    const when = done ? 'Posted ' + formatDate(post) : w.updated ? 'Updated ' + wipAgo(w.updated) : '';
+    const el = bar ? mini : big;
+    el.classList.toggle('is-done', done);
+    if (bar) {
+        mini.innerHTML = '<span class="wip-mini-pic">' + img + '</span><span class="wip-mini-text">'
+            + '<span class="ha-kicker">' + (done ? '✦ Just finished' : '<i class="wip-rec" aria-hidden="true"></i>Now drawing') + '</span><strong>' + title + '</strong>' + meter
+            + '<span class="wip-sub">' + (done ? 'Out now' : esc(WIP_STAGES[stage]) + ' · ' + pct + '%') + '</span>' + see + '</span>';
+        return;
+    }
+    big.innerHTML = '<div class="wip-peek"><span class="wip-tape" aria-hidden="true"></span><span class="wip-pic">' + img + '</span>'
+        + (done ? '<span class="wip-stamp" aria-hidden="true">Finished!</span>' : '') + '<span class="wip-cap" aria-hidden="true">' + (done ? 'Out now' : 'WIP · no peeking') + '</span></div>'
+        + '<div class="wip-text">' + kick + '<h2 class="wip-title">' + title + '</h2>'
+        + (done ? '<p class="wip-note">It\'s finished and posted.</p>' + see
+            : (w.note ? '<p class="wip-note">' + esc(w.note) + '</p>' : '')
+              + '<ol class="wip-stages" aria-label="Stage">' + WIP_STAGES.map((n, i) => '<li class="' + (i < stage ? 'is-done' : i === stage ? 'is-now' : '') + '"' + (i === stage ? ' aria-current="step"' : '') + '>' + n + '</li>').join('') + '</ol>')
+        + '</div><div class="wip-meter"><span class="wip-n">' + pct + '<small>%</small></span>' + meter + (when ? '<span class="wip-sub">' + when + '</span>' : '') + '</div>';
 }
 
 /* Home A: the side sliders. Tall columns beside Recent works (a sideways band on phones) that show one picture
@@ -2083,6 +2135,84 @@ function comicSlot(id) {
     const i = comicsCache.slice().sort((a, b) => b.id - a.id).findIndex(c => c.id === id);
     return Math.max(i, 0);
 }
+/* ═════════════════════════════════════════════
+   COMIC COUNTDOWN
+   A comic can say when its next page comes out (Admin › Comics › Edit), saved on the comic as
+   next: { at, page }: the time, and the number of the page that's coming. It counts down until that time, or
+   until that page is added, whichever comes first: on the comic's card, in its page list, at the end of the
+   reader and in the comics bar on Home. Anything marked data-cd ticks once a second.
+   ═════════════════════════════════════════════ */
+
+function comicNext(c) {
+    const n = c && c.next;
+    return n && n.at > Date.now() && (c.pages || []).length < (n.page || Infinity) ? n : null;
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
+function cdParts(at) {
+    const s = Math.max(0, Math.floor((at - Date.now()) / 1000));
+    return { d: Math.floor(s / 86400), h: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 };
+}
+// "2d 14h", "5h 20m", "12m"
+function cdShort(at) { const p = cdParts(at); return p.d ? p.d + 'd ' + p.h + 'h' : p.h ? p.h + 'h ' + p.m + 'm' : Math.max(1, p.m) + 'm'; }
+// "today", "tomorrow", "in 3 days", counted in calendar days
+function cdDay(at) {
+    const a = new Date(at), now = new Date(); a.setHours(0, 0, 0, 0); now.setHours(0, 0, 0, 0);
+    const d = Math.round((a - now) / 864e5);
+    return d <= 0 ? 'today' : d === 1 ? 'tomorrow' : 'in ' + d + ' days';
+}
+// "Fri" (this week) or "Dec 3"; long: "Friday, Nov 27 at 6:00 PM", in the visitor's own time zone
+function cdWhen(at, long) {
+    const d = new Date(at);
+    if (long) return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) + ' at ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return (at - Date.now()) / 864e5 < 6 ? d.toLocaleDateString(undefined, { weekday: 'short' }) : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+function cdText(at, f) {
+    if (f === 'short') return cdShort(at);
+    if (f === 'day') return cdDay(at);
+    return pad2(cdParts(at)[f]);
+}
+function cdSpan(at, f, cls) { return '<span' + (cls ? ' class="' + cls + '"' : '') + ' data-cd="' + at + '" data-cd-f="' + f + '">' + esc(cdText(at, f)) + '</span>'; }
+// A little clock whose hand goes round once a minute
+function cdClock() { return '<svg class="cd-clock" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="9"/><path d="M9 2.5h6M12 2.5v2"/><path class="cd-hand" d="M12 13V7.5"/></svg>'; }
+function countdownTick() {
+    const els = $$('[data-cd]'); if (!els.length) return;
+    const now = Date.now(); let gone = false;
+    els.forEach(el => {
+        const at = Number(el.dataset.cd);
+        if (at <= now) { gone = true; return; }
+        const t = cdText(at, el.dataset.cdF); if (el.textContent !== t) el.textContent = t;
+    });
+    if (gone) refreshCountdowns();
+}
+// A countdown ran out: redraw the places that showed it
+function refreshCountdowns() {
+    renderComicBar();
+    if (ui.view === 'comics') renderComics();
+    if (ui.comic.id != null && Modals.isOpen(byId('comic-overlay'))) { const c = getComic(ui.comic.id); if (c) comicGalleryNext(c); }
+    if (ui.reader.id != null) {
+        const c = getComic(ui.reader.id);
+        if (c) { const end = $('#rd-scroll .rd-end'); if (end) end.outerHTML = readerEndHTML(c); refreshReaderTalk(); }
+    }
+}
+// The comic's page list: a line in its header, and a "Coming soon" tile after the last page
+function comicGalleryNext(comic) {
+    const n = comicNext(comic);
+    byId('co-meta').innerHTML = esc(plural(comic.pages.length, 'page') + ', posted ' + formatDate(comic))
+        + (n ? ' · <span class="cd-line">' + cdClock() + '<span>New page ' + cdSpan(n.at, 'day') + '</span></span>' : '');
+    const old = $('#co-grid .cd-soon'); if (old) old.remove();
+    if (n) byId('co-grid').insertAdjacentHTML('beforeend', '<div class="page-thumb cd-soon"><span class="frame"><span class="cd-soon-tape" aria-hidden="true">Coming soon</span>'
+        + '<span class="cd-soon-in">' + cdClock() + cdSpan(n.at, 'short', 'cd-soon-t') + '<span class="cd-soon-sub">until page ' + n.page + '</span></span></span>Page ' + n.page + ' · ' + esc(cdWhen(n.at)) + '</div>');
+}
+// The end of the comic in Scroll mode: "The end", or a countdown to the next page
+function readerEndHTML(comic) {
+    const n = comicNext(comic);
+    if (!n) return '<div class="rd-end"><p>The end</p><button class="btn on-dark" data-action="close-reader">Back to the pages</button></div>';
+    return '<div class="rd-end cd-end"><span class="cd-kick">You\'re all caught up</span><p>Next page in</p>'
+        + '<div class="cd-boxes" role="timer" aria-label="Time until the next page">' + [['d', 'days'], ['h', 'hours'], ['m', 'min'], ['s', 'sec']].map(([f, w]) => '<span' + (f === 's' ? ' class="is-sec"' : '') + '>' + cdSpan(n.at, f, 'cd-num') + w + '</span>').join('') + '</div>'
+        + '<span class="cd-when">' + cdClock() + 'Page ' + n.page + ' comes out ' + esc(cdWhen(n.at, true)) + '</span>'
+        + '<button class="btn on-dark" data-action="close-reader">Back to the pages</button></div>';
+}
+
 function renderComics() {
     renderComicBar(); renderAbout();
     const grid = byId('comics-grid'); if (!grid) return;
@@ -2104,15 +2234,18 @@ function renderComics() {
         const started = p != null && pages > 1;
         // Pages 2-4 fanned out; always shown on the top card, and on any card left with a wide row to itself
         const strip = (c.pages || []).slice(1, 4).map(u => '<span class="zg-sticker"><img src="' + esc(safeUrl(thumbOf(u))) + '" alt="" loading="lazy" decoding="async"></span>').join('');
+        const nx = comicNext(c);
         return '<a class="zg-card zg-paper zc-card' + (i === 0 ? ' is-wide' : '') + '" style="' + zineSlot(i) + '" href="#/comics/' + c.id + '" data-action="open-comic" data-id="' + c.id + '">'
             + '<span class="zc-cover">' + (cover ? '<img src="' + esc(thumbOf(cover)) + '" alt="" loading="lazy" decoding="async">' : '<span class="zc-cover-empty" aria-hidden="true">' + esc((c.title || '?').charAt(0).toUpperCase()) + '</span>') + '</span>'
             + '<span class="zg-card-text">'
             + '<span class="zg-card-title">' + esc(c.title || 'Untitled') + '</span>'
-            + '<span class="zg-card-meta"><span><strong>' + plural(pages, 'page') + '</strong>Comic ' + String(list.length - i).padStart(2, '0') + '</span><span><strong>Posted</strong>' + esc(formatDate(c)) + '</span></span>'
+            + '<span class="zg-card-meta"><span><strong>' + plural(pages, 'page') + '</strong>Comic ' + String(list.length - i).padStart(2, '0') + '</span><span><strong>Posted</strong>' + esc(formatDate(c)) + '</span>'
+                + (nx ? '<span class="cd-stat"><strong>' + cdClock() + cdSpan(nx.at, 'day', 'cd-cap') + '</strong>Next page · ' + esc(cdWhen(nx.at)) + '</span>' : '') + '</span>'
             + (started ? '<span class="zc-progress"><span class="zc-bar"><i style="width:' + Math.round((p + 1) / pages * 100) + '%"></i></span>' + (p >= pages - 1 ? 'Finished' : 'On page ' + (p + 1) + ' of ' + pages) + '</span>' : '')
             + '<span class="zg-open">' + (started && p < pages - 1 ? 'Keep reading' : 'Read it') + ' <span aria-hidden="true">→</span></span>'
             + '</span>'
             + (strip ? '<span class="zg-stickers n' + Math.min(3, pages - 1) + '" aria-hidden="true">' + strip + '</span>' : '')
+            + (nx ? '<span class="cd-badge">' + cdClock() + '<span>New page in ' + cdSpan(nx.at, 'short') + '</span></span>' : '')
             + '</a>';
     }).join('');
     fitTitles(grid);
@@ -2595,7 +2728,7 @@ function openComicGallery(id, opts = {}) {
     const prog = comicProgress()[comic.id];
     setZineSlot(overlay, comicSlot(comic.id));
     byId('co-title').textContent = comic.title || 'Untitled';
-    byId('co-meta').textContent = plural(pages.length, 'page') + ', posted ' + formatDate(comic);
+
     const tags = (comic.tags || []);
     byId('co-tags').innerHTML = tags.map(t => '<span class="chip">' + esc(t) + '</span>').join('');
     byId('co-tags').hidden = !tags.length;
@@ -2603,6 +2736,7 @@ function openComicGallery(id, opts = {}) {
         ? '<button class="btn" data-action="read-comic" data-id="' + comic.id + '" data-page="0">From the start</button><button class="btn btn-primary" data-action="read-comic" data-id="' + comic.id + '" data-page="' + prog + '">Continue on page ' + (prog + 1) + '</button>'
         : '<button class="btn btn-primary" data-action="read-comic" data-id="' + comic.id + '" data-page="0"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Start reading</button>');
     byId('co-grid').innerHTML = pages.map((url, i) => '<button class="page-thumb' + (prog === i ? ' is-last' : '') + '" data-action="read-comic" data-id="' + comic.id + '" data-page="' + i + '"><span class="frame"><img src="' + esc(thumbOf(url)) + '" alt="" loading="lazy" decoding="async"></span>Page ' + (i + 1) + (prog === i ? ', last read' : '') + '</button>').join('');
+    comicGalleryNext(comic);
     overlay.scrollTop = 0;
     if (!Modals.isOpen(overlay)) Modals.open(overlay, { onRequestClose: () => closeComicGallery(), focus: '.back-btn' });
     updateTitle();
@@ -2742,7 +2876,7 @@ function renderReaderScroll(comic, fromRoute) {
         box.dataset.comic = comic.id; box.dataset.n = comic.pages.length;
         box.innerHTML = comic.pages.map((u, i) => '<img src="' + esc(u) + '" alt="' + esc(pageAlt(comic, i)) + '" data-i="' + i + '" decoding="async"' + (i > ui.reader.page + 2 ? ' loading="lazy"' : '') + '>'
             + '<div class="rd-after" data-i="' + i + '">' + pageAfterHTML(comic, i) + '</div>').join('')
-            + '<div class="rd-end"><p>The end</p><button class="btn on-dark" data-action="close-reader">Back to the pages</button></div>';
+            + readerEndHTML(comic);
     }
     readerScrollTo(ui.reader.page);
     updateScrollSpot(comic, fromRoute);
@@ -2984,6 +3118,12 @@ function refreshReaderTalk() {
     strip.hidden = noted == null || ui.reader.side || readerMode(comic) === 'scroll';
     if (noted != null) strip.innerHTML = '<b>Note from ' + esc(siteName()) + ':</b> <span>' + esc(excerpt(pageInfo(comic, noted).note, 140)) + '</span>';
     if (readerMode(comic) === 'scroll') $$('#rd-scroll .rd-after').forEach(a => { a.innerHTML = pageAfterHTML(comic, Number(a.dataset.i)); });
+    // On the last page: when the next one comes out
+    const nx = comicNext(comic), next = byId('rd-next');
+    const atEnd = !!nx && readerMode(comic) !== 'scroll' && shown.includes(comic.pages.length - 1);
+    next.hidden = !atEnd;
+    if (!atEnd) next.dataset.at = '';
+    else if (next.dataset.at !== String(nx.at)) { next.dataset.at = nx.at; next.innerHTML = cdClock() + '<span>Next page in <b>' + cdSpan(nx.at, 'short') + '</b> · ' + esc(cdWhen(nx.at)) + '</span>'; }
     const tabs = $$('#rd-side [data-action="reader-side-page"]');
     tabs.forEach(t => { const c = commentCount(pageKey(comic, Number(t.dataset.page))); const s = $('small', t); if (s) s.textContent = c ? ' · ' + c : ''; });
 }
@@ -3812,6 +3952,8 @@ function bindEvents() {
 
     // One clock for every side slider on screen
     setInterval(stepSliders, 250);
+    // ...and one for the comic countdowns
+    setInterval(countdownTick, 1000);
 
     // Images fade in once loaded
     document.addEventListener('load', e => { if (e.target.tagName === 'IMG') e.target.classList.remove('is-loading'); }, true);
