@@ -3831,6 +3831,25 @@ function bindEvents() {
     wireCompare();
     onSwipe(byId('viewer'), () => stepViewer(1), () => stepViewer(-1));
     onSwipe(byId('rd-stage'), () => readerStep(1), () => readerStep(-1));
+    // Panel by panel: the mouse wheel goes to the next or previous panel. One step per notch, or per flick on a
+    // trackpad (its drift afterwards is ignored), and it never closes the comic at the very end.
+    const wheel = { acc: 0, last: 0, until: 0 };
+    byId('rd-stage').addEventListener('wheel', e => {
+        const comic = getComic(ui.reader.id);
+        if (!comic || readerMode(comic) !== 'panels' || e.ctrlKey) return;
+        e.preventDefault();
+        const now = performance.now(), unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+        const d = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;
+        if (now < wheel.until) { wheel.until = Math.max(wheel.until, now + 140); wheel.last = now; return; }
+        if (now - wheel.last > 220) wheel.acc = 0;
+        wheel.last = now; wheel.acc += d;
+        if (Math.abs(wheel.acc) < 40) return;
+        const dir = wheel.acc > 0 ? 1 : -1;
+        wheel.acc = 0; wheel.until = now + 420;
+        const p = ui.reader.page, last = comic.pages.length - 1;
+        if (dir > 0 && p === last && ui.reader.panel >= readerSteps(comic, p).length - 1) return;
+        readerStep(dir);
+    }, { passive: false });
     const rdStage = byId('rd-stage');
     let rdTick = false;
     rdStage.addEventListener('scroll', () => { if (!rdTick) { rdTick = true; requestAnimationFrame(() => { rdTick = false; onReaderScroll(); }); } }, { passive: true });
