@@ -9,7 +9,7 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 ---
 
 ## 7.0.27 · 2026-11-21
-**A "Working on" card and comic countdowns** · [#38](https://github.com/Neerg18/lbm/pull/38)
+**A "Working on" card and comic countdowns** · [#38](https://github.com/Neerg18/lbm/pull/38) · [code](https://github.com/Neerg18/lbm/tree/b7bb626)
 - **Working on:** a card on Home with a peek at what you're drawing now. Your work in progress is taped on like a polaroid, shown as a peek hole in a blurred picture, all blurred, a close-up of one spot, or pixelated. Next to it are what it is, a line about it, the stage it's at (Sketch, Lines, Colors, Shading, Done) and a block meter like the loading screen's, with "Updated 2 days ago". It can be a wide card under your banner or a small card in the bar at the bottom of Home, next to the comics and commissions cards. When you pick the finished post, the card turns green with a Finished! stamp and a **See it** button.
 - **Setting it up:** in the new **Admin → Site info → Working on** section: switch it on, pick where it shows, pick the picture (from your posts or upload it), choose how much to show, and click the preview to choose the spot the peek hole or close-up shows. Then set the title, line, stage and progress, and save. Admin makes the teaser picture and uploads only that (`img/wip/teaser.webp`), so a picture you upload there never leaves your computer.
 - **Comic countdown:** in **Admin → Comics → Edit**, set the date and time of a comic's next page. The comic then counts down with a little ticking clock:
