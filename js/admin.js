@@ -1,6 +1,6 @@
 /*
  ╔══════════════════════════════════════════════════════════════════╗
- ║  NEERG 7.0.26 · admin.js                                         ║
+ ║  NEERG 7.0.27 · admin.js                                         ║
  ║  The admin tools: new posts, managing posts and comics, site     ║
  ║  info, commissions, colors, the Home page, links and cleanup,    ║
  ║  and the dashboard itself (its markup is at the end of this      ║
@@ -613,7 +613,7 @@ function renderComicsAdmin() {
                 + '<label class="field"><span>Tags</span><input type="text" name="tags" value="' + esc((c.tags || []).join(', ')) + '"></label>'
                 + '<label class="field"><span>Cover image link</span><input type="text" name="cover" value="' + esc(c.cover || '') + '"></label>'
                 + '<label class="field"><span>Opens in <em>(readers can still switch)</em></span><select name="mode">' + [['page', 'One page at a time'], ['scroll', 'Long scroll'], ['spread', 'Two pages, like a comic book'], ['panels', 'Panel by panel (once panels are marked)']].map(([v, l]) => '<option value="' + v + '"' + ((c.mode || 'page') === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label>'
-                + '<label class="field"><span>Panel order <em>(for reading panel by panel)</em></span><select name="panelDir"><option value="ltr">Left to right</option><option value="rtl"' + (c.panelDir === 'rtl' ? ' selected' : '') + '>Right to left, like manga</option></select></label></div>'
+                + '<label class="field"><span>Panel order <em>(for reading panel by panel)</em></span><select name="panelDir"><option value="ltr">Left to right</option><option value="rtl"' + (c.panelDir === 'rtl' ? ' selected' : '') + '>Right to left, like manga</option></select></label>' + nextPageField(c) + '</div>'
                 + '<div class="field"><span>Pages <em>(drag to reorder, tap <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> to swap an image, ✕ to remove a page, <i class="fa-solid fa-feather" aria-hidden="true"></i> for its note and panels)</em></span>'
                 + '<div class="page-sorter ec-sorter" id="ec-pages"></div>'
                 + '<input type="file" accept="image/*" id="ec-swap-file" hidden>'
@@ -678,6 +678,14 @@ function editComicRemove(index) {
     items.splice(Number(index), 1);
     renderEditComicPages();
 }
+// The comic's countdown: the next page's date and time, saved as next: { at, page }
+function nextPageField(c) {
+    const n = c.next && c.next.at > Date.now() ? new Date(c.next.at) : null;
+    const d = n ? n.getFullYear() + '-' + pad2(n.getMonth() + 1) + '-' + pad2(n.getDate()) : '', t = n ? pad2(n.getHours()) + ':' + pad2(n.getMinutes()) : '';
+    return '<div class="field"><span>Next page <em>(shows a countdown on the comic until then)</em></span>'
+        + '<div class="inline-form ec-next"><input type="date" name="nextDate" value="' + d + '" aria-label="Date of the next page"><input type="time" name="nextTime" value="' + t + '" aria-label="Time of the next page"><button type="button" class="btn small" data-action="ec-next-clear">Clear</button></div>'
+        + '<span class="hint">The countdown goes away by itself when the time comes, or when you add the page.</span></div>';
+}
 async function saveEditedComic(form) {
     const c = getComic(form.dataset.id); if (!c || publishing) return;
     // Read the form now, before any upload, in case the list re-renders while waiting
@@ -686,6 +694,7 @@ async function saveEditedComic(form) {
     const coverField = safeUrl(form.elements.cover.value);
     const mode = form.elements.mode ? form.elements.mode.value : 'page';
     const panelDir = form.elements.panelDir ? form.elements.panelDir.value : 'ltr';
+    const nextDate = form.elements.nextDate ? form.elements.nextDate.value : '', nextTime = form.elements.nextTime ? form.elements.nextTime.value : '';
     const oldPages = (c.pages || []).slice();
     const items = editPagesDraft.id === c.id ? editPagesDraft.items : comicDraftItems(c);
     if (!items.length) { showToast('A comic needs at least one page.', 'error'); return; }
@@ -728,6 +737,11 @@ async function saveEditedComic(form) {
     if (Object.keys(info).length) c.pageInfo = info; else delete c.pageInfo;
     c.pages = pages;
     c.cover = cover;
+    // The countdown: unchanged unless its date or time changed, when it counts to the page after the last one
+    const at = nextDate ? new Date(nextDate + 'T' + (nextTime || '00:00')).getTime() : 0;
+    if (!at) delete c.next;
+    else if (at <= Date.now()) { delete c.next; showToast('That next-page time has already passed, so there\'s no countdown.', 'info'); }
+    else if (!c.next || c.next.at !== at) c.next = { at, page: pages.length + 1 };
     editingComicId = null; resetEditPagesDraft();
     renderComicsAdmin(); renderComics();
     saveComics();
@@ -1321,6 +1335,167 @@ function populateSiteForm() {
     linkPreviewSoon();
     set('s-bgimage', c.bgImage); set('s-css', c.customCss); set('s-newkey', '');
     chk('s-webp', c.webpUploads !== false);
+    populateWipForm();
+}
+
+
+/* ═════════════════════════════════════════════
+   ADMIN: WORKING ON (Site info)
+   The teaser is made here from the work in progress: a peek hole in a blurred picture, all blurred, a close-up
+   of one spot, or pixelated. Only that teaser is uploaded (img/wip/teaser.webp); a picture uploaded here stays
+   on this computer. Saved with the rest of Site info.
+   ═════════════════════════════════════════════ */
+const WIPD = { file: null, bmp: null, key: '', spot: [.62, .42], dirty: false, seq: 0 };
+const radioVal = name => { const r = $('input[name="' + name + '"]:checked'); return r ? r.value : ''; };
+function setRadio(name, v) { $$('input[name="' + name + '"]').forEach(r => { r.checked = r.value === String(v); }); }
+function populateWipForm() {
+    if (!byId('wip-on')) return;
+    const cv = byId('wip-canvas');
+    if (!cv.dataset.wired) { cv.dataset.wired = '1'; cv.addEventListener('click', wipPick); }
+    const w = currentConfig.wip || {};
+    byId('wip-on').checked = !!w.on;
+    setRadio('wip-place', w.place === 'bar' ? 'bar' : 'top');
+    setRadio('wip-show', ['peek', 'blur', 'crop', 'pixel'].includes(w.show) ? w.show : 'peek');
+    setRadio('wip-stage', Number(w.stage) || 0);
+    byId('wip-src').value = w.src || ''; byId('wip-file').value = '';
+    byId('wip-title').value = w.title || ''; byId('wip-note').value = w.note || '';
+    byId('wip-pct').value = Number(w.pct) || 0; byId('wip-pct-n').textContent = (Number(w.pct) || 0) + '%';
+    const posts = shownPosts().filter(p => firstImage(p)).sort((a, b) => b.id - a.id).slice(0, 60);
+    byId('wip-post').innerHTML = '<option value="">Not finished yet</option>' + posts.map(p => '<option value="' + p.id + '">' + esc(postTitle(p)) + ' · ' + esc(formatDate(p)) + '</option>').join('');
+    byId('wip-post').value = posts.some(p => String(p.id) === String(w.post)) ? String(w.post) : '';
+    Object.assign(WIPD, { file: null, bmp: null, key: '', dirty: false, spot: Array.isArray(w.spot) ? w.spot.slice() : [.62, .42] });
+    byId('wip-src-hint').textContent = w.img && !w.src
+        ? 'The teaser on your site was made from a picture you uploaded. To change how much it shows, upload the picture again.'
+        : 'If you upload it here, the picture itself stays on your computer: only the teaser is put on your site.';
+    wipLoad();
+}
+// Reads the work in progress (the uploaded file, or the picked picture) for the preview and the teaser
+async function wipLoad() {
+    const seq = ++WIPD.seq, src = (byId('wip-src').value || '').trim();
+    const key = WIPD.file ? 'file:' + WIPD.file.name + WIPD.file.size : src;
+    if (key === WIPD.key && WIPD.bmp) return wipPreview();
+    WIPD.bmp = null; WIPD.key = key;
+    if (!key) { byId('wip-edit').hidden = true; return; }
+    try {
+        const blob = WIPD.file || await (await fetch(safeUrl(src))).blob();
+        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+        if (seq !== WIPD.seq) return;
+        WIPD.bmp = bmp;
+    } catch (e) {
+        if (seq === WIPD.seq) { byId('wip-edit').hidden = true; showToast('Couldn\'t read that picture. Pick one from your posts or upload it.', 'error'); }
+        return;
+    }
+    wipPreview();
+}
+// The teaser, drawn from the picture: peek hole, all blurred, close-up or pixelated
+function wipDraw(bmp, show, spot, maxW) {
+    const bw = bmp.width, bh = bmp.height, out = document.createElement('canvas'), cx = out.getContext('2d');
+    if (show === 'crop') {
+        let cw = bw * .4, ch = cw * .75;
+        if (ch > bh) { ch = bh; cw = ch / .75; }
+        const sx = clamp(spot[0] * bw - cw / 2, 0, bw - cw), sy = clamp(spot[1] * bh - ch / 2, 0, bh - ch);
+        out.width = Math.round(Math.min(maxW, cw)); out.height = Math.round(out.width * .75);
+        cx.imageSmoothingQuality = 'high';
+        cx.drawImage(bmp, sx, sy, cw, ch, 0, 0, out.width, out.height);
+        return out;
+    }
+    const s = Math.min(1, maxW / bw), W = out.width = Math.round(bw * s), H = out.height = Math.round(bh * s);
+    if (show === 'pixel') {
+        const tiny = document.createElement('canvas');
+        tiny.width = 26; tiny.height = Math.max(1, Math.round(26 * bh / bw));
+        tiny.getContext('2d').drawImage(bmp, 0, 0, tiny.width, tiny.height);
+        cx.imageSmoothingEnabled = false; cx.drawImage(tiny, 0, 0, W, H);
+        return out;
+    }
+    // A soft blur: the browser's own where it has one (drawn a little oversize, so the edges don't fade),
+    // otherwise shrunk right down and grown back in steps
+    if ('filter' in CanvasRenderingContext2D.prototype) {
+        const r = Math.max(6, Math.round(Math.min(W, H) * .045)), pad = r * 2;
+        cx.filter = 'blur(' + r + 'px)'; cx.drawImage(bmp, -pad, -pad, W + pad * 2, H + pad * 2); cx.filter = 'none';
+    } else {
+        let src = document.createElement('canvas');
+        src.width = 18; src.height = Math.max(1, Math.round(18 * bh / bw));
+        src.getContext('2d').drawImage(bmp, 0, 0, src.width, src.height);
+        while (src.width * 2 < W) {
+            const up = document.createElement('canvas'); up.width = src.width * 2; up.height = src.height * 2;
+            const ux = up.getContext('2d'); ux.imageSmoothingQuality = 'high'; ux.drawImage(src, 0, 0, up.width, up.height);
+            src = up;
+        }
+        cx.imageSmoothingQuality = 'high'; cx.drawImage(src, 0, 0, W, H);
+    }
+    if (show === 'peek') {
+        const r = Math.min(W, H) * .17, px = spot[0] * W, py = spot[1] * H;
+        cx.save(); cx.beginPath(); cx.arc(px, py, r, 0, Math.PI * 2); cx.clip(); cx.drawImage(bmp, 0, 0, W, H); cx.restore();
+        const lw = Math.max(3, W / 170);
+        cx.lineWidth = lw + 3; cx.strokeStyle = 'rgba(0,0,0,.28)'; cx.beginPath(); cx.arc(px, py, r + lw / 2, 0, Math.PI * 2); cx.stroke();
+        cx.lineWidth = lw; cx.strokeStyle = '#FFFDF6'; cx.setLineDash([r * .2, r * .14]); cx.beginPath(); cx.arc(px, py, r + lw / 2, 0, Math.PI * 2); cx.stroke();
+    }
+    return out;
+}
+function wipPreview() {
+    const edit = byId('wip-edit'), cv = byId('wip-canvas'); if (!edit || !WIPD.bmp) return;
+    const show = radioVal('wip-show') || 'peek', bmp = WIPD.bmp;
+    edit.hidden = false;
+    const s = Math.min(1, 640 / bmp.width), W = cv.width = Math.round(bmp.width * s), H = cv.height = Math.round(bmp.height * s), cx = cv.getContext('2d');
+    if (show === 'crop') {
+        // The whole picture, dimmed outside the close-up box
+        cx.drawImage(bmp, 0, 0, W, H);
+        let cw = W * .4, ch = cw * .75; if (ch > H) { ch = H; cw = ch / .75; }
+        const x = clamp(WIPD.spot[0] * W - cw / 2, 0, W - cw), y = clamp(WIPD.spot[1] * H - ch / 2, 0, H - ch);
+        cx.fillStyle = 'rgba(0,0,0,.6)'; cx.fillRect(0, 0, W, y); cx.fillRect(0, y + ch, W, H - y - ch); cx.fillRect(0, y, x, ch); cx.fillRect(x + cw, y, W - x - cw, ch);
+        cx.lineWidth = 3; cx.strokeStyle = '#FFC531'; cx.strokeRect(x, y, cw, ch);
+    } else cx.drawImage(wipDraw(bmp, show, WIPD.spot, W), 0, 0, W, H);
+    byId('wip-spot-hint').hidden = show === 'blur' || show === 'pixel';
+    byId('wip-spot-hint').textContent = show === 'crop' ? 'Click the picture to choose the spot the close-up shows.' : 'Click the picture to choose the spot the peek hole shows.';
+}
+function wipPick(e) {
+    const show = radioVal('wip-show'); if (show === 'blur' || show === 'pixel' || !WIPD.bmp) return;
+    const r = e.target.getBoundingClientRect();
+    WIPD.spot = [clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)];
+    WIPD.dirty = true; wipPreview();
+}
+function wipFromFile(input) {
+    const f = input.files && input.files[0]; if (!f) return;
+    WIPD.file = f; WIPD.dirty = true;
+    byId('wip-src').value = '';
+    byId('wip-src-hint').textContent = 'Using ' + f.name + ' from your computer. Only the teaser made from it will be put on your site.';
+    wipLoad();
+}
+const wipSrcSoon = debounce(() => { WIPD.file = null; WIPD.dirty = true; wipLoad(); }, 400);
+// Saved with Site info: the settings, and a new teaser picture when the picture or how much it shows changed
+async function saveWipSettings() {
+    if (!byId('wip-on')) return true;
+    const old = currentConfig.wip || {}, val = id => (byId(id).value || '').trim();
+    const w = Object.assign({}, old, {
+        on: byId('wip-on').checked, place: radioVal('wip-place') || 'top', show: radioVal('wip-show') || 'peek',
+        title: val('wip-title'), note: val('wip-note'), stage: Number(radioVal('wip-stage')) || 0, pct: Number(byId('wip-pct').value) || 0,
+        post: byId('wip-post').value, spot: WIPD.spot.map(v => Math.round(v * 1000) / 1000)
+    });
+    if (WIPD.file) w.src = ''; else if (WIPD.dirty || val('wip-src')) w.src = val('wip-src');
+    const fresh = WIPD.dirty || (!w.img && (WIPD.file || w.src));
+    if (fresh) {
+        if (WIPD.key && !WIPD.bmp) await wipLoad();
+        if (!WIPD.bmp) {
+            if (WIPD.file || w.src) { showToast('Couldn\'t read the work in progress picture, so nothing was saved.', 'error'); return false; }
+            w.img = '';
+        } else {
+            const t = showToast('Making the teaser picture', 'loading');
+            let img = '';
+            try {
+                const blob = await canvasBlob(wipDraw(WIPD.bmp, w.show, w.spot, 760), 'image/webp', .82);
+                if (isLocalMode()) img = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(''); fr.readAsDataURL(blob); });
+                else { await promisifiedUpload(new File([blob], 'teaser.webp', { type: 'image/webp' }), 'img/wip/teaser.webp'); img = 'img/wip/teaser.webp?v=' + Date.now().toString(36); }
+            } catch (e) { img = ''; }
+            dismissToast(t);
+            if (!img) { showToast('The teaser picture didn\'t upload, so nothing was saved. Try again in a moment.', 'error'); return false; }
+            w.img = img;
+        }
+    }
+    // Anything that changes what the card says counts as an update
+    if (fresh || ['title', 'note', 'stage', 'pct', 'post', 'show'].some(k => String(w[k] == null ? '' : w[k]) !== String(old[k] == null ? '' : old[k]))) w.updated = Date.now();
+    currentConfig.wip = w;
+    WIPD.dirty = false;
+    return true;
 }
 
 async function saveSiteSettings() {
@@ -1334,6 +1509,7 @@ async function saveSiteSettings() {
     c.allowComments = byId('s-comments').checked; c.reactionsEnabled = byId('s-reactions').checked;
     c.reactionIcon = byId('s-reaction-style').value; c.featuredMode = byId('s-featured').value;
     if (byId('s-rec-comic')) c.recommendedComic = byId('s-rec-comic').value;
+    if (!await saveWipSettings()) return false;
     if (byId('aotd-tiles') && Aotd.draft) { c.artOfToday = byId('s-aotd').checked; c.aotd = aotdFormSettings(); delete c.aotdColor; Aotd.draft = clone(c.aotd); }
     c.likeLabel = byId('s-like-label').value; c.dislikeLabel = byId('s-dislike-label').value;
     c.metaTitle = val('s-title'); c.metaDescription = val('s-desc');
@@ -2680,6 +2856,7 @@ Object.assign(actions, {
     'pd-clear': () => pdClear(),
     'pd-order': el => pdOrder(el.dataset.dir),
     'pd-remove': () => pdRemove(),
+    'ec-next-clear': el => { const f = el.closest('form'); f.elements.nextDate.value = ''; f.elements.nextTime.value = ''; },
     'pd-zoom': el => pdZoom(el.dataset.dir),
     'pd-full': () => pdFull(),
     'pd-shape': () => pdShape(),
@@ -3048,6 +3225,46 @@ const ADMIN_HTML = `
 
 <!-- Site info -->
 <div class="dash-panel" data-tab-panel="site" role="tabpanel" hidden>
+    <fieldset class="group" id="wip-group">
+        <legend>Working on</legend>
+        <label class="check"><input type="checkbox" id="wip-on"> <span>Show a "Working on" card on Home</span></label>
+        <div class="field"><span>Where it shows</span><div class="seg-pick">
+            <label><input type="radio" name="wip-place" value="top"><span>Big card under the banner</span></label>
+            <label><input type="radio" name="wip-place" value="bar"><span>Small card in the bar at the bottom</span></label>
+        </div></div>
+        <div class="field">
+            <span>The work in progress <em>(only the teaser made from it goes on your site)</em></span>
+            <div class="inline-form">
+                <input type="text" id="wip-src" placeholder="Pick it from your posts, or upload it" aria-label="Work in progress picture">
+                <button type="button" class="btn small" data-action="pick-image" data-target="wip-src">From posts</button>
+                <label class="btn small file-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload<input type="file" accept="image/*" id="wip-file" hidden></label>
+            </div>
+            <p class="hint" id="wip-src-hint">If you upload it here, the picture itself stays on your computer: only the teaser is put on your site.</p>
+        </div>
+        <div class="field"><span>How much to show</span><div class="seg-pick">
+            <label><input type="radio" name="wip-show" value="peek"><span>Peek hole</span></label>
+            <label><input type="radio" name="wip-show" value="blur"><span>All blurred</span></label>
+            <label><input type="radio" name="wip-show" value="crop"><span>Close-up</span></label>
+            <label><input type="radio" name="wip-show" value="pixel"><span>Pixelated</span></label>
+        </div></div>
+        <div class="wip-edit" id="wip-edit" hidden>
+            <canvas id="wip-canvas" aria-label="The teaser, as visitors will see it"></canvas>
+            <p class="hint" id="wip-spot-hint">Click the picture to choose the spot the peek hole shows.</p>
+        </div>
+        <div class="form-grid">
+            <label class="field"><span>What it is</span><input type="text" id="wip-title" maxlength="60" placeholder="Spooky Season Pin-up"></label>
+            <label class="field"><span>A line about it <em>(optional)</em></span><input type="text" id="wip-note" maxlength="140" placeholder="Coloring the background tonight"></label>
+        </div>
+        <div class="field"><span>Stage</span><div class="seg-pick">
+            <label><input type="radio" name="wip-stage" value="0"><span>Sketch</span></label>
+            <label><input type="radio" name="wip-stage" value="1"><span>Lines</span></label>
+            <label><input type="radio" name="wip-stage" value="2"><span>Colors</span></label>
+            <label><input type="radio" name="wip-stage" value="3"><span>Shading</span></label>
+            <label><input type="radio" name="wip-stage" value="4"><span>Done</span></label>
+        </div></div>
+        <div class="field"><span>Progress</span><div class="wip-range"><input type="range" id="wip-pct" min="0" max="100" step="5" aria-label="Progress"><output id="wip-pct-n" for="wip-pct">0%</output></div></div>
+        <label class="field"><span>When it's finished <em>(pick the post, and the card says Finished! and links to it)</em></span><select id="wip-post"></select></label>
+    </fieldset>
     <fieldset class="group">
         <legend>Identity</legend>
         <div class="form-grid">
@@ -3544,6 +3761,8 @@ function buildDashboard() {
         else if (/^bn-img-\d$/.test(t.id)) { const prev = t.parentElement.querySelector('.prev'); if (prev) prev.style.backgroundImage = 'url("' + safeUrl(t.value).replace(/"/g, '%22') + '")'; }
         else if (t.id === 's-status-color') document.documentElement.style.setProperty('--status', t.value);
         else if (t.id === 'cm-f-tape') syncTapeSample();
+        else if (t.id === 'wip-src') wipSrcSoon();
+        else if (t.id === 'wip-pct') byId('wip-pct-n').textContent = t.value + '%';
         else if (/^(image|color|name)$/.test(t.name) && t.closest('.tier-row')) refreshTierThumb(t.closest('.tier-row'));
     });
     document.addEventListener('change', e => {
@@ -3552,6 +3771,8 @@ function buildDashboard() {
         else if (t.id === 'ec-swap-file') editComicSwapPicked(t);
         else if (t.id === 'bn-count' || t.id === 'bn-marquee') syncBannerForm();
         else if (t.id === 'ring-dir') Studio.readRing();
+        else if (t.id === 'wip-file') wipFromFile(t);
+        else if (t.name === 'wip-show') { WIPD.dirty = true; wipPreview(); }
         else if (t.name === 'aotd-mode' && Aotd.draft) { Aotd.draft.mode = t.value; renderAotdTiles(); }
         else if (t.name === 'aotd-art') syncAotdArtFields();
         else if (t.classList && t.classList.contains('aotd-tile-color') && Aotd.draft) { Aotd.draft.colors[t.dataset.id] = t.value; const m = t.closest('.aotd-tile').querySelector('.aotd-mini-wrap'); if (m) m.style.setProperty('--mc', t.value); }

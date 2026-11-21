@@ -8,6 +8,19 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 
 ---
 
+## 7.0.27 · 2026-11-21
+**A "Working on" card and comic countdowns** · [#38](https://github.com/Neerg18/lbm/pull/38)
+- **Working on:** a card on Home with a peek at what you're drawing now. Your work in progress is taped on like a polaroid, shown as a peek hole in a blurred picture, all blurred, a close-up of one spot, or pixelated. Next to it are what it is, a line about it, the stage it's at (Sketch, Lines, Colors, Shading, Done) and a block meter like the loading screen's, with "Updated 2 days ago". It can be a wide card under your banner or a small card in the bar at the bottom of Home, next to the comics and commissions cards. When you pick the finished post, the card turns green with a Finished! stamp and a **See it** button.
+- **Setting it up:** in the new **Admin → Site info → Working on** section: switch it on, pick where it shows, pick the picture (from your posts or upload it), choose how much to show, and click the preview to choose the spot the peek hole or close-up shows. Then set the title, line, stage and progress, and save. Admin makes the teaser picture and uploads only that (`img/wip/teaser.webp`), so a picture you upload there never leaves your computer.
+- **Comic countdown:** in **Admin → Comics → Edit**, set the date and time of a comic's next page. The comic then counts down with a little ticking clock:
+  - a "New page in 2d 14h" sticker and a "Next page" figure on its card on the Comics page;
+  - "New page in 2 days" in its header and a Coming soon tile after its last page;
+  - a live days / hours / minutes / seconds countdown at the end of Scroll mode, and a "Next page in…" line on the last page in the other modes;
+  - a line in the comics bar on Home.
+- **The countdown takes care of itself:** each visitor sees the time in their own time zone, and the countdown goes away by itself when the time comes, or as soon as you add the page.
+- **Checked:** every page was compared against 7.0.26 element by element on a computer and a phone. Visitors see no change until you switch these on, and in Admin only the new fields differ.
+- **Updating by hand:** upload `css/style.css`, `css/admin.css`, `js/logic.js` and `js/admin.js`, then `index.html`. Installing a new `index.html` resets your link preview, and the next time you open Admin it puts it back by itself.
+
 ## 7.0.26 · 2026-11-20
 **Notes and comments on comic pages, and panel by panel reading** · [#34](https://github.com/Neerg18/lbm/pull/34) · [code](https://github.com/Neerg18/lbm/tree/f13e8ec)
 - **Notes and comments on comic pages:** each comic page can carry a short author's note, and every page has its own comments. The reader has a new speech-bubble button at the top showing the page's comment count; it opens a panel beside the page on computers, or a sheet from the bottom on phones, with the page's note, its comments, replies and a comment box. A note also shows as a small strip under the page. In Scroll mode, each page has its note and a comment link under it. Write notes in **Admin → Comics → Edit**: each page has a feather button. Comments stay with their page when you reorder pages, and replacing a page's picture keeps its comments.

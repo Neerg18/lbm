@@ -11,7 +11,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; connect-src * 'unsafe-inline';">
 
     <!--
-    NEERG 7.0.26 · index.html
+    NEERG 7.0.27 · index.html
     A self-hosted art blog for Neocities, built on LBM by applesaucy.
 
     Upload index.html and the css, js and fonts folders to your Neocities root.
@@ -41,10 +41,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Dela+Gothic+One&family=Martian+Mono:wght@400..600&family=Unbounded:wght@600..900&display=swap">
     <!-- The ?v= tag makes browsers fetch fresh copies after an update. Set it to the new version (NEERG_VERSION in logic.js) with every update. -->
-    <link rel="stylesheet" href="css/style.css?v=7.0.26">
+    <link rel="stylesheet" href="css/style.css?v=7.0.27">
 
     <script defer src="js/marked.min.js"></script>
-    <script defer src="js/logic.js?v=7.0.26"></script>
+    <script defer src="js/logic.js?v=7.0.27"></script>
 </head>
 <body>
 
@@ -171,6 +171,7 @@
 
         <!-- Below the header: the featured frame, Recent works between the side sliders, then the comic and commissions bar -->
         <div class="ha">
+            <section class="wip zg-paper" id="wip" aria-label="Working on" hidden></section>
             <section class="ha-feat" id="featured" hidden aria-labelledby="feat-title">
                 <div class="ha-frame" id="feat-frame"></div>
                 <div class="ha-cap" id="feat-cap"></div>
@@ -224,6 +225,7 @@
                     <strong class="feat-comm-text"></strong>
                     <span>See tiers and prices <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
+                <div class="wip-mini zg-paper" id="wip-mini" role="group" aria-label="Working on" hidden></div>
             </section>
 
             <aside class="ha-rail ha-band" id="rail-band" aria-label="More art"></aside>
@@ -426,7 +428,7 @@
             <a href="#/about">About</a>
         </nav>
         <div class="social-icons" id="footer-social"></div>
-        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.26</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
+        <p class="footer-credit">Built on <a href="https://lbm-test.neocities.org" target="_blank" rel="noopener">LBM</a> · <a href="https://github.com/Neerg18/lbm/blob/main/CHANGELOG.md" target="_blank" rel="noopener" id="footer-version">NEERG 7.0.27</a><span id="footer-feed" hidden> · <a href="feed.xml" type="application/rss+xml">RSS feed</a></span></p>
     </div>
 </footer>
 
@@ -514,6 +516,7 @@
     </div>
     <div class="reader-bottom">
         <button class="rd-note-strip" id="rd-note-strip" data-action="reader-talk" hidden></button>
+        <div class="rd-next" id="rd-next" hidden></div>
         <div class="reader-pages" id="rd-pages"></div>
     </div>
 </div>

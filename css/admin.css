@@ -1,5 +1,5 @@
 /*
- NEERG 7.0.26 · admin.css
+ NEERG 7.0.27 · admin.css
  Styles only the admin tools use: the dashboard, its forms and editors. Loads with admin.js the first time
  Admin opens, after style.css, so visitors never download it. Grouped by the part of style.css each came from.
 */
@@ -474,3 +474,17 @@
 .aotd-pick { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; max-width: none; }
 .aotd-pick-show { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: .9rem; }
 .aotd-pick-show img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; }
+
+/* ─── WORKING ON (Site info) and the comic countdown field ─── */
+.seg-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg-pick label { position: relative; }
+.seg-pick input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.seg-pick span { display: inline-flex; align-items: center; min-height: 38px; padding: 0 15px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-weight: 600; font-size: .92rem; }
+.seg-pick input:checked + span { background: var(--hl); border-color: var(--hl); color: var(--hl-ink); }
+.seg-pick input:focus-visible + span { outline: 2px solid var(--hl); outline-offset: 2px; }
+.wip-edit { display: flex; flex-direction: column; gap: 8px; }
+#wip-canvas { display: block; max-width: 100%; max-height: 360px; width: auto; height: auto; border-radius: var(--r-m); background: var(--post-bg); cursor: crosshair; align-self: flex-start; }
+.wip-range { display: flex; align-items: center; gap: 12px; }
+.wip-range input { flex: 1; accent-color: var(--hl); }
+.wip-range output { min-width: 3.5em; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+.ec-next input[type="date"], .ec-next input[type="time"] { flex: 1 1 140px; min-width: 0; }
