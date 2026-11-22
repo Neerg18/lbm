@@ -572,6 +572,8 @@ async function createComic() {
     const tags = byId('nc-tags').value.split(',').map(t => t.trim()).filter(Boolean);
     if (!title) { showToast('Give the comic a title.', 'error'); byId('nc-title').focus(); return; }
     if (!comicPagesQueue.length) { showToast('Add at least one page.', 'error'); return; }
+    const nextAt = readNextAt('nc-next');
+    if (nextAt < 0) { showToast('That next-page time has already passed. Pick a later one, or clear it.', 'error'); byId('nc-next-date').focus(); return; }
     publishing = true;
     const box = byId('nc-progress'), bar = byId('nc-progress-bar'), txt = byId('nc-progress-text');
     box.hidden = false;
@@ -581,9 +583,11 @@ async function createComic() {
     const pages = await uploadFiles(comicPagesQueue.map(i => i.file), comicFolder(comic), (i, n) => { bar.style.width = (i / n * 100) + '%'; txt.textContent = i < n ? 'Uploading page ' + (i + 1) + ' of ' + n : 'Saving comic'; });
     if (!pages) { publishing = false; box.hidden = true; return; }
     comic.cover = cover || pages[0]; comic.pages = pages;
+    if (nextAt) comic.next = { at: nextAt, page: pages.length + 1 };
     comicsCache.push(comic);
     byId('nc-title').value = ''; byId('nc-cover').value = ''; byId('nc-tags').value = ''; byId('nc-files').value = '';
     if (byId('nc-mode')) byId('nc-mode').value = 'page';
+    clearNextAt('nc-next');
     comicPagesQueue = []; renderNewComicPages();
     bar.style.width = '100%';
     renderComicsAdmin(); renderComics();
@@ -678,6 +682,19 @@ function editComicRemove(index) {
     items.splice(Number(index), 1);
     renderEditComicPages();
 }
+// The next page's date and time, for the New comic form and the Add pages window (ids prefix-date, prefix-time)
+function nextPageInputs(prefix, note) {
+    return '<div class="field"><span>Next page <em>(' + note + ')</em></span>'
+        + '<div class="inline-form ec-next"><input type="date" id="' + prefix + '-date" aria-label="Date of the next page"><input type="time" id="' + prefix + '-time" aria-label="Time of the next page"><button type="button" class="btn small" data-action="next-clear" data-for="' + prefix + '">Clear</button></div></div>';
+}
+// The time picked, 0 for none, or -1 when it has already passed
+function readNextAt(prefix) {
+    const d = byId(prefix + '-date'), t = byId(prefix + '-time');
+    if (!d || !d.value) return 0;
+    const at = new Date(d.value + 'T' + ((t && t.value) || '00:00')).getTime();
+    return at > Date.now() ? at : -1;
+}
+function clearNextAt(prefix) { [prefix + '-date', prefix + '-time'].forEach(id => { const el = byId(id); if (el) el.value = ''; }); }
 // The comic's countdown: the next page's date and time, saved as next: { at, page }
 function nextPageField(c) {
     const n = c.next && c.next.at > Date.now() ? new Date(c.next.at) : null;
@@ -758,18 +775,23 @@ function openAddPagesModal(id) {
     byId('ap-title').textContent = c.title || 'Untitled';
     byId('ap-count').textContent = '(' + plural((c.pages || []).length, 'page') + ' now)';
     byId('ap-files').value = ''; renderAddPages();
+    clearNextAt('ap-next');
     byId('ap-progress').hidden = true;
     Modals.open(byId('ap-modal'));
 }
 async function submitAddPages() {
     const c = getComic(addPagesComicId); if (!c || publishing) return;
     if (!addPagesQueue.length) { showToast('Choose at least one page.', 'error'); return; }
+    const nextAt = readNextAt('ap-next');
+    if (nextAt < 0) { showToast('That next-page time has already passed. Pick a later one, or clear it.', 'error'); byId('ap-next-date').focus(); return; }
     publishing = true;
     const box = byId('ap-progress'), bar = byId('ap-progress-bar'), txt = byId('ap-progress-text');
     box.hidden = false;
     const pages = await uploadFiles(addPagesQueue.map(i => i.file), comicFolder(c), (i, n) => { bar.style.width = (i / n * 100) + '%'; txt.textContent = i < n ? 'Uploading page ' + (i + 1) + ' of ' + n : 'Saving'; });
     if (!pages) { publishing = false; box.hidden = true; return; }
     c.pages = (c.pages || []).concat(pages);
+    // A new countdown to the page after these, if one was set (an old one ends by itself once its page is in)
+    if (nextAt) c.next = { at: nextAt, page: c.pages.length + 1 };
     renderComicsAdmin(); renderComics();
     await saveComics();
     publishing = false;
@@ -2857,6 +2879,7 @@ Object.assign(actions, {
     'pd-order': el => pdOrder(el.dataset.dir),
     'pd-remove': () => pdRemove(),
     'ec-next-clear': el => { const f = el.closest('form'); f.elements.nextDate.value = ''; f.elements.nextTime.value = ''; },
+    'next-clear': el => clearNextAt(el.dataset.for),
     'pd-zoom': el => pdZoom(el.dataset.dir),
     'pd-full': () => pdFull(),
     'pd-shape': () => pdShape(),
@@ -3028,6 +3051,7 @@ const ADMIN_HTML = `
             <label class="field"><span>Tags</span><input type="text" id="nc-tags" placeholder="fantasy, action"></label>
             <label class="field"><span>Cover image link <em>(optional, page 1 is used if empty)</em></span><input type="url" id="nc-cover" placeholder="https://..."></label>
             <label class="field"><span>Opens in <em>(readers can still switch)</em></span><select id="nc-mode"><option value="page">One page at a time</option><option value="scroll">Long scroll</option><option value="spread">Two pages, like a comic book</option></select></label>
+            ${nextPageInputs('nc-next', 'optional: shows a countdown on the comic until then')}
         </div>
         <div class="dropzone small" id="nc-drop" data-input="nc-files" tabindex="0" role="button" aria-label="Choose comic pages">
             <p><strong>Choose pages</strong> or drop them here, in reading order</p>
@@ -3652,6 +3676,7 @@ const ADMIN_WINDOWS = [`<div class="overlay modal" id="ap-modal" role="dialog" a
         </div>
         <p class="hint">New pages go after the last page. Drag to reorder before uploading.</p>
         <div class="page-sorter" id="ap-pages"></div>
+        ${nextPageInputs('ap-next', 'optional: starts a countdown to the page after these')}
         <div class="progress" id="ap-progress" hidden>
             <div class="progress-row"><span id="ap-progress-text">Uploading</span></div>
             <div class="progress-bar"><div class="progress-fill" id="ap-progress-bar"></div></div>

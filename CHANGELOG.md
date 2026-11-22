@@ -20,6 +20,7 @@ Every update to the site gets its own version number. The numbers stay under 7.1
 - **The countdown takes care of itself:** each visitor sees the time in their own time zone, and the countdown goes away by itself when the time comes, or as soon as you add the page.
 - **Checked:** every page was compared against 7.0.26 element by element on a computer and a phone. Visitors see no change until you switch these on, and in Admin only the new fields differ.
 - **Updating by hand:** upload `css/style.css`, `css/admin.css`, `js/logic.js` and `js/admin.js`, then `index.html`. Installing a new `index.html` resets your link preview, and the next time you open Admin it puts it back by itself.
+- **Hotfix (Nov 22): set the next page while posting.** The **New comic** form and the **Add pages** window in **Admin → Comics** now have the same **Next page** date and time as the comic's edit form. Posting a new comic or new pages with a date starts a countdown to the page after them, so there's no need to open Edit afterwards. A time already past is caught before anything uploads. Leaving it empty when you add pages lets the old countdown end by itself as usual. Only `js/admin.js` changed; press Ctrl+F5 once if the fields don't show yet. · [#39](https://github.com/Neerg18/lbm/pull/39)
 
 ## 7.0.26 · 2026-11-20
 **Notes and comments on comic pages, and panel by panel reading** · [#34](https://github.com/Neerg18/lbm/pull/34) · [code](https://github.com/Neerg18/lbm/tree/f13e8ec)
